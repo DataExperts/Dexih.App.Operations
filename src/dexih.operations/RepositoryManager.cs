@@ -1,0 +1,2813 @@
+﻿using dexih.functions;
+using dexih.repository;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Permissions;
+using System.Threading.Tasks;
+using static dexih.functions.TableColumn;
+using Microsoft.Extensions.Logging;
+using static Dexih.Utils.DataType.DataType;
+using Dexih.Utils.CopyProperties;
+using System.Threading;
+using Microsoft.AspNetCore.Http.Internal;
+using Microsoft.CodeAnalysis.CSharp;
+
+namespace dexih.operations
+{
+
+	
+	/// <summary>
+	/// Provides an interface to retrieve and save to the database repository.
+	/// </summary>
+	public class RepositoryManager : IDisposable
+	{
+		private string SystemEncryptionKey { get; set; }
+		private ILogger Logger { get; set; }
+
+		public DexihRepositoryContext DbContext { get; set; }
+
+
+		private Dictionary<string, DexihSetting> _namingStandards;
+		private long _internalConnectionKey = 0;
+
+		private DexihUpdateStrategy[] _updateStrategies;
+
+		public RepositoryManager(string systemEncryptionKey, 
+             DexihRepositoryContext dbContext,
+             ILoggerFactory loggerFactory
+            )
+		{
+			SystemEncryptionKey = systemEncryptionKey;
+			DbContext = dbContext;
+			Logger = loggerFactory.CreateLogger("RepositoryManager");
+		}
+
+		public RepositoryManager(string systemEncryptionKey, 
+			DexihRepositoryContext dbContext
+		)
+		{
+			SystemEncryptionKey = systemEncryptionKey;
+			DbContext = dbContext;
+		}
+		
+		public void Dispose()
+		{
+			DbContext.Dispose();
+		}
+
+		#region Hub Functions
+		/// <summary>
+		/// Retrieves an array containing the hub and all depdendencies along with any dependent objects
+		/// </summary>
+		/// <param name="hubKey"></param>
+		/// <param name="includeDependencies"></param>
+		/// <returns></returns>
+		public async Task<DexihHub> GetHub(long hubKey, bool includeDependencies)
+		{
+			var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey));
+			DexihHub hub;
+			if (includeDependencies)
+			{
+				hub = await cache.LoadHub(DbContext);
+			}
+			else
+			{
+				hub = await cache.InitHub(DbContext);
+			}
+			return hub;
+		}
+
+		public async Task<IEnumerable<DexihHubVariable>> GetHubVariables(long hubKey)
+		{
+			var hubVariables = await DbContext.DexihHubVariable.Where(c => c.HubKey == hubKey).ToArrayAsync();
+			return hubVariables;
+		}
+
+		public async Task<DexihHubUser.EPermission> GetHubUserPermission(long hubKey, string userId)
+		{
+			var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.IsValid);
+			if (hubUser == null)
+			{
+				return DexihHubUser.EPermission.None;
+			}
+			else
+			{
+				return hubUser.Permission;
+			}
+		}
+
+		public async Task<DexihHub[]> GetUserHubs(string userId, bool isAdmin)
+		{
+			if (isAdmin)
+			{
+				var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
+                return hubs;
+			}
+			else
+			{
+				var hubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == userId && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+                var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid ).ToArrayAsync();
+				return hubs;
+			}
+		}
+
+        public async Task SaveChangesAsync(long hubKey, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            // clear out any DexihTransform or DexihUpdateStrategy entries, as we do not want these resaved.
+            var entities = DbContext.ChangeTracker.Entries().Where(x => (
+                x.Entity is DexihDatabaseType ||
+                x.Entity is DexihProfileRule ||
+                x.Entity is DexihSetting ||
+                x.Entity is DexihStandardFunction ||
+                x.Entity is DexihTransform ||   
+                x.Entity is DexihUpdateStrategy 
+                ) && (x.State == EntityState.Added || x.State == EntityState.Modified));
+            entities.Select(c => { c.State = EntityState.Unchanged; return c; }).ToList();
+
+            await DbContext.SaveHub(hubKey, true, cancellationToken);
+        }
+
+		/// <summary>
+		/// Gets a list of userIds which have access to the specified hubKey.
+		/// </summary>
+		/// <param name="hubKey"></param>
+		/// <returns></returns>
+		public async Task<List<string>> GetHubUserIds(long hubKey)
+		{
+			try
+			{
+				var adminId = await DbContext.Roles.SingleAsync(c => c.Name == "ADMINISTRATOR");
+				var adminUsers = await DbContext.UserRoles.Where(c => c.RoleId == adminId.Id).Select(c => c.UserId).ToListAsync();
+				var hubUserIds = await DbContext.DexihHubUser.Where(c => !adminUsers.Contains(c.UserId) && c.HubKey == hubKey && c.IsValid).Select(c => c.UserId).ToListAsync();
+				hubUserIds.AddRange(adminUsers);
+
+				var hubUserNames =
+					await DbContext.Users.Where(c => hubUserIds.Contains(c.Id)).Select(c => c.UserName).ToListAsync();
+				
+				return hubUserNames;
+			}
+			catch (Exception ex)
+			{
+                throw new RepositoryManagerException($"Error getting hub user ids.  {ex.Message}", ex);
+			}
+		}
+
+        /// <summary>
+        /// Gets a list of users with names and permission to hub.
+        /// </summary>
+        /// <param name="hubKey"></param>
+        /// <returns></returns>
+        public async Task<List<HubUser>> GetHubUsers(long hubKey)
+        {
+            try
+            {
+                var hubUsers = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && c.IsValid).ToListAsync();
+                var users = await DbContext.Users.Where(c => hubUsers.Select(d => d.UserId).Contains(c.Id)).ToListAsync();
+
+                var hubUsersList = new List<HubUser>();
+                foreach(var hubUser in hubUsers)
+                {
+                    var user = users.SingleOrDefault(c => c.Id == hubUser.UserId);
+                    hubUsersList.Add(new HubUser() { Email = user.Email, FirstName = user.FirstName, LastName = user.LastName, Id = hubUser.UserId, Permission = hubUser.Permission });
+                }
+
+                return hubUsersList;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Error getting hub users.  {ex.Message}", ex);
+            }
+        }
+
+        public class HubUser
+        {
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
+            public string Email { get; set; }
+            public string Id { get; set; }
+            public DexihHubUser.EPermission Permission { get; set; }
+        }
+
+        public async Task<DexihHub> GetUserHub(long hubKey, string userId, bool isAdmin)
+		{
+			if (isAdmin)
+			{
+				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid);
+			}
+			else
+			{
+				var hub = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.IsValid);
+				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid);
+			}
+		}
+
+		public async Task<string> GetHubEncryptionKey(long hubKey)
+		{
+			var hub = await DbContext.DexihHubs.SingleAsync(c => c.HubKey == hubKey);
+			return hub.EncryptionKey;
+		}
+
+		public async Task<DexihHub> SaveHub(DexihHub hub)
+		{
+			try
+			{
+				var exists = await DbContext.DexihHubs.AnyAsync(c => c.Name == hub.Name && c.HubKey != hub.HubKey && c.IsValid);
+				if (exists)
+				{
+                    throw new RepositoryManagerException($"A hub with the name {hub.Name} already exists.");
+				}
+
+				// no encryption key provide, then create a random one.
+				if(string.IsNullOrEmpty(hub.EncryptionKey) && string.IsNullOrEmpty(hub.EncryptionKey))
+				{
+					hub.EncryptionKey = Dexih.Utils.Crypto.EncryptString.GenerateRandomKey();
+				}
+
+				DexihHub dbHub;
+
+				if (hub.HubKey > 0)
+				{
+					dbHub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hub.HubKey && c.IsValid);
+					if (dbHub != null)
+					{
+						hub.CopyProperties(dbHub, true);
+					}
+					else
+					{
+                        throw new RepositoryManagerException($"The hub could not be saved as the hub contains the hub_key {hub.HubKey} that no longer exists in the repository.");
+					}
+				}
+				else
+				{
+					dbHub = hub;
+					DbContext.DexihHubs.Add(dbHub);
+					dbHub.IsValid = true;
+
+					//create an internal connection which is used by datalinks to reference internal table structures.
+					var internalConnection = new DexihConnection()
+					{
+						Name = "Internal Connection",
+						DatabaseTypeKey = await DbContext.DexihDatabaseTypes.Select(c => c.DatabaseTypeKey).FirstAsync(), //just get any databasetype key as it is not relevant for internal connection
+						Purpose = DexihConnection.EConnectionPurpose.Internal,
+						UseWindowsAuth = false,
+						UseConnectionString = false,
+						EmbedTablekey = false,
+						IsInternal = true,
+						IsValid = true,
+					};
+					dbHub.DexihConnections.Add(internalConnection);
+				}
+
+                //save the hub to generate a hub key.
+                await DbContext.SaveChangesAsync();
+
+
+                return hub;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save hub {hub.Name} failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihHub[]> DeleteHubs(long[] hubKeys)
+		{
+			try
+			{
+				var dbHubs = await DbContext.DexihHubs
+					.Where(c => hubKeys.Contains(c.HubKey))
+					.ToArrayAsync();
+
+				foreach (var dbHub in dbHubs)
+				{
+					dbHub.IsValid = false;
+				}
+
+                await DbContext.SaveChangesAsync();
+
+                return dbHubs;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete hubs failed.  {ex.Message}", ex);
+            }
+        }
+
+
+        public async Task<string[]> HubAddUsers(long hubKey, string[] userIds, DexihHubUser.EPermission permission)
+        {
+            try
+            {
+                var addedEmails = new List<string>();
+                var rejectedEmails = new List<string>();
+
+                foreach (var userId in userIds)
+                {
+                    var subcriptionUser = new DexihHubUser
+                    {
+                        UserId = userId,
+                        Permission = permission,
+                        HubKey = hubKey,
+                        IsValid = true
+                    };
+
+                    DbContext.DexihHubUser.Add(subcriptionUser);
+                    await DbContext.SaveChangesAsync();
+                    addedEmails.Add(userId);
+                }
+
+                //InvalidEmails = RejectedEmails.ToArray();
+                return addedEmails.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Hub add users failed.  {ex.Message}", ex);
+            }
+        }
+
+    public async Task<bool> HubDeleteUsers(long hubKey, string[] userIds)
+		{
+            try
+            {
+                var addedEmails = new List<string>();
+                var rejectedEmails = new List<string>();
+
+                foreach (var userId in userIds)
+                {
+                    var usersub = await DbContext.DexihHubUser.Where(c => c.UserId == userId).ToListAsync();
+                    DbContext.DexihHubUser.RemoveRange(usersub);
+                    await DbContext.SaveChangesAsync();
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Hub delete users failed.  {ex.Message}", ex);
+            }
+
+        }
+        #endregion
+
+        #region Encrypt Functions
+        public async Task<string> DecryptString(long hubKey, string value)
+		{
+			var key = await GetHubEncryptionKey(hubKey);
+			var decryptResult = Dexih.Utils.Crypto.EncryptString.Decrypt(value, key, 1000);
+			return decryptResult;
+		}
+
+		public async Task<string> EncryptString(long hubKey, string value)
+		{
+			var key = await GetHubEncryptionKey(hubKey);
+			var encryptResult = Dexih.Utils.Crypto.EncryptString.Encrypt(value, key, 1000);
+			return encryptResult;
+		}
+
+		#endregion
+
+		public string ApplyNamingStandard(string name, string param1)
+		{
+			if (_namingStandards.ContainsKey(name))
+			{
+				var setting = _namingStandards[name];
+				return setting.Value.Replace("{0}", param1);
+			}
+			else
+			{
+				throw new RepositoryManagerException($"The naming standard for the name \"{name}\" with parameter \"{param1}\" could not be found.");
+			}
+		}
+
+		/// <summary>
+		/// Cache the naming standards records.
+		/// </summary>
+		/// <returns></returns>
+		private async Task<bool> LoadNamingStandards()
+		{
+			try
+			{
+				_namingStandards = await DbContext.DexihSettings.Where(c => c.Category == "Naming").ToDictionaryAsync(n => n.Name);
+				return true;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Loading naming standards failed.  {ex.Message}", ex);
+            }
+        }
+
+        #region Connection Functions
+        public async Task<DexihConnection> SaveConnection(long hubKey, DexihConnection connection)
+		{
+			try
+			{
+				DexihConnection dbConnection;
+
+				//check there are no connections with the same name
+				var sameName = await DbContext.DexihConnections.FirstOrDefaultAsync(c => 
+                        c.HubKey == hubKey &&
+                        c.Name == connection.Name && 
+                        c.ConnectionKey != connection.ConnectionKey && 
+                        c.IsValid);
+
+				if (sameName != null)
+				{
+                    throw new RepositoryManagerException($"The name \"{connection.Name}\" already exists in the repository.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (connection.ConnectionKey > 0)
+				{
+					dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(d => d.ConnectionKey == connection.ConnectionKey);
+					if (dbConnection != null)
+					{
+						connection.CopyProperties(dbConnection);
+					}
+					else
+					{
+                        throw new RepositoryManagerException($"An update was attempted, however the connection_key {connection.ConnectionKey} no longer exists in the repository.");
+                    }
+                }
+				else
+                {
+                    dbConnection = connection;
+					DbContext.DexihConnections.Add(dbConnection);
+				}
+
+				if (!string.IsNullOrEmpty(dbConnection.PasswordRaw))
+				{
+					// if the UsePasswordVariable variable is set, then do not encrypt the password (which will be a variable name).
+					dbConnection.Password = dbConnection.UsePasswordVariable ? dbConnection.PasswordRaw : await EncryptString(connection.HubKey, dbConnection.PasswordRaw);
+				}
+
+				if (!string.IsNullOrEmpty(dbConnection.ConnectionStringRaw))
+				{
+					// if the UseConnectionStringVariable is set, then do not encrypt the password (which will be a variable name).
+					dbConnection.ConnectionString = dbConnection.UseConnectionStringVariable ? dbConnection.ConnectionStringRaw : await EncryptString(connection.HubKey, dbConnection.ConnectionStringRaw);
+				}
+
+				dbConnection.HubKey = hubKey;
+				dbConnection.IsValid = true;
+
+				await SaveChangesAsync(hubKey);
+				
+				var dbConnection2 = await DbContext.DexihConnections.Include(c => c.DatabaseType).SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == dbConnection.ConnectionKey);
+
+				return dbConnection2;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save connection \"{connection.Name}\" failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihConnection[]> DeleteConnections(long hubKey, long[] connectionKeys)
+		{
+            try
+            {
+                var dbConnections = await DbContext.DexihConnections
+                    .Include(connection => connection.DexihTables)
+                    .ThenInclude(table => table.DexihTableColumns)
+                    .Where(c => c.HubKey == hubKey && connectionKeys.Contains(c.ConnectionKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var connection in dbConnections)
+                {
+                    connection.IsValid = false;
+                    foreach (var table in connection.DexihTables)
+                    {
+                        table.IsValid = false;
+
+                        foreach (var column in table.DexihTableColumns)
+                        {
+                            column.IsValid = false;
+                        }
+                    }
+                }
+
+                await SaveChangesAsync(hubKey);
+
+                return dbConnections;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete connections failed.  {ex.Message}", ex);
+            }
+        }
+
+
+
+        public async Task<DexihConnection> GetConnection(long hubKey, long connectionKey, bool includeTables)
+		{
+            try
+            {
+                var dbConnection = await DbContext.DexihConnections
+                      .Include(c => c.DatabaseType)
+                      .SingleOrDefaultAsync(c => c.ConnectionKey == connectionKey && c.HubKey == hubKey && c.IsValid);
+
+                if (dbConnection == null)
+                {
+                    throw new RepositoryManagerException($"The connection with the key {connectionKey} could not be found.");
+                }
+
+                if (includeTables)
+                {
+                    var cache = new CacheManager(dbConnection.HubKey, "");
+                    await cache.AddConnections(new[] { connectionKey }, true, DbContext);
+                    dbConnection = cache.DexihHub.DexihConnections.First();
+                }
+
+                return dbConnection;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Get connection with key {connectionKey} failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<long> GetInternalConnectionKey(long hubKey)
+		{
+			if (_internalConnectionKey == 0)
+			{
+				var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsInternal);
+				if (dbConnection == null)
+				{
+					throw new RepositoryManagerException($"There is no internal connection in the hub with key {hubKey}.");
+				}
+
+				_internalConnectionKey = dbConnection.ConnectionKey;
+			}
+
+			return _internalConnectionKey;
+		} /**/
+		#endregion
+
+		#region Table Functions
+		public async Task<DexihTable[]> SaveTables(long hubKey, IEnumerable<DexihTable> tables, bool includeColumns, bool includeFileFormat = false)
+		{
+			try
+			{
+				var savedTables = new List<DexihTable>();
+				foreach (var table in tables)
+				{
+					DexihTable dbTable;
+
+					//check there are no datajobs with the same name
+					var sameName = await DbContext.DexihTables.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == table.ConnectionKey && c.Name == table.Name && c.TableKey != table.TableKey && c.IsValid);
+					if (sameName != null)
+					{
+                        throw new RepositoryManagerException($"A table with the name {table.Name} already exists in the repository.");
+					}
+
+					if (!includeColumns)
+					{
+						table.DexihTableColumns = null;
+					}
+
+					if (includeFileFormat && table.FileFormat != null)
+					{
+						var dbFileFormat = await DbContext.DexihFileFormat.SingleOrDefaultAsync(f => f.HubKey == hubKey && f.FileFormatKey == table.FileFormat.FileFormatKey);
+						if (dbFileFormat == null)
+						{
+							table.EntityStatus.Message = $"The table could not be saved as the table contains the fileformat {table.FileFormat.FileFormatKey} that no longer exists in the repository.";
+							table.EntityStatus.LastStatus = EntityStatus.EStatus.Error;
+                            throw new RepositoryManagerException(table.EntityStatus.Message);
+                        }
+
+                        table.FileFormat.CopyProperties(dbFileFormat, true);
+						table.FileFormat = dbFileFormat;
+					}
+
+					var dbConnection = DbContext.DexihConnections.Include(c=>c.DatabaseType).SingleOrDefault(c => c.HubKey == hubKey && c.ConnectionKey == table.ConnectionKey);
+                    if (dbConnection == null)
+                    {
+                        table.EntityStatus.Message = $"The table could not be saved as the table contains connection that no longer exists in the repository.";
+                        table.EntityStatus.LastStatus = EntityStatus.EStatus.Error;
+                        throw new RepositoryManagerException(table.EntityStatus.Message);
+                    }
+
+                    // if the table is a flatfile or webservice synchonize the baseTable name with the name.
+                    var category = dbConnection.DatabaseType.Category;
+                    if (category == transforms.Connection.ECategory.File || category == transforms.Connection.ECategory.WebService || category == transforms.Connection.ECategory.DatabaseFile )
+                    {
+                        table.BaseTableName = table.Name;
+                    }
+
+					if (table.TableKey <= 0)
+					{
+						dbTable = new DexihTable();
+						table.CopyProperties(dbTable, false);
+						DbContext.DexihTables.Add(dbTable);
+						savedTables.Add(dbTable);
+					}
+					else
+					{
+						dbTable = await GetTable(hubKey, table.TableKey, true);
+						
+						if (dbTable.FileFormat?.FileFormatKey == table.FileFormat?.FileFormatKey)
+						{
+							table.FileFormat = dbTable.FileFormat;
+						}
+
+						if (dbTable == null)
+						{
+							dbTable = new DexihTable();
+							table.CopyProperties(dbTable, false);
+							DbContext.DexihTables.Add(dbTable);
+							savedTables.Add(dbTable);
+						}
+						else
+						{
+							table.CopyProperties(dbTable, false);
+							savedTables.Add(dbTable);
+						}
+					}
+
+					// if (dbTable.TableKey < 0) dbTable.TableKey = 0;
+
+					dbTable.IsValid = true;
+					dbTable.HubKey = hubKey;
+				}
+
+				// remove any change tracking on the file format, to aovid an attempted resave.
+				var entities = DbContext.ChangeTracker.Entries().Where(x => (
+						x.Entity is DexihFileFormat 
+					) && (x.State == EntityState.Added || x.State == EntityState.Modified));
+				entities.Select(c => { c.State = EntityState.Unchanged; return c; }).ToList();
+
+				await SaveChangesAsync(hubKey);
+				return savedTables.ToArray();
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save tables failed.  {ex.Message}", ex);
+            }
+        }
+
+
+        public async Task<DexihTable[]> DeleteTables(long hubKey, long[] tableKeys)
+		{
+            try
+            {
+                var dbTables = await DbContext.DexihTables
+                    .Include(d => d.DexihTableColumns)
+                    .Include(f => f.FileFormat)
+                    .Where(c => c.HubKey == hubKey && tableKeys.Contains(c.TableKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var table in dbTables)
+                {
+                    table.IsValid = false;
+
+                    foreach (var dbColumn in table.DexihTableColumns)
+                    {
+                        dbColumn.IsValid = false;
+                    }
+
+                    if (table.FileFormat != null && table.FileFormat.IsDefault == false)
+                    {
+                        table.FileFormat.IsValid = false;
+                    }
+                }
+
+                await SaveChangesAsync(hubKey);
+
+                return dbTables;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete tables failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihTable[]> ShareTables(long hubKey, long[] tableKeys, bool isShared)
+        {
+            try
+            {
+                var dbTables = await DbContext.DexihTables
+                    .Include(d => d.DexihTableColumns)
+                    .Include(f => f.FileFormat)
+                    .Where(c => c.HubKey == hubKey && tableKeys.Contains(c.TableKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var table in dbTables)
+                {
+                    table.IsShared = isShared;
+                }
+
+                await SaveChangesAsync(hubKey);
+
+                return dbTables;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Share tables failed.  {ex.Message}", ex);
+            }
+
+        }
+		
+		public async Task<DexihTable[]> GetTables(long hubKey, IEnumerable<long> tableKeys, bool includeColumns)
+		{
+			try
+			{
+				var dbTables = await DbContext.DexihTables.Where(c => tableKeys.Contains(c.TableKey) && c.HubKey == hubKey && c.IsValid).ToArrayAsync();
+
+				if (includeColumns)
+				{
+					await DbContext.DexihTableColumns
+		               .Where(c => c.IsValid && c.HubKey == hubKey && tableKeys.Contains(c.TableKey))
+						.LoadAsync();
+				}
+
+				return dbTables;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get table with keys {string.Join(",", tableKeys)} failed.  {ex.Message}", ex);
+			}
+		}
+		
+
+        public async Task<DexihTable> GetTable(long hubKey, long tableKey, bool includeColumns)
+		{
+            try
+            {
+                var dbTable = await DbContext.DexihTables.SingleOrDefaultAsync(c => c.TableKey == tableKey && c.HubKey == hubKey && c.IsValid);
+
+                if (dbTable == null)
+                {
+                    throw new RepositoryManagerException($"The table with the key {tableKey} could not be found.");
+                }
+
+                if (includeColumns)
+                {
+                    await DbContext.Entry(dbTable).Collection(a => a.DexihTableColumns).Query()
+					               .Where(c => c.HubKey == hubKey && c.IsValid && dbTable.TableKey == c.TableKey).LoadAsync();
+                }
+
+                return dbTable;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Get table with key {tableKey} failed.  {ex.Message}", ex);
+            }
+        }
+        #endregion
+
+        #region Datalink Functions
+		
+        public async Task<DexihDatalink> GetDatalink(long hubKey, long datalinkKey)
+        {
+	        var datalinks = await GetDatalinks(hubKey, new[] {datalinkKey});
+
+	        if (datalinks.Any())
+	        {
+		        return datalinks[0];
+	        }
+
+	        throw new RepositoryManagerException($"The datalink the key {datalinkKey} could not be found.");
+        }
+		
+		public async Task<DexihDatalink[]> GetDatalinks(long hubKey, IEnumerable<long> datalinkKeys)
+		{
+            try
+            {
+	            var datalinks = await DbContext.DexihDatalinks
+		            .Include(c => c.UpdateStrategy)
+		            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .ToArrayAsync();
+
+	            var datalinkTableKeys = datalinks.Select(c => c.SourceDatalinkTableKey).ToList();
+
+	            await DbContext.DexihDatalinkProfiles
+		            .Include(c => c.ProfileRule)
+		            .Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == hubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .LoadAsync();
+
+	            var transforms = await DbContext.DexihDatalinkTransforms
+		            .Include(c => c.Transform)
+		            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .ToArrayAsync();
+
+	            var datalinkTransformKeys = transforms.Select(c => c.DatalinkTransformKey);
+
+	            var transformItems = await DbContext.DexihDatalinkTransformItems
+		            .Include(c => c.StandardFunction)
+		            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkTransformKeys.Contains(c.DatalinkTransformKey))
+		            .OrderBy(c => c.Dt.Datalink.HubKey).ThenBy(c => c.Dt.DatalinkTransformKey)
+		            .ThenBy(c => c.DatalinkTransformItemKey)
+		            .ToArrayAsync();
+
+                var transformItemKeys = transformItems.Select(c => c.DatalinkTransformItemKey);
+
+	            var parameters = await DbContext.DexihFunctionParameters
+		            .Where(c => c.IsValid && c.HubKey == hubKey && transformItemKeys.Contains(c.DatalinkTransformItemKey))
+		            .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
+		            .ToArrayAsync();
+
+	            datalinkTableKeys.AddRange(transforms.Where(c => c.JoinDatalinkTableKey != null).Select(c => c.JoinDatalinkTableKey.Value));
+
+	            if (datalinkTableKeys.Any())
+	            {
+		            await DbContext.DexihDatalinkTables
+			            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkTableKeys.Contains(c.DatalinkTableKey))
+			            .LoadAsync();
+
+		            await DbContext.DexihDatalinkColumns
+			            .Where(c => c.IsValid && c.HubKey == hubKey && c.DatalinkTableKey != null && datalinkTableKeys.Contains((long)c.DatalinkTableKey))
+			            .LoadAsync();
+	            }
+
+	            var datalinkColumnKeys = transformItems.Where(c => c.SourceDatalinkColumnKey != null).Select(c => c.SourceDatalinkColumnKey).ToList();
+	            datalinkColumnKeys.AddRange(transformItems.Where(c => c.TargetDatalinkColumnKey != null).Select(c => c.TargetDatalinkColumnKey));
+	            datalinkColumnKeys.AddRange(parameters.Where(c => c.DatalinkColumnKey != null).Select(c => c.DatalinkColumnKey));
+
+	            if (datalinkColumnKeys.Any())
+	            {
+		            await DbContext.DexihDatalinkColumns
+			            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkColumnKeys.Contains(c.DatalinkColumnKey))
+			            .LoadAsync();
+	            }
+
+	            return datalinks;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Get datalinks with keys {string.Join(", ", datalinkKeys)} failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        /// <summary>
+        /// This looks at the table attributes and attempts the best strategy.
+        /// *** FUTURE: FUNCTION SHOULD BE IMPROVED TO SUGGEST BASED ON PROFILE DATA****
+        /// </summary>
+        /// <param name="table"></param>
+        /// <returns></returns>
+        public async Task<DexihUpdateStrategy> GetBestUpdateStrategy(DexihTable table)
+		{
+            try
+            {
+                //TODO Improve get best strategy 
+                if (_updateStrategies == null)
+                {
+                    _updateStrategies = await DbContext.DexihUpdateStrategies.ToArrayAsync();
+                }
+                if (table == null)
+                    return _updateStrategies.Single(c => c.Name == "Reload");
+                else if (table.DexihTableColumns.Count(c => c.DeltaType == TableColumn.EDeltaType.NaturalKey) == 0)
+                {
+                    // no natrual key.  Reload is the only choice
+                    return _updateStrategies.Single(c => c.Name == "Reload");
+                }
+                else
+                {
+                    if (table.IsVersioned)
+                        return _updateStrategies.Single(c => c.Name == "AppendUpdateDeletePreserve");
+                    else
+                        return _updateStrategies.Single(c => c.Name == "AppendUpdateDelete");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Get best update strategy failed.  {ex.Message}", ex);
+            }
+
+        }
+
+
+        public async Task<DexihDatalink[]> SaveDatalinks(long hubKey, DexihDatalink[] datalinks, bool includeTargetTable)
+		{
+			try
+			{
+				var savedDatalinks = new List<DexihDatalink>();
+				foreach (var datalink in datalinks)
+				{
+					//check there are no datajobs with the same name
+					var sameName = await DbContext.DexihDatalinks.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datalink.Name && c.DatalinkKey != datalink.DatalinkKey && c.IsValid);
+					if (sameName != null)
+					{
+                        throw new RepositoryManagerException($"A datalink with the name {datalink.Name} already exists in the repository.");
+					}
+
+
+                    if (datalink.DatalinkKey <= 0)
+                    {
+                        var newDatalink = datalink.CloneProperties<DexihDatalink>();
+
+						if(includeTargetTable && datalink.TargetTable != null) 
+						{
+							newDatalink.TargetTable = datalink.TargetTable;
+						}
+
+                        newDatalink.ResetDatalinkColumns();
+                        DbContext.Add(newDatalink);
+                        savedDatalinks.Add(newDatalink);
+                    }
+                    else 
+                    {
+                        var existingDatalink = await GetDatalink(hubKey, datalink.DatalinkKey);
+
+	                    if (existingDatalink.UpdateStrategy.UpdateStrategyKey == datalink.UpdateStrategy.UpdateStrategyKey)
+	                    {
+		                    datalink.UpdateStrategy = existingDatalink.UpdateStrategy;
+	                    }
+
+                        // get columns from the repository instance, and merge the tracked instances into the new one.
+                        var existingColumns = existingDatalink.GetAllDatalinkColumns();
+						var newColumns = datalink.GetAllDatalinkColumns();
+
+						// copy newColumns over existing column instances
+						foreach(var newColumn in newColumns.Values)
+						{
+							if(existingColumns.ContainsKey(newColumn.DatalinkColumnKey))
+							{
+								newColumn.CopyProperties(existingColumns[newColumn.DatalinkColumnKey]);
+							}
+						}
+
+						// Reset columns ensures only one instance of each column exists.  
+						// without this the entity framework tries to insert record twice causing PK violations.
+                        datalink.ResetDatalinkColumns(existingColumns);
+
+                        datalink.CopyProperties(existingDatalink);
+                        existingDatalink.ResetDatalinkColumns();
+                        savedDatalinks.Add(existingDatalink);
+                    } 
+                }
+
+                // uncomment to check changes.
+                //var modifiedEntries = DbContext.ChangeTracker
+                   //.Entries()
+                   //.Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
+                   //.Select(x => x)
+                   //.ToList();
+
+                await SaveChangesAsync(hubKey);
+                //await DbContext.DexihUpdateStrategies.LoadAsync();
+				 return savedDatalinks.ToArray();
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save datalinks failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihDatalink[]> DeleteDatalinks(long hubKey, long[] datalinkKeys)
+		{
+			try
+			{
+				var dbDatalinks = await GetDatalinks(hubKey, datalinkKeys);
+
+				foreach (var dbDatalink in dbDatalinks)
+				{
+					dbDatalink.IsValid = false;
+					dbDatalink.DexihDatalinkTransforms.Select(c =>
+					{
+						c.IsValid = false;
+						c.DexihDatalinkTransformItems.Select(i =>
+						{
+							i.IsValid = false;
+							i.DexihFunctionParameters.Select(p =>
+							{
+								p.IsValid = false;
+								return p;
+							}).ToList();
+							return i;
+						}).ToList();
+						return c;
+					}).ToList();
+
+					dbDatalink.DexihDatalinkProfiles.Select(p =>
+					{
+						p.IsValid = false;
+						return p;
+					}).ToList();
+
+					dbDatalink.DexihDatalinkSteps.Select(s =>
+					{
+						s.IsValid = false;
+						s.DexihDatalinkDependencies.Select(d =>
+						{
+							d.IsValid = false;
+							return d;
+						}).ToList();
+						return s;
+					}).ToList();
+				}
+
+				await SaveChangesAsync(hubKey);
+
+				return dbDatalinks;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete datalinks failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihDatalink[]> ShareDatalinks(long hubKey, long[] datalinkKeys, bool isShared)
+        {
+            try
+            {
+	            var dbDatalinks = await GetDatalinks(hubKey, datalinkKeys); 
+	                
+                foreach (var dbDatalink in dbDatalinks)
+                {
+                    dbDatalink.IsShared = isShared;
+                }
+
+                await SaveChangesAsync(hubKey);
+
+                return dbDatalinks;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Share datalinks failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihDatalink[]> NewDatalinks(long hubKey, string datalinkName, DexihDatalink.EDatalinkType datalinkType, long? targetConnectionKey, long[] sourceTableKeys, long? targetTableKey, string targetTableName, long auditConnectionKey)
+		{
+			try
+			{
+				if (_namingStandards == null)
+				{
+					var returnValue = await LoadNamingStandards();
+				}
+
+				var newDatalinks = new List<DexihDatalink>();
+				var newTargetTables = new List<DexihTable>();
+
+				if (sourceTableKeys.Length == 0)
+				{
+					sourceTableKeys = new long[] { 0 };
+				}
+
+                long tempColumnKeys = -1;
+
+				var sourceTables = await DbContext.DexihTables.Where(c => c.HubKey == hubKey && sourceTableKeys.Contains(c.TableKey) && c.IsValid).ToDictionaryAsync(c => c.TableKey);
+				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && sourceTables.Keys.Contains(c.TableKey) && c.IsValid).LoadAsync();
+				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.TableKey == targetTableKey);
+				var targetCon = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnectionKey);
+
+				foreach (var sourceTableKey in sourceTableKeys)
+				{
+					if (sourceTableKey == 0 && targetTableKey != null && targetTableName != null)
+					{
+                        throw new RepositoryManagerException("There is no source table selected, so the target table cannot be autonamed and must be defined.");
+					}
+
+					if (targetConnectionKey == null)
+					{
+                        throw new RepositoryManagerException("There is no target connection specified.");
+					}
+
+					if (!string.IsNullOrEmpty(datalinkName) && await DbContext.DexihDatalinks.AnyAsync(c => c.Name == datalinkName && c.IsValid))
+					{
+                        throw new RepositoryManagerException("There is already an existing datalink with the name " + datalinkName + ".");
+					}
+
+					var sourceTable = sourceTables[sourceTableKey];
+
+					var newDatalinkName = datalinkName;
+
+					// if the generated name exists, incrementally add a counter to the name until a free one is found.
+					if (string.IsNullOrEmpty(newDatalinkName))
+					{
+						var count = 0;
+						var baseName = ApplyNamingStandard(datalinkType + ".Datalink.Name", sourceTable != null ? sourceTable.Name : targetTableName);
+						var newName = baseName;
+						while (await DbContext.DexihDatalinks.AnyAsync(c => c.HubKey == hubKey && c.Name == newName && c.IsValid))
+						{
+							newName = $"{baseName} ({count++})";
+
+							if (count > 100)
+							{
+                                throw new RepositoryManagerException("An unexpected nested loop occurred when attempting to create the datalink name.");
+							}
+						}
+                        newDatalinkName = newName;
+					}
+
+					var updateStrategy = await GetBestUpdateStrategy(sourceTable);
+
+					var datalink = new DexihDatalink()
+					{
+						HubKey = hubKey,
+						Name = newDatalinkName,
+						UpdateStrategyKey = updateStrategy.UpdateStrategyKey,
+						DatalinkType = datalinkType,
+						AuditConnectionKey = auditConnectionKey,
+						MaxRows = 1000,
+						RowsPerProgress = 1000,
+						IsValid = true
+					};
+
+                    datalink.SourceDatalinkTable = new DexihDatalinkTable()
+                    {
+                        SourceType = DexihDatalinkTable.ESourceType.Table,
+                        SourceTableKey = sourceTable.TableKey,
+                        SourceTable = sourceTable,
+                        Name = sourceTable.Name
+                    };
+
+                    // create a copy of the source table columns, and convert to dexihdatalinkColumn type.
+                    var sourceDatalinkColumns = sourceTable.DexihTableColumns.OrderBy(c => c.Position).Select(c =>
+                      {
+                          var newColumn = new DexihDatalinkColumn();
+                          c.CopyProperties(newColumn, true);
+                          newColumn.DatalinkColumnKey = tempColumnKeys--;
+                          return newColumn;
+                      }).ToList();
+
+                    datalink.SourceDatalinkTable.DexihDatalinkColumns = sourceDatalinkColumns;
+
+                    // if there is no target table specified, then create one with the default columns mapped from the source table.
+                    if (targetTableKey == null)
+                    {
+                        targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon);
+                        datalink.TargetTable = targetTable;
+                    }
+                    else
+                    {
+                        datalink.TargetTableKey = targetTableKey;
+					}
+
+					//add a mapping transform, with source/target fields mapped.
+					var mappingTransform = await DbContext.DexihTransforms.SingleAsync(c => c.TransformType == DexihTransform.ETransformType.Mapping);
+					var datalinkTransform = CreateDefaultDatalinkTransform(hubKey, mappingTransform);
+					datalinkTransform.PassThroughColumns = true;
+
+					var position = 1;
+					foreach (var targetColumn in targetTable.DexihTableColumns)
+					{
+						var sourceColumn = sourceDatalinkColumns.FirstOrDefault(c => c.LogicalName == targetColumn.LogicalName);
+
+						//any columns which have been renamed in the target table, will get a mapping created for them, as passthrough won't map
+						if (sourceColumn != null && sourceColumn.Name != targetColumn.Name)
+						{
+							var item = new DexihDatalinkTransformItem()
+							{
+								Position = position++,
+								TransformItemType = DexihDatalinkTransformItem.ETransformItemType.ColumnPair
+							};
+
+                            item.SourceDatalinkColumn = sourceColumn;
+
+                            var newColumn = new DexihDatalinkColumn();
+                            targetColumn.CopyProperties(newColumn, true);
+                            newColumn.DatalinkColumnKey = tempColumnKeys--;
+                            item.TargetDatalinkColumn = newColumn;
+                            item.TargetDatalinkColumnKey = 0;
+
+							datalinkTransform.DexihDatalinkTransformItems.Add(item);
+						}
+					}
+
+					datalink.DexihDatalinkTransforms.Add(datalinkTransform);
+
+                    datalink.ProfileTableName = ApplyNamingStandard("Table.ProfileName", targetTableName);
+
+                    newDatalinks.Add(datalink);
+				}
+
+				var savedDatalinks = await SaveDatalinks(hubKey, newDatalinks.ToArray(), true);
+				return savedDatalinks;
+
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Create new datalinks failed.  {ex.Message}", ex);
+            }
+
+        }
+        #endregion
+
+        #region Datajob Functions
+
+        public async Task<DexihDatajob[]> GetDatajobs(long hubKey, IEnumerable<long> datajobKeys)
+		{
+			try
+			{
+				var datajobs = await DbContext.DexihDatajobs
+								   .Include(t => t.DexihTriggers)
+								   .Include(s => s.DexihDatalinkSteps).ThenInclude(d => d.DexihDatalinkDependencies)
+								   .Where(j => datajobKeys.Contains(j.DatajobKey) && j.IsValid && j.HubKey == hubKey).ToArrayAsync();
+
+				return datajobs;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Get datajob with keys {string.Join(",", datajobKeys)} failed.  {ex.Message}", ex);
+            }
+
+        }
+
+		public async Task<DexihDatajob> GetDatajob(long hubKey, long datajobKey)
+		{
+			var datajobs = await GetDatajobs(hubKey, new long[] {datajobKey});
+			if (datajobs.Length == 1)
+			{
+				return datajobs[0];
+			}
+
+			return null;
+		}
+
+        public async Task<DexihDatajob[]> SaveDatajobs(long hubKey, DexihDatajob[] datajobs)
+		{
+			try
+			{
+				var savedDatajobs = new List<DexihDatajob>();
+				foreach (var datajob in datajobs)
+				{
+					//check there are no datajobs with the same name
+					var sameName = await DbContext.DexihDatajobs.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datajob.Name && c.DatajobKey != datajob.DatajobKey && c.IsValid);
+					if (sameName != null)
+					{
+                        throw new RepositoryManagerException($"A datajob with the name {datajob.Name} already exists in the repository.");
+					}
+
+                    foreach(var step in datajob.DexihDatalinkSteps)
+                    {
+                        foreach(var dep in step.DexihDatalinkDependencies)
+                        {
+                            if (dep.DependentDatalinkStepKey <= 0)
+                            {
+                                dep.DependentDatalinkStep = datajob.DexihDatalinkSteps.SingleOrDefault(c => c.DatalinkStepKey == dep.DependentDatalinkStepKey);
+                                dep.DatalinkStepKey = 0;
+                            }
+                        }
+                    }
+
+                    if (datajob.DatajobKey <= 0) {
+						datajob.DatajobKey = 0;
+						var newDatajob = new DexihDatajob();
+						datajob.CopyProperties(newDatajob, false);
+						DbContext.DexihDatajobs.Add(newDatajob);
+						savedDatajobs.Add(newDatajob);
+					}
+					else
+					{
+						var originalDatajob = await GetDatajob(hubKey, datajob.DatajobKey);
+
+						if(originalDatajob == null)
+						{
+							datajob.DatajobKey = 0;
+							var newDatajob = new DexihDatajob();
+							datajob.CopyProperties(newDatajob, false);
+							DbContext.DexihDatajobs.Add(newDatajob);
+							savedDatajobs.Add(datajob);
+						}
+						else 
+						{
+							datajob.CopyProperties(originalDatajob);
+							savedDatajobs.Add(originalDatajob);
+						}
+					}
+				}
+
+				await SaveChangesAsync(hubKey);
+				return savedDatajobs.ToArray();
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save datajobs failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<bool> DeleteDatajobs(long hubKey, long[] datajobKeys)
+		{
+			try
+			{
+				var datajobs = await DbContext.DexihDatajobs
+					.Include(d => d.DexihTriggers)
+					.Include(s => s.DexihDatalinkSteps)
+						.ThenInclude(d => d.DexihDatalinkDependencies)
+					.Where(c => c.HubKey == hubKey && datajobKeys.Contains(c.DatajobKey))
+					.ToArrayAsync();
+
+				foreach (var datajob in datajobs)
+				{
+					datajob.IsValid = false;
+
+					foreach (var trigger in datajob.DexihTriggers)
+					{
+						trigger.IsValid = false;
+					}
+
+					foreach (var datastep in datajob.DexihDatalinkSteps)
+					{
+						datastep.IsValid = false;
+
+						foreach (var dep in datastep.DexihDatalinkDependencies)
+						{
+							dep.IsValid = false;
+						}
+					}
+				}
+
+				await SaveChangesAsync(hubKey);
+				return true;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete datajobs failed.  {ex.Message}", ex);
+            }
+        }
+
+        #endregion
+
+        #region RemoteAgent Functions
+        /// <summary>
+        /// Checks if a remote agent is authorized to access the hub based on the remoteagent id and originating ip address.
+        /// </summary>
+        /// <param name="hubKey"></param>
+        /// <param name="remoteAgentId"></param>
+        /// <param name="iPAddress"></param>
+        /// <returns></returns>
+        public async Task<DexihRemoteAgent> RemoteAgentIsAuthorized(long hubKey, string remoteAgentId, string iPAddress)
+		{
+            try
+            {
+                var remoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.RemoteAgentId == remoteAgentId && c.IsValid);
+                if (remoteAgent == null)
+                    return null;
+
+                if (remoteAgent.RestrictIp && (remoteAgent.IpAddresses == null || !remoteAgent.IpAddresses.Contains(iPAddress)))
+                {
+                    return null;
+                }
+                else
+                {
+                    return remoteAgent;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Check remote agent is authorized failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihRemoteAgent[]> GetRemoteAgents(long hubKey)
+		{
+			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => c.IsValid && c.HubKey == hubKey).ToArrayAsync();
+			return remoteAgents;
+		}
+
+        public async Task<DexihRemoteAgent> SaveRemoteAgent(long hubKey, DexihRemoteAgent remoteAgent)
+		{
+            try
+            {
+                DexihRemoteAgent dbRemoteAgent;
+
+                //check there are no agents with the same name
+                var sameName = await DbContext.DexihRemoteAgents.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == remoteAgent.Name && c.HubKey == remoteAgent.HubKey && c.RemoteAgentKey != remoteAgent.RemoteAgentKey && c.IsValid);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A remote agent the name {remoteAgent.Name} already exists in the repository.");
+                }
+
+                //if there is a remoteAgentKey, retrieve the record from the database, and copy the properties across.
+                if (remoteAgent.RemoteAgentKey > 0)
+                {
+                    dbRemoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentKey == remoteAgent.RemoteAgentKey && d.IsValid);
+                    if (dbRemoteAgent != null)
+                    {
+                        remoteAgent.CopyProperties(dbRemoteAgent, true);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The remote agent could not be saved as the remote agent contains the remoteagent_key {remoteAgent.RemoteAgentKey} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+                    dbRemoteAgent = remoteAgent;
+                    DbContext.DexihRemoteAgents.Add(dbRemoteAgent);
+                }
+
+                dbRemoteAgent.IsValid = true;
+
+                await SaveChangesAsync(hubKey);
+
+                return dbRemoteAgent;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save remote agents failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<bool> DeleteRemoteAgent(long hubKey, long remoteAgentKey)
+		{
+            try
+            {
+                var dbItem = await DbContext.DexihRemoteAgents
+                    .SingleAsync(c => c.HubKey == hubKey && c.RemoteAgentKey == remoteAgentKey);
+
+                dbItem.IsValid = false;
+                await SaveChangesAsync(hubKey);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete remote agents failed.  {ex.Message}", ex);
+            }
+
+        }
+        #endregion
+
+        #region Datalink Transform Functions
+
+  //      /// <summary>
+  //      /// Finds the target column reference for a transfrom contained within a datalink
+  //      /// </summary>
+  //      /// <param name="datalink"></param>
+  //      /// <param name="datalinkTransform"></param>
+  //      /// <param name="columnKey"></param>
+  //      /// <returns></returns>
+  //      public DexihDatalinkColumn FindTargetColumn(DexihDatalink datalink, DexihDatalinkTransform datalinkTransform, long datalinkColumnKey)
+		//{
+  //          try
+  //          {
+  //              var found = false;
+  //              // loop through each transform to search for the matching column
+  //              foreach (var transform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
+  //              {
+  //                  if (transform.DatalinkTransformKey == datalinkTransform.DatalinkTransformKey) found = true;
+
+  //                  if (found)
+  //                  {
+  //                      foreach(var item in transform.DexihDatalinkTransformItems)
+  //                      {
+  //                          if(item.TargetDatalinkColumn.DatalinkColumnKey == datalinkColumnKey)
+  //                          {
+  //                              return item.TargetDatalinkColumn;
+  //                          }
+  //                          foreach(var param in item.DexihFunctionParameters)
+  //                          {
+  //                              if(param.DatalinkColumn.DatalinkColumnKey == datalinkColumnKey)
+  //                              {
+  //                                  return param.DatalinkColumn;
+  //                              }
+  //                          }
+  //                      }
+
+  //                      // if the transform does not passthrough columns then stop here.
+  //                      if (!transform.PassThroughColumns)
+  //                      {
+  //                          throw new RepositoryManagerException($"The target column with the key {datalinkColumnKey} could not be found.");
+  //                      }
+  //                  }
+  //              }
+
+  //              if (!found)
+  //              {
+  //                  throw new RepositoryManagerException($"The datalink transform with the key {datalinkTransform.DatalinkTransformKey} could not be found in the datalink with the key {datalink.DatalinkKey}.");
+  //              }
+
+  //              // finally search the target table for the matching column key.
+  //              if(!datalink.VirtualTargetTable && datalink.TargetDatalinkTable?.Table != null)
+  //              var targetColumn = datalink.TargetTable.DexihTableColumns.SingleOrDefault(c =>  == datalinkColumnKey);
+  //              if (targetColumn == null)
+  //              {
+  //                  throw new RepositoryManagerException($"The target column with the key {columnKey} could not be found.");
+  //              }
+  //              else
+  //              {
+  //                  return targetColumn;
+  //              }
+  //          }
+  //          catch (Exception ex)
+  //          {
+  //              throw new RepositoryManagerException($"Find target column failed.  {ex.Message}", ex);
+  //          }
+
+  //      }
+
+  //      /// <summary>
+  //      /// Finds the target column reference for a transfrom contained within a datalink
+  //      /// </summary>
+  //      /// <param name="datalink"></param>
+  //      /// <param name="datalinkTransform"></param>
+  //      /// <param name="columnKey"></param>
+  //      /// <returns></returns>
+  //      public DexihTableColumn FindTargetColumnByName(DexihDatalink datalink, DexihDatalinkTransform datalinkTransform, string columnName)
+		//{
+  //          try
+  //          {
+  //              var found = false;
+  //              // loop through each transform to search for the matching column
+  //              foreach (var transform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
+  //              {
+  //                  if (transform.DatalinkTransformKey == datalinkTransform.DatalinkTransformKey) found = true;
+
+  //                  if (found)
+  //                  {
+  //                      if (transform.TransformTable != null)
+  //                      {
+  //                          var table = transform.TransformTable;
+  //                          var column = table.DexihTableColumns.SingleOrDefault(c => c.Name == columnName);
+  //                          if (column != null)
+  //                          {
+  //                              return column;
+  //                          }
+  //                      }
+  //                      // if the transform does not passthrough columns then stop here.
+  //                      if (!transform.PassThroughColumns)
+  //                      {
+  //                          throw new RepositoryManagerException($"The target column with the name {columnName} could not be found.");
+  //                      }
+  //                  }
+  //              }
+
+  //              if (!found)
+  //              {
+  //                  throw new RepositoryManagerException($"The datalink transform with the key {datalinkTransform.DatalinkTransformKey} could not be found in the datalink with the key {datalink.DatalinkKey}.");
+  //              }
+
+  //              // finally search the target table for the matching column key.
+  //              var targetColumn = datalink.TargetTable.DexihTableColumns.SingleOrDefault(c => c.Name == columnName);
+  //              if (targetColumn == null)
+  //              {
+  //                  throw new RepositoryManagerException($"The target column with the name {columnName} could not be found.");
+  //              }
+  //              else
+  //              {
+  //                  return targetColumn;
+  //              }
+  //          }
+  //          catch (Exception ex)
+  //          {
+  //              throw new RepositoryManagerException($"Find target column by name failed.  {ex.Message}", ex);
+  //          }
+
+  //      }
+
+  //      public async Task<DexihDatalinkTransform> FixTargetColumnKeys(DexihDatalink datalink, DexihDatalinkTransform datalinkTransform)
+		//{
+  //          try
+  //          {
+  //              var modified = false;
+
+  //              foreach (var datalinkTransformItem in datalinkTransform.DexihDatalinkTransformItems.OrderBy(c => c.Position))
+  //              {
+  //                  if (datalinkTransformItem.TargetColumnKey != null)
+  //                  {
+  //                      var targetColumn = FindTargetColumn(datalink, datalinkTransform, (long)datalinkTransformItem.TargetColumnKey);
+  //                      if (targetColumn == null)
+  //                      {
+  //                          var oldColumn = await DbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.ColumnKey == datalinkTransformItem.TargetColumnKey);
+  //                          if (oldColumn != null)
+  //                          {
+  //                              var newColumn = FindTargetColumnByName(datalink, datalinkTransform, oldColumn.Name);
+  //                              datalinkTransformItem.TargetColumnKey = newColumn.ColumnKey;
+  //                              modified = true;
+  //                          }
+  //                      }
+  //                  }
+
+  //                  foreach (var functionParameter in datalinkTransformItem.DexihFunctionParameters)
+  //                  {
+  //                      if (functionParameter.Direction == DexihFunctionParameter.EParameterDirection.Output)
+  //                      {
+  //                          if (functionParameter.ColumnKey != null)
+  //                          {
+  //                              var targetColumn = FindTargetColumn(datalink, datalinkTransform, (long)functionParameter.ColumnKey);
+  //                              if (targetColumn == null)
+  //                              {
+  //                                  var oldColumn = await DbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.ColumnKey == functionParameter.ColumnKey);
+  //                                  if (oldColumn != null)
+  //                                  {
+  //                                      var newColumn = FindTargetColumnByName(datalink, datalinkTransform, oldColumn.Name);
+  //                                      functionParameter.ColumnKey = newColumn.ColumnKey;
+  //                                      modified = true;
+  //                                  }
+  //                              }
+  //                          }
+  //                      }
+  //                  }
+  //              }
+  //              if (modified)
+  //              {
+  //                  await SaveChangesAsync();
+  //              }
+
+  //              return datalinkTransform;
+  //          }
+  //          catch (Exception ex)
+  //          {
+  //              throw new RepositoryManagerException($"Fix target column keys failed.  {ex.Message}", ex);
+  //          }
+
+  //      }
+
+        private DexihDatalinkTransform CreateDefaultDatalinkTransform(long hubKey, DexihTransform transform)
+		{
+            try
+            {
+                var datalinkTransform = new DexihDatalinkTransform()
+                {
+                    TransformKey = transform.TransformKey,
+                    Name = transform.Name,
+                    Description = transform.Description,
+                    IsValid = true
+                };
+
+                // DexihTable transformTable;
+
+                //if the transfrom requires an internal transform table, then add a blank one.
+                //if (transform.RequiresTransformTable)
+                //{
+                //    var connectionKey = await GetInternalConnectionKey(hubKey);
+                //    transformTable = new DexihTable()
+                //    {
+                //        HubKey = hubKey,
+                //        IsInternal = true,
+                //        ConnectionKey = connectionKey,
+                //        Name = Guid.NewGuid().ToString(),
+                //        BaseTableName = "",
+                //        IsValid = true
+                //    };
+
+                //    datalinkTransform.TransformTable = transformTable;
+                //}
+
+                return datalinkTransform;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Create default datalink transform failed.  {ex.Message}", ex);
+            }
+
+        }
+        #endregion
+
+        private async Task<DexihTable> CreateDefaultTargetTable(long hubKey, DexihDatalink.EDatalinkType datalinkType, DexihTable sourceTable, string tableName, DexihConnection targetConnection)
+		{
+            try
+            {
+                DexihTable table = null;
+
+                if (_namingStandards == null)
+                {
+                    var returnValue = await LoadNamingStandards();
+                }
+
+                DexihDatabaseType dbType;
+                if(targetConnection.DatabaseType == null)
+                {
+                    dbType = await DbContext.DexihDatabaseTypes.SingleOrDefaultAsync(c => c.DatabaseTypeKey == targetConnection.DatabaseTypeKey);
+                }
+                else
+                {
+                    dbType = targetConnection.DatabaseType;
+                }
+
+                if (sourceTable == null)
+                {
+                    if (string.IsNullOrEmpty(tableName))
+                    {
+                        throw new RepositoryManagerException("There is no name specified for the validation table, and no source table to auto-name the table from.");
+                    }
+
+					if(await DbContext.DexihTables.AnyAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnection.ConnectionKey && c.Name == tableName && c.IsValid))
+					{
+						throw new RepositoryManagerException($"The target table could not be created as a table with the name {tableName} already exists.");
+					}
+
+                    table = new DexihTable()
+                    {
+                        HubKey = hubKey,
+                        ConnectionKey = targetConnection.ConnectionKey,
+						Name = tableName,
+                        BaseTableName = tableName,
+                        LogicalName = tableName,
+                        Description = ApplyNamingStandard(datalinkType + ".Table.Description", tableName),
+                        RejectedTableName = ApplyNamingStandard("Table.RejectName", sourceTable.BaseTableName),
+                    };
+                }
+                else
+                {
+					var count = 0;
+					var baseName = ApplyNamingStandard(datalinkType + ".Table.Name", sourceTable.BaseTableName);
+					var newName = baseName;
+					while (await DbContext.DexihTables.AnyAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnection.ConnectionKey && c.Name == newName && c.IsValid))
+					{
+						newName = $"{baseName}_{count++}";
+
+						if (count > 100)
+						{
+							throw new RepositoryManagerException("An unexpected nested loop occurred when attempting to create the datalink name.");
+						}
+					}
+
+                    table = new DexihTable()
+                    {
+                        HubKey = hubKey,
+                        ConnectionKey = targetConnection.ConnectionKey,
+                        Name = newName,
+                        BaseTableName = sourceTable.Name,
+                        LogicalName = sourceTable.LogicalName,
+                        Description = ApplyNamingStandard(datalinkType + ".Table.Description", sourceTable.BaseTableName),
+                        RejectedTableName = ApplyNamingStandard("Table.RejectName", sourceTable.BaseTableName),
+                    };
+                }
+
+                var position = 1;
+
+                //columns in the source table are added for all types except transform, as transform datatypes usually involve custom mappings.
+                if (datalinkType != DexihDatalink.EDatalinkType.Transform)
+                {
+                    foreach (var col in sourceTable.DexihTableColumns.Where(c => c.IsSourceColumn).ToList())
+                    {
+                        var newColumn = new DexihTableColumn();
+                        col.CopyProperties(newColumn, true);
+                        newColumn.TableKey = 0; // reset as this will be pointing to source table key.
+                        newColumn.ColumnKey = 0;
+                        newColumn.MapToTargetColumnProperties();
+                        newColumn.Name = dbType.RemoveUnsupportedCharacaters(newColumn.Name);
+                        newColumn.Position = position++;
+                        newColumn.IsValid = true;
+                        table.DexihTableColumns.Add(newColumn);
+                    }
+                }
+
+                //// if there is a surrogate key in the source table, then map it to a column to maintain lineage.
+                if (sourceTable.DexihTableColumns.Count(c => c.DeltaType == TableColumn.EDeltaType.SurrogateKey) > 0)
+                {
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("SourceSurrogateKey", table.Name, ETypeCode.Int64, EDeltaType.SourceSurrogateKey, position++));
+                }
+
+                //// a publish datalink does not have a "physical" target table, so mapping audit type of columns is not neccessary.
+                if (datalinkType != DexihDatalink.EDatalinkType.Publish)
+                {
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("SurrogateKey", table.Name, ETypeCode.Int64, EDeltaType.SurrogateKey, position++));
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("ValidFromDate", table.Name, ETypeCode.DateTime, EDeltaType.ValidFromDate, position++));
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("ValidToDate", table.Name, ETypeCode.DateTime, EDeltaType.ValidToDate, position++));
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("IsCurrentField", table.Name, ETypeCode.Boolean, EDeltaType.IsCurrentField, position++));
+
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("CreateDate", table.Name, ETypeCode.DateTime, EDeltaType.CreateDate, position++));
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("UpdateDate", table.Name, ETypeCode.DateTime, EDeltaType.UpdateDate, position++));
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("CreateAuditKey", table.Name, ETypeCode.Int64, EDeltaType.CreateAuditKey, position++));
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("UpdateAuditKey", table.Name, ETypeCode.Int64, EDeltaType.UpdateAuditKey, position++));
+                }
+
+                // add a validation status column for validation datalinks.
+                if (datalinkType == DexihDatalink.EDatalinkType.Validate)
+                {
+                    table.DexihTableColumns.Add(NewDefaultTableColumn("ValidationStatus", table.Name, ETypeCode.String, EDeltaType.ValidationStatus, position++));
+                }
+
+                table.IsValid = true;
+
+                return table;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Create default target table failed.  {ex.Message}", ex);
+            }
+        }
+
+        private DexihTableColumn NewDefaultTableColumn(string namingStandard, string tableName, ETypeCode dataType, EDeltaType deltaType, int position)
+		{
+            try
+            {
+                if (_namingStandards == null)
+                {
+                    throw new Exception("The naming standards have not been loaded.");
+                }
+
+                var col = new DexihTableColumn()
+                {
+                    Name = ApplyNamingStandard(namingStandard + ".Column.Name", tableName),
+                    Datatype = dataType,
+                    AllowDbNull = false,
+                    LogicalName = ApplyNamingStandard(namingStandard + ".Column.Logical", tableName),
+                    Description = ApplyNamingStandard(namingStandard + ".Column.Description", tableName),
+                    IsUnique = false,
+                    DeltaType = deltaType,
+                    Position = position++,
+                    IsValid = true
+                };
+
+                return col;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"New default table column failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihColumnValidation[]> DeleteColumnValidations(long hubKey, long[] columnValidationKeys)
+		{
+            try
+            {
+                var dbValidations = await DbContext.DexihColumnValidation
+                    .Include(column => column.DexihColumnValidationColumn)
+                    .Where(c => c.HubKey == hubKey && columnValidationKeys.Contains(c.ColumnValidationKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var validation in dbValidations)
+                {
+                    validation.IsValid = false;
+                    foreach (var column in validation.DexihColumnValidationColumn)
+                    {
+                        column.ColumnValidationKey = null;
+                    }
+                }
+
+                await SaveChangesAsync(hubKey);
+
+                return dbValidations;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete column validations failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihColumnValidation> SaveColumnValidation(long hubKey, DexihColumnValidation validation)
+		{
+			try
+			{
+				DexihColumnValidation dbColumnValidation;
+
+				//check there are no connections with the same name
+				var sameName = await DbContext.DexihColumnValidation.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == validation.Name && c.ColumnValidationKey != validation.ColumnValidationKey && c.IsValid);
+				if (sameName != null)
+				{
+                    throw new RepositoryManagerException($"A column validation with the name {validation.Name} already exists in the repository.");
+				}
+
+				//if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+				if (validation.ColumnValidationKey > 0)
+				{
+					dbColumnValidation = await DbContext.DexihColumnValidation.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.ColumnValidationKey == validation.ColumnValidationKey);
+					if (dbColumnValidation != null)
+					{
+						validation.CopyProperties(dbColumnValidation, true);
+					}
+					else
+					{
+                        throw new RepositoryManagerException($"The column validation could not be saved as the validation contains the column_validation_key {validation.ColumnValidationKey} that no longer exists in the repository.");
+					}
+				}
+				else
+				{
+					dbColumnValidation = new DexihColumnValidation();
+					validation.CopyProperties(dbColumnValidation, true);
+					DbContext.DexihColumnValidation.Add(dbColumnValidation);
+				}
+
+
+				dbColumnValidation.HubKey = hubKey;
+				dbColumnValidation.IsValid = true;
+
+				await SaveChangesAsync(hubKey);
+
+				return dbColumnValidation;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save column validation {validation.Name} failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihFileFormat[]> DeleteFileFormats(long hubKey, long[] fileFormatKeys)
+		{
+            try
+            {
+                var dbFileFormats = await DbContext.DexihFileFormat
+                    .Where(c => c.HubKey == hubKey && fileFormatKeys.Contains(c.FileFormatKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var fileformat in dbFileFormats)
+                {
+                    fileformat.IsValid = false;
+                }
+
+                await SaveChangesAsync(hubKey);
+
+                return dbFileFormats;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete file formats failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihFileFormat> SaveFileFormat(long hubKey, DexihFileFormat fileformat)
+		{
+			try
+			{
+				DexihFileFormat dbFileFormat;
+
+				//check there are no connections with the same name
+				var sameName = await DbContext.DexihFileFormat.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == fileformat.Name && c.FileFormatKey != fileformat.FileFormatKey && c.IsValid);
+				if (sameName != null)
+				{
+                    throw new RepositoryManagerException($"A file format with the name {fileformat.Name} already exists in the repository.");
+				}
+
+				//if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+				if (fileformat.FileFormatKey > 0)
+				{
+					dbFileFormat = await DbContext.DexihFileFormat.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.FileFormatKey == fileformat.FileFormatKey);
+					if (dbFileFormat != null)
+					{
+						fileformat.CopyProperties(dbFileFormat, true);
+					}
+					else
+					{
+                        throw new RepositoryManagerException($"The file format could not be saved as it contains the file_format_key {fileformat.FileFormatKey} that no longer exists in the repository.");
+					}
+				}
+				else
+				{
+					dbFileFormat = new DexihFileFormat();
+					fileformat.CopyProperties(dbFileFormat, true);
+					DbContext.DexihFileFormat.Add(dbFileFormat);
+				}
+
+
+				dbFileFormat.IsValid = true;
+
+				await SaveChangesAsync(hubKey);
+
+				return dbFileFormat;
+			}
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save file format {fileformat.Name} failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihHubVariable[]> DeleteHubVariables(long hubKey, long[] hubVariableKeys)
+        {
+            try
+            {
+                var dbHubVariables = await DbContext.DexihHubVariable
+                    .Where(c => c.HubKey == hubKey && hubVariableKeys.Contains(c.HubVariableKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var hubVariable in dbHubVariables)
+                {
+                    hubVariable.IsValid = false;
+                }
+
+                await SaveChangesAsync(hubKey);
+
+                return dbHubVariables;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete hub variables failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihHubVariable> SaveHubVariable(long hubKey, DexihHubVariable hubVariable)
+        {
+            try
+            {
+                DexihHubVariable dbHubVariable;
+
+                //check there are no connections with the same name
+                var sameName = await DbContext.DexihHubVariable.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == hubVariable.Name && c.HubVariableKey != hubVariable.HubVariableKey && c.IsValid);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A variable with the name {hubVariable.Name} already exists in the repository.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (hubVariable.HubVariableKey > 0)
+                {
+                    dbHubVariable = await DbContext.DexihHubVariable.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.HubVariableKey == hubVariable.HubVariableKey);
+                    if (dbHubVariable != null)
+                    {
+                        hubVariable.CopyProperties(dbHubVariable, true);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The variable could not be saved as it contains the hub_variable_key {hubVariable.HubVariableKey} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+                    dbHubVariable = new DexihHubVariable();
+                    hubVariable.CopyProperties(dbHubVariable, true);
+                    DbContext.DexihHubVariable.Add(dbHubVariable);
+                }
+
+
+                dbHubVariable.IsValid = true;
+
+                await SaveChangesAsync(hubKey);
+
+                return dbHubVariable;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save file format {hubVariable.Name} failed.  {ex.Message}", ex);
+            }
+        }
+
+		/// <summary>
+		/// Compares an imported hub structure against the database structure, and maps keys and dependent obects together.
+		/// </summary>
+		/// <param name="hubKey"></param>
+		/// <param name="hub">Importing Hub</param>
+		/// <param name="connectionsAction"></param>
+		/// <param name="tablesAction"></param>
+		/// <param name="datalinksAction"></param>
+		/// <param name="datajobsAction"></param>
+		/// <param name="fileFormatsAction"></param>
+		/// <param name="columnValidationsAction"></param>
+		/// <returns></returns>
+		/// <exception cref="ArgumentOutOfRangeException"></exception>
+		public async Task<Import> CreateImportPlan(long hubKey, DexihHub hub, EImportAction connectionsAction,
+			EImportAction tablesAction, EImportAction datalinksAction, EImportAction datajobsAction,
+			EImportAction fileFormatsAction, EImportAction columnValidationsAction)
+		{
+			var keySequence = -1;
+			
+			var connectionKeyMappings = new Dictionary<long, long>();
+			var tableKeyMappings = new Dictionary<long, long>();
+			var columnKeyMappings = new Dictionary<long, long>();
+			var datalinkKeyMappings = new Dictionary<long, long>();
+			var datajobKeyMappings = new Dictionary<long, long>();
+			var fileFormatKeyMappings = new Dictionary<long, long>();
+			var columnValidationKeyMappings = new Dictionary<long, long>();
+			
+			var plan = new Import(hubKey);
+
+
+			var existingFileFormats =
+				await DbContext.DexihFileFormat.Where(con => con.HubKey == hubKey && hub.DexihFileFormats.Select(c => c.Name).Contains(con.Name) && con.IsValid).ToArrayAsync();
+
+
+			foreach (var fileFormat in hub.DexihFileFormats)
+			{
+				fileFormat.HubKey = hubKey;
+				var existingFileFormat = existingFileFormats.SingleOrDefault(con => fileFormat.Name == con.Name);
+
+				if (existingFileFormat != null)
+				{
+					switch (fileFormatsAction)
+					{
+						case EImportAction.Replace:
+							fileFormatKeyMappings.Add(fileFormat.FileFormatKey, existingFileFormat.FileFormatKey);
+							fileFormat.FileFormatKey = existingFileFormat.FileFormatKey;
+							plan.FileFormats.Add(fileFormat, EImportAction.Replace);
+							break;
+						case EImportAction.New:
+							var newKey = keySequence--;
+							fileFormatKeyMappings.Add(fileFormat.FileFormatKey, newKey);
+							fileFormat.FileFormatKey = newKey;
+							fileFormat.Name = fileFormat.Name + " - duplicate rename " + DateTime.Now;
+							plan.FileFormats.Add(fileFormat, EImportAction.New);
+							break;
+						case EImportAction.Leave:
+						case EImportAction.Skip:
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(columnValidationsAction), columnValidationsAction, null);
+					}
+				}
+				else
+				{
+					if (fileFormatsAction != EImportAction.Skip)
+					{
+						var newKey = keySequence--;
+						fileFormatKeyMappings.Add(fileFormat.FileFormatKey, newKey);
+						fileFormat.FileFormatKey = newKey;
+						plan.FileFormats.Add(fileFormat, EImportAction.New);
+					}
+				}
+			}
+
+			var existingColumnValidations =
+				await DbContext.DexihColumnValidation.Where(cv => cv.HubKey == hubKey && hub.DexihColumnValidations.Select(c => c.Name).Contains(cv.Name) && cv.IsValid).ToArrayAsync();
+
+
+			foreach (var columnValidation in hub.DexihColumnValidations)
+			{
+				columnValidation.HubKey = hubKey;
+				
+				var existingcolumnValidation = existingColumnValidations.SingleOrDefault(con => columnValidation.Name == con.Name);
+
+				if (existingcolumnValidation != null)
+				{
+					switch (columnValidationsAction)
+					{
+						case EImportAction.Replace:
+							columnValidationKeyMappings.Add(columnValidation.ColumnValidationKey, existingcolumnValidation.ColumnValidationKey);
+							columnValidation.ColumnValidationKey = existingcolumnValidation.ColumnValidationKey;
+							plan.ColumnValidations.Add(columnValidation, EImportAction.Replace);
+							break;
+						case EImportAction.New:
+							var newKey = keySequence--;
+							columnValidationKeyMappings.Add(columnValidation.ColumnValidationKey, newKey);
+							columnValidation.ColumnValidationKey = newKey;
+							columnValidation.Name = columnValidation.Name + " - duplicate rename " + DateTime.Now;
+							plan.ColumnValidations.Add(columnValidation, EImportAction.New);
+							break;
+						case EImportAction.Leave:
+						case EImportAction.Skip:
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(columnValidationsAction), columnValidationsAction, null);
+					}
+				}
+				else
+				{
+					if (columnValidationsAction != EImportAction.Skip)
+					{
+						var newKey = keySequence--;
+						columnValidationKeyMappings.Add(columnValidation.ColumnValidationKey, newKey);
+						columnValidation.ColumnValidationKey = newKey;
+						plan.ColumnValidations.Add(columnValidation, EImportAction.New);
+					}
+				}
+			}
+			
+			var existingConnections =
+				await DbContext.DexihConnections.Where(con => con.HubKey == hubKey && hub.DexihConnections.Select(c => c.Name).Contains(con.Name) && con.IsValid).ToArrayAsync();
+
+			
+			foreach (var connection in hub.DexihConnections)
+			{
+				connection.HubKey = hubKey;
+				var tables = connection.DexihTables;
+				connection.DexihTables = null;
+				
+				var existingConnection = existingConnections.SingleOrDefault(con => connection.Name == con.Name);
+				var isNewConnection = false;
+
+				void NewConnection()
+				{
+					var newKey = keySequence--;
+					connectionKeyMappings.Add(connection.ConnectionKey, newKey);
+					connection.ConnectionKey = newKey;
+					plan.Connections.Add(connection, EImportAction.New);
+					isNewConnection = true;
+				}
+				
+				if (existingConnection != null)
+				{
+					switch (connectionsAction)
+					{
+						case EImportAction.Replace:
+							connectionKeyMappings.Add(connection.ConnectionKey, existingConnection.ConnectionKey);
+							connection.ConnectionKey = existingConnection.ConnectionKey;
+							plan.Connections.Add(connection, EImportAction.Replace);
+							break;
+						case EImportAction.New:
+							connection.Name = connection.Name + " - duplicate rename " + DateTime.Now;
+							NewConnection();
+							break;
+						case EImportAction.Leave:
+						case EImportAction.Skip:
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(columnValidationsAction), columnValidationsAction, null);
+					}
+				}
+				else
+				{
+					if (connectionsAction != EImportAction.Skip)
+					{
+						NewConnection();
+					}
+				}
+
+				if (tablesAction != EImportAction.Skip)
+				{
+                    void AddTable(DexihTable table)
+                    {
+                        var newKey = keySequence--;
+                        tableKeyMappings.Add(table.TableKey, newKey);
+                        table.TableKey = newKey;
+                        table.HubKey = hubKey;
+                        table.ConnectionKey = connection.ConnectionKey;
+
+                        if (table.FileFormatKey != null)
+                        {
+                            if (fileFormatKeyMappings.ContainsKey(table.FileFormatKey.Value))
+                            {
+                                table.FileFormatKey = fileFormatKeyMappings[table.FileFormatKey.Value];
+                            }
+                        }
+
+                        foreach (var column in table.DexihTableColumns)
+                        {
+                            column.TableKey = table.TableKey;
+                            column.HubKey = hubKey;
+                            newKey = keySequence--;
+                            columnKeyMappings.Add(column.ColumnKey, newKey);
+                            column.ColumnKey = newKey;
+                        }
+                        plan.Tables.Add(table, EImportAction.New);
+                    }
+
+					if (isNewConnection)
+					{
+						foreach (var table in tables)
+						{
+                            AddTable(table);
+						}
+					}
+					else
+					{
+						var existingTables = await DbContext.DexihTables.Where(tab =>
+								tab.HubKey == hubKey && tables.Select(c => c.Name).Contains(tab.Name) && tab.IsValid)
+							.ToArrayAsync();
+
+						foreach (var table in tables)
+						{
+							table.HubKey = hubKey;
+							table.ConnectionKey = connection.ConnectionKey;
+							if (table.FileFormatKey != null)
+							{
+								if (fileFormatKeyMappings.ContainsKey(table.FileFormatKey.Value))
+								{
+									table.FileFormatKey = fileFormatKeyMappings[table.FileFormatKey.Value];
+								}
+							}
+
+							var existingTable = existingTables.SingleOrDefault(tab => table.Name == tab.Name);
+                            if(existingTable == null)
+                            {
+                                AddTable(table);
+                            }
+							else
+							{
+								switch (tablesAction)
+								{
+									case EImportAction.Replace:
+										tableKeyMappings.Add(table.TableKey, existingTable.TableKey);
+										table.TableKey = existingTable.TableKey;
+										plan.Tables.Add(table, EImportAction.Replace);
+
+										var existingColumns =
+											await DbContext.DexihTableColumns.Where(c => c.HubKey == hubKey && c.TableKey == existingTable.TableKey && c.IsValid).ToArrayAsync();
+
+										foreach (var column in table.DexihTableColumns)
+										{
+											column.HubKey = hubKey;
+											column.TableKey = table.TableKey;
+											if (column.ColumnValidationKey != null)
+											{
+												if (columnValidationKeyMappings.ContainsKey(column.ColumnValidationKey.Value))
+												{
+													column.ColumnValidationKey = columnValidationKeyMappings[column.ColumnValidationKey.Value];
+												}
+											}
+											var existingColumn = existingColumns.SingleOrDefault(c => c.Name == column.Name);
+											{
+												if (existingColumn != null)
+												{
+													column.ColumnKey = existingColumn.ColumnKey;
+												}
+												else
+												{
+													var newKey = keySequence--;
+													columnKeyMappings.Add(column.ColumnKey, newKey);
+													column.ColumnKey = newKey;
+												}
+											}
+										}
+										break;
+									case EImportAction.New:
+										var newKey2 = keySequence--;
+										tableKeyMappings.Add(table.TableKey, newKey2);
+										table.TableKey = newKey2;
+							
+										foreach (var column in table.DexihTableColumns)
+										{
+											column.HubKey = hubKey;
+											if (column.ColumnValidationKey != null)
+											{
+												if (columnValidationKeyMappings.ContainsKey(column.ColumnValidationKey.Value))
+												{
+													column.ColumnValidationKey = columnValidationKeyMappings[column.ColumnValidationKey.Value];
+												}
+											}
+											column.TableKey = table.TableKey;
+											var newKey = keySequence--;
+											columnKeyMappings.Add(column.ColumnKey, newKey);
+											column.ColumnKey = newKey;
+										}
+										plan.Tables.Add(table, EImportAction.New);
+										break;
+									case EImportAction.Leave:
+									case EImportAction.Skip:
+										break;
+									default:
+										throw new ArgumentOutOfRangeException(nameof(columnValidationsAction), columnValidationsAction, null);
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			var existingDatalinks =
+				await DbContext.DexihDatalinks.Where(cv => cv.HubKey == hubKey && hub.DexihDatalinks.Select(c => c.Name).Contains(cv.Name) && cv.IsValid).ToArrayAsync();
+
+
+			// loop through the datalinks and reset the datalinkKeys.
+			foreach (var datalink in hub.DexihDatalinks)
+			{
+				datalink.HubKey = hubKey;
+				var existingdatalink = existingDatalinks.SingleOrDefault(con => datalink.Name == con.Name);
+
+				if (existingdatalink != null)
+				{
+					switch (datalinksAction)
+					{
+						case EImportAction.Replace:
+							datalinkKeyMappings.Add(datalink.DatalinkKey, existingdatalink.DatalinkKey);
+							datalink.DatalinkKey = existingdatalink.DatalinkKey;
+							plan.Datalinks.Add(datalink, EImportAction.Replace);
+							break;
+						case EImportAction.New:
+							var newKey = keySequence--;
+							datalinkKeyMappings.Add(datalink.DatalinkKey, newKey);
+							datalink.DatalinkKey = newKey;
+							datalink.Name = datalink.Name + " - duplicate rename " + DateTime.Now;
+							plan.Datalinks.Add(datalink, EImportAction.New);
+							break;
+						case EImportAction.Leave:
+						case EImportAction.Skip:
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(datalinksAction), datalinksAction, null);
+					}
+				}
+				else
+				{
+					if (datalinksAction != EImportAction.Skip)
+					{
+						var newKey = keySequence--;
+						datalinkKeyMappings.Add(datalink.DatalinkKey, newKey);
+						datalink.DatalinkKey = newKey;
+						plan.Datalinks.Add(datalink, EImportAction.New);
+					}
+				}
+			}
+
+
+			//loop through the datalinks again, and reset the other keys.
+			//this requires a second loop as a datalink can reference another datalink.
+			foreach (var datalink in plan.Datalinks.Select(c=>c.Item))
+			{
+				var datalinkColumnKeyMapping = new Dictionary<long, long>();
+
+				void ResetDatalinkColumn(DexihDatalinkColumn datalinkColumn)
+				{
+					if (datalinkColumn != null)
+					{
+						var newKey = keySequence--;
+						datalinkColumnKeyMapping.Add(datalinkColumn.DatalinkColumnKey, newKey);
+						datalinkColumn.DatalinkColumnKey = newKey;
+					}
+				}
+				
+				// resets columns in datalink table.  Used as a funtion as it is required for the sourcedatalink and joindatalink.
+				void ResetDatalinkTable(DexihDatalinkTable datalinkTable)
+				{
+					if (datalinkTable != null)
+					{
+						datalinkTable.DatalinkTableKey = 0;
+						datalinkTable.SourceDatalinkKey = 0;
+						datalinkTable.SourceDatalinkKey =
+							datalinkKeyMappings.GetValueOrDefault(datalinkTable.SourceDatalinkKey.Value);
+						datalinkTable.SourceTableKey =
+							tableKeyMappings.GetValueOrDefault(datalinkTable.SourceTableKey.Value);
+
+						foreach (var column in datalinkTable.DexihDatalinkColumns)
+						{
+							ResetDatalinkColumn(column);
+						}
+					}
+				}
+
+				datalink.SourceDatalinkTableKey = 0;
+				ResetDatalinkTable(datalink.SourceDatalinkTable);
+				
+				datalink.TargetTableKey = 
+					tableKeyMappings.GetValueOrDefault(datalink.TargetTableKey.Value);
+
+				datalink.AuditConnectionKey =
+					connectionKeyMappings.GetValueOrDefault(datalink.AuditConnectionKey);
+
+				datalink.HubKey = hubKey;
+
+				foreach (var datalinkTransform in datalink.DexihDatalinkTransforms)
+				{
+					datalinkTransform.DatalinkKey = 0;
+					datalinkTransform.DatalinkTransformKey = 0;
+					datalinkTransform.HubKey = hubKey;
+
+					datalinkTransform.JoinDatalinkTableKey = null;
+					ResetDatalinkTable(datalinkTransform.JoinDatalinkTable);
+
+					datalinkTransform.HubKey = hubKey;
+
+					foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
+					{
+						item.DatalinkTransformItemKey = 0;
+						item.HubKey = hubKey;
+						
+						if (item.JoinDatalinkColumn != null)
+						{
+							item.JoinDatalinkColumnKey = datalinkColumnKeyMapping.GetValueOrDefault(item.JoinDatalinkColumn.DatalinkColumnKey);
+							item.JoinDatalinkColumn = null;
+						}
+						else
+						{
+							item.JoinDatalinkColumnKey = null;
+						}
+
+						if (item.SourceDatalinkColumn != null)
+						{
+							item.SourceDatalinkColumnKey = datalinkColumnKeyMapping.GetValueOrDefault(item.SourceDatalinkColumn.DatalinkColumnKey);
+							item.SourceDatalinkColumn = null;
+						}
+						else
+						{
+							item.SourceDatalinkColumnKey = null;
+						}
+
+						foreach (var parameter in item.DexihFunctionParameters)
+						{
+							parameter.FunctionParameterKey = 0;
+							parameter.HubKey = hubKey;
+							parameter.DatalinkColumnKey = 0;
+							parameter.DatalinkTransformItemKey = 0;
+
+							if (parameter.Direction == DexihFunctionParameter.EParameterDirection.Input)
+							{
+								if (parameter.DatalinkColumn != null)
+								{
+									parameter.DatalinkColumnKey = datalinkColumnKeyMapping.GetValueOrDefault(parameter.DatalinkColumn.DatalinkColumnKey);
+									parameter.DatalinkColumn = null;
+								}
+								else
+								{
+									parameter.DatalinkColumnKey = null;
+								}
+							}
+							else
+							{
+								ResetDatalinkColumn(parameter.DatalinkColumn);
+							}
+						}
+
+						item.TargetDatalinkColumnKey = 0;
+						ResetDatalinkColumn(item.TargetDatalinkColumn);
+					}
+				}
+			}
+			
+			
+			var existingDatajobs =
+				await DbContext.DexihDatajobs.Where(cv => cv.HubKey == hubKey && hub.DexihDatajobs.Select(c => c.Name).Contains(cv.Name) && cv.IsValid).ToArrayAsync();
+
+			void AddDatajob(DexihDatajob datajob)
+			{
+				var newKey = keySequence--;
+				datajobKeyMappings.Add(datajob.DatajobKey, newKey);
+				datajob.DatajobKey = newKey;
+				plan.Datajobs.Add(datajob, EImportAction.New);
+			}
+			foreach (var datajob in hub.DexihDatajobs)
+			{
+				datajob.HubKey = hubKey;
+				
+				var existingdatajob = existingDatajobs.SingleOrDefault(con => datajob.Name == con.Name);
+
+				if (existingdatajob != null)
+				{
+					switch (datajobsAction)
+					{
+						case EImportAction.Replace:
+							datajobKeyMappings.Add(datajob.DatajobKey, existingdatajob.DatajobKey);
+							datajob.DatajobKey = existingdatajob.DatajobKey;
+							plan.Datajobs.Add(datajob, EImportAction.Replace);
+							break;
+						case EImportAction.New:
+							datajob.Name = datajob.Name + " - duplicate rename " + DateTime.Now;
+							AddDatajob(datajob);
+							break;
+						case EImportAction.Leave:
+						case EImportAction.Skip:
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(datajobsAction), datajobsAction, null);
+					}
+				}
+				else
+				{
+					if (datajobsAction != EImportAction.Skip)
+					{
+						AddDatajob(datajob);
+					}
+				}
+
+				foreach (var trigger in datajob.DexihTriggers)
+				{
+					trigger.TriggerKey = 0;
+					trigger.HubKey = hubKey;
+				}
+
+				var stepKeyMapping = new Dictionary<long, long>();
+				
+				foreach (var step in datajob.DexihDatalinkSteps)
+				{
+					var newKey = keySequence--;
+					stepKeyMapping.Add(step.DatalinkStepKey, newKey);
+					step.DatalinkStepKey = newKey;
+					step.DatalinkKey = datalinkKeyMappings.GetValueOrDefault(step.DatalinkKey);
+				}
+				
+				foreach (var step in datajob.DexihDatalinkSteps)
+				{
+					foreach (var dep in step.DexihDatalinkDependencies)
+					{
+						dep.DatalinkDependencyKey = 0;
+						dep.DatalinkStepKey = stepKeyMapping.GetValueOrDefault(dep.DatalinkStepKey);
+					}
+				}
+
+				datajob.AuditConnectionKey = connectionKeyMappings.GetValueOrDefault(datajob.AuditConnectionKey);
+			}
+			
+			return plan;
+		}
+
+
+		/// <summary>
+		/// Imports are package into the current repository.
+		/// </summary>
+		/// <param name="import"></param>
+		/// <returns></returns>
+		public async Task ImportPackage(Import import)
+		{
+
+			//load all the objects into dictionaries, which can be used to reference them by their key
+			
+            var fileFormats = import.FileFormats
+                .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+                .ToDictionary(c => c.FileFormatKey, c => c);
+            var columnValidations = import.ColumnValidations
+                .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+                .ToDictionary(c => c.ColumnValidationKey, c => c);
+            var connections = import.Connections
+                .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+                .ToDictionary(c => c.ConnectionKey, c => c);
+            var tables = import.Tables
+                .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+                .ToDictionary(c => c.TableKey, c => c);
+            var datalinks = import.Datalinks
+                .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+                .ToDictionary(c => c.DatalinkKey, c => c);
+            var datajobs = import.Datajobs
+                .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+                .ToDictionary(c => c.DatajobKey, c => c);
+
+           
+			// reset all the connection keys.
+            foreach (var connection in connections.Values)
+			{
+                if (connection.ConnectionKey < 0) connection.ConnectionKey = 0;
+			}
+
+            foreach(var table in tables.Values)
+            {
+                if (table.TableKey < 0) table.TableKey = 0;
+
+                table.Connection = connections.GetValueOrDefault(table.ConnectionKey);
+                if(table.FileFormatKey != null)
+                {
+                    table.FileFormat = fileFormats.GetValueOrDefault(table.FileFormatKey.Value);
+                }
+
+                foreach(var column in table.DexihTableColumns)
+                {
+                    if (column.ColumnKey < 0) column.ColumnKey = 0;
+                    column.Table = table;
+                    if(column.ColumnValidationKey != null)
+                    {
+                        column.ColumnValidation = columnValidations.GetValueOrDefault(column.ColumnValidationKey.Value);
+                    }
+                }
+            }
+
+			foreach (var datalink in datalinks.Values)
+			{
+                if(datalink.DatalinkKey < 0) datalink.DatalinkKey = 0;
+
+                datalink.AuditConnection = connections.GetValueOrDefault(datalink.AuditConnectionKey);
+
+                datalink.SourceDatalinkTable.SourceDatalink = datalink.SourceDatalinkTable.SourceDatalinkKey == null ? null :
+                    datalinks.GetValueOrDefault(datalink.SourceDatalinkTable.SourceDatalinkKey.Value);
+
+                datalink.SourceDatalinkTable.SourceTable = datalink.SourceDatalinkTable.SourceTableKey == null ? null : 
+                    tables.GetValueOrDefault(datalink.SourceDatalinkTable.SourceTableKey.Value);
+
+				datalink.TargetTable = datalink.TargetTableKey == null ? null :
+                    tables.GetValueOrDefault(datalink.TargetTableKey.Value);
+
+                var datalinkColumns = datalink.SourceDatalinkTable.DexihDatalinkColumns.ToDictionary(c => c.DatalinkColumnKey, c => c);
+                foreach(var column in datalink.SourceDatalinkTable.DexihDatalinkColumns)
+                {
+                    column.DatalinkColumnKey = 0;
+                }
+
+				foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c=>c.Position))
+				{
+                    datalinkTransform.DatalinkTransformKey = 0;
+
+                    if (datalinkTransform.JoinDatalinkTable != null)
+					{
+						datalinkTransform.JoinDatalinkTable.SourceDatalink =datalinkTransform.JoinDatalinkTable.SourceDatalinkKey == null ? null :
+                            datalinks.GetValueOrDefault(datalinkTransform.JoinDatalinkTable.SourceDatalinkKey.Value);
+
+                        datalinkTransform.JoinDatalinkTable.SourceTable = datalinkTransform.JoinDatalinkTable.SourceTableKey == null ? null :
+							tables.GetValueOrDefault(datalinkTransform.JoinDatalinkTable.SourceTableKey.Value);
+					}
+
+                    foreach(var item in datalinkTransform.DexihDatalinkTransformItems)
+                    {
+                        item.DatalinkTransformItemKey = 0;
+                        item.SourceDatalinkColumn = item.SourceDatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(item.SourceDatalinkColumnKey.Value);
+                        item.JoinDatalinkColumn = item.JoinDatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(item.JoinDatalinkColumnKey.Value);
+
+                        foreach(var param in item.DexihFunctionParameters)
+                        {
+                            param.FunctionParameterKey = 0;
+
+                            if(param.Direction == DexihFunctionParameter.EParameterDirection.Input)
+                            {
+                                param.DatalinkColumn = param.DatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(param.DatalinkColumnKey.Value);
+                            }
+                            else
+                            {
+                                if(param.DatalinkColumn != null)
+                                {
+                                    datalinkColumns.Add(param.DatalinkColumn.DatalinkColumnKey, param.DatalinkColumn);
+                                    param.DatalinkColumn.DatalinkColumnKey = 0;
+                                }
+                            }
+                        }
+
+                        if(item.TargetDatalinkColumn != null)
+                        {
+                            datalinkColumns.Add(item.TargetDatalinkColumn.DatalinkColumnKey, item.TargetDatalinkColumn);
+                            item.TargetDatalinkColumn.DatalinkColumnKey = 0;
+                        }
+                    }
+				}
+			}
+
+			foreach (var datajob in datajobs.Values)
+			{
+                if (datajob.DatajobKey < 0) datajob.DatajobKey = 0;
+
+                datajob.AuditConnection = connections.GetValueOrDefault(datajob.AuditConnectionKey);
+
+				foreach (var trigger in datajob.DexihTriggers)
+				{
+					trigger.TriggerKey = 0;
+				}
+
+				var steps = datajob.DexihDatalinkSteps.ToDictionary(c => c.DatalinkStepKey, c => c);
+
+				
+				foreach (var step in steps.Values)
+				{
+					step.DatalinkStepKey = 0;
+                    step.Datalink = datalinks.GetValueOrDefault(step.DatalinkKey);
+
+					foreach (var dep in step.DexihDatalinkDependencies)
+					{
+						dep.DatalinkDependencyKey = 0;
+						dep.DatalinkStep = steps.GetValueOrDefault(dep.DatalinkStepKey);
+					}
+				}
+			}
+
+
+			// set all existing datalink object to invalid.
+			var datalinkTransforms = datalinks.Values.SelectMany(c => c.DexihDatalinkTransforms).Select(c=>c.DatalinkTransformKey);
+			var deletedDatalinkTransforms = DbContext.DexihDatalinkTransforms.Include(c=>c.DexihDatalinkTransformItems).ThenInclude(p=>p.DexihFunctionParameters)
+				.Where(t => t.HubKey == import.HubKey &&
+				datalinks.Values.Select(d => d.DatalinkKey).Contains(t.DatalinkKey) &&
+				!datalinkTransforms.Contains(t.DatalinkTransformKey));
+
+			foreach (var transform in deletedDatalinkTransforms)
+			{
+				transform.IsValid = false;
+				transform.UpdateDate = DateTime.Now;
+
+				foreach (var item in transform.DexihDatalinkTransformItems)
+				{
+					item.IsValid = false;
+					item.UpdateDate = DateTime.Now;
+
+					foreach (var param in item.DexihFunctionParameters)
+					{
+						param.IsValid = false;
+						param.UpdateDate = DateTime.Now;
+					}
+				}
+			}
+
+
+			var dataLinkSteps = datajobs.Values.SelectMany(c => c.DexihDatalinkSteps).Select(c => c.DatalinkStepKey);
+			var deletedSteps = DbContext.DexihDatalinkStep.Where(s =>
+             	s.HubKey == import.HubKey &&
+				datajobs.Values.Select(d => d.DatajobKey).Contains(s.DatajobKey) && !dataLinkSteps.Contains(s.DatalinkStepKey));
+			foreach (var step in deletedSteps)
+			{
+				step.IsValid = false;
+				step.UpdateDate = DateTime.Now;
+
+				foreach (var dep in step.DexihDatalinkDependencies)
+				{
+					dep.IsValid = false;
+					dep.UpdateDate = DateTime.Now;
+				}
+			}
+
+
+			// get all columns from the repository that need to be removed.
+			var allColumnKeys = tables.Values.SelectMany(t => t.DexihTableColumns).Select(c=>c.ColumnKey).Where(c => c > 0);
+			var deletedColumns = DbContext.DexihTableColumns.Where(c =>
+			                                                       c.HubKey == import.HubKey &&
+				tables.Values.Select(t => t.TableKey).Contains(c.TableKey) && !allColumnKeys.Contains(c.ColumnKey));
+
+			foreach (var column in deletedColumns)
+			{
+				column.IsValid = false;
+				column.UpdateDate = DateTime.Now;
+			}
+
+			DbContext.AddRange(columnValidations.Values);
+			DbContext.AddRange(fileFormats.Values);
+			DbContext.AddRange(connections.Values);
+            DbContext.AddRange(tables.Values);
+            DbContext.AddRange(datalinks.Values);
+			DbContext.AddRange(datajobs.Values);
+
+			var entries = DbContext.ChangeTracker.Entries()
+				.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+			foreach (var entry in entries)
+			{
+				var item = entry.Entity;
+				var properties = item.GetType().GetProperties();
+				foreach (var property in properties)
+				{
+					foreach (var attrib in property.GetCustomAttributes(true))
+					{
+						if (attrib is CopyCollectionKeyAttribute)
+						{
+							var value = (long) property.GetValue(item);
+							if (value <= 0)
+							{
+								entry.State = EntityState.Added;
+								// property.SetValue(item, 0);
+							}
+							else
+							{
+								entry.State = EntityState.Modified;
+							}
+						}
+					}
+				}
+			}
+
+			await SaveChangesAsync(import.HubKey, CancellationToken.None);
+
+		}
+
+    }
+	
+
+
+}
+

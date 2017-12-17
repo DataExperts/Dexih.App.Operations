@@ -1,0 +1,54 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2017
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dexih.operations", "src\dexih.operations\dexih.operations.csproj", "{FBB93158-553C-4C8C-BA08-968F0A299FFB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dexih.repository", "src\dexih.repository\dexih.repository.csproj", "{D341F3F1-2F78-4DF3-A8C2-971199FD1F0D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C2564AA2-FC98-4138-B2EB-F761510E6F1C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{DFBBBC57-5543-4906-82DE-BFCF80C57FD5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dexih.operations.tests", "test\dexih.operations.tests\dexih.operations.tests.csproj", "{91F69D9E-AE07-489C-B174-6F8544B30031}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ext", "ext", "{98E87DDB-3822-4138-BCAE-A86936B82444}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dexih.functions", "..\dexih.transforms\src\dexih.functions\dexih.functions.csproj", "{AAA93E6D-4E7F-46CA-8C54-F79FABE43E69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dexih.transforms", "..\dexih.transforms\src\dexih.transforms\dexih.transforms.csproj", "{2231D9E1-FC8A-452F-8D73-CFC774452139}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FBB93158-553C-4C8C-BA08-968F0A299FFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBB93158-553C-4C8C-BA08-968F0A299FFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBB93158-553C-4C8C-BA08-968F0A299FFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBB93158-553C-4C8C-BA08-968F0A299FFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D341F3F1-2F78-4DF3-A8C2-971199FD1F0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D341F3F1-2F78-4DF3-A8C2-971199FD1F0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D341F3F1-2F78-4DF3-A8C2-971199FD1F0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D341F3F1-2F78-4DF3-A8C2-971199FD1F0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91F69D9E-AE07-489C-B174-6F8544B30031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91F69D9E-AE07-489C-B174-6F8544B30031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91F69D9E-AE07-489C-B174-6F8544B30031}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91F69D9E-AE07-489C-B174-6F8544B30031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAA93E6D-4E7F-46CA-8C54-F79FABE43E69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAA93E6D-4E7F-46CA-8C54-F79FABE43E69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAA93E6D-4E7F-46CA-8C54-F79FABE43E69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAA93E6D-4E7F-46CA-8C54-F79FABE43E69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2231D9E1-FC8A-452F-8D73-CFC774452139}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2231D9E1-FC8A-452F-8D73-CFC774452139}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2231D9E1-FC8A-452F-8D73-CFC774452139}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2231D9E1-FC8A-452F-8D73-CFC774452139}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FBB93158-553C-4C8C-BA08-968F0A299FFB} = {C2564AA2-FC98-4138-B2EB-F761510E6F1C}
+		{D341F3F1-2F78-4DF3-A8C2-971199FD1F0D} = {C2564AA2-FC98-4138-B2EB-F761510E6F1C}
+		{91F69D9E-AE07-489C-B174-6F8544B30031} = {DFBBBC57-5543-4906-82DE-BFCF80C57FD5}
+		{AAA93E6D-4E7F-46CA-8C54-F79FABE43E69} = {98E87DDB-3822-4138-BCAE-A86936B82444}
+		{2231D9E1-FC8A-452F-8D73-CFC774452139} = {98E87DDB-3822-4138-BCAE-A86936B82444}
+	EndGlobalSection
+EndGlobal

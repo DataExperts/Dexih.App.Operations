@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <VersionPrefix>0.2.4</VersionPrefix>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>dexih.operations</AssemblyName>
+    <PackageId>dexih.operations</PackageId>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\dexih.repository\dexih.repository.csproj" />
+    <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.functions\dexih.functions.csproj" />
+    <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.transforms\dexih.transforms.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.IO.FileSystem.Watcher" Version="4.3.0" />
+    <PackageReference Include="System.Collections.NonGeneric" Version="4.3.0" />
+    <PackageReference Include="System.Reflection" Version="4.3.0" />
+  </ItemGroup>
+</Project>
