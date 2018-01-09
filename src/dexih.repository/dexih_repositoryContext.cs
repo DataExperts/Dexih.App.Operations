@@ -993,47 +993,23 @@ namespace dexih.repository
                 entity.ToTable("dexih_hubs");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(50)");
+                entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(500)");
+                entity.Property(e => e.EncryptionKey).HasColumnName("encryption_key").HasColumnType("varchar(255)");
+                entity.Property(e => e.SharedAccessString).HasColumnName("shared_access").HasColumnType("varchar(20)");
+                entity.Property(e => e.IsInternal).HasColumnName("is_internal");
 
-				entity.Property(e => e.CreateDate)
-					  .HasColumnName("create_date");
-                    // .HasColumnType("datetime");
-
-                entity.Property(e => e.DailyTransactionQuota).HasColumnName("daily_transaction_quota");
-
-                entity.Property(e => e.Description)
-                    .HasColumnName("description")
-                    .HasColumnType("varchar(500)");
-
-                entity.Property(e => e.EncryptionKey)
-                    .HasColumnName("encryption_key")
-                    .HasColumnType("varchar(255)");
-
-				entity.Property(e => e.ExpiryDate)
-					  .HasColumnName("expiry_date");
-				// .HasColumnType("datetime");
-
-				entity.Property(e => e.IsInternal)
-					  .HasColumnName("is_internal");
-
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
-                entity.Property(e => e.MaxDatajobs).HasColumnName("max_datajobs");
-
-                entity.Property(e => e.MaxDatalinks).HasColumnName("max_datalinks");
-
-                entity.Property(e => e.MaxOwners).HasColumnName("max_owners");
-
-                entity.Property(e => e.MaxReaders).HasColumnName("max_readers");
-
-                entity.Property(e => e.MaxUsers).HasColumnName("max_users");
-
-                entity.Property(e => e.Name)
-                    .HasColumnName("name")
-                    .HasColumnType("varchar(50)");
-
-				entity.Property(e => e.UpdateDate)
-					  .HasColumnName("update_date");
-                    // .HasColumnType("datetime");
+//                entity.Property(e => e.DailyTransactionQuota).HasColumnName("daily_transaction_quota");
+//				entity.Property(e => e.ExpiryDate).HasColumnName("expiry_date");// .HasColumnType("datetime");
+//                entity.Property(e => e.MaxDatajobs).HasColumnName("max_datajobs");
+//                entity.Property(e => e.MaxDatalinks).HasColumnName("max_datalinks");
+//                entity.Property(e => e.MaxOwners).HasColumnName("max_owners");
+//                entity.Property(e => e.MaxReaders).HasColumnName("max_readers");
+//                entity.Property(e => e.MaxUsers).HasColumnName("max_users");
             });
 
             modelBuilder.Entity<DexihHubVariable>(entity =>

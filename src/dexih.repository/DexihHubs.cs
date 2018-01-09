@@ -1,12 +1,27 @@
 ﻿using Dexih.Utils.CopyProperties;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using Dexih.Utils.DataType;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace dexih.repository
 {
     public partial class DexihHub : DexihBaseEntity
     {
+        /// <summary>
+        /// Level of access required to view shared hub data.
+        /// </summary>
+        [JsonConverter(typeof (StringEnumConverter))]
+        public enum  ESharedAccess
+        {
+            Public, // shared objects can be accessed by public
+            Registered, // shared objects can be accessed by registred users only 
+            Reader // shared objects can be access only be users with PublishReader permission
+        }
+        
         public DexihHub()
         {
             DexihConnections = new HashSet<DexihConnection>();
@@ -22,14 +37,33 @@ namespace dexih.repository
         public string Name { get; set; }
         public string Description { get; set; }
         public string EncryptionKey { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public string SharedAccessString
+        {
+            get => SharedAccess.ToString();
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    SharedAccess = ESharedAccess.Reader;
+                }
+                else
+                {
+                    SharedAccess = (ESharedAccess)Enum.Parse(typeof(ESharedAccess), value);
+                }
+            }
+        }        
+        [NotMapped]
+        public ESharedAccess SharedAccess { get; set; }
         
-		public int? MaxOwners { get; set; }
-        public int? MaxUsers { get; set; }
-        public int? MaxReaders { get; set; }
-        public int? MaxDatalinks { get; set; }
-        public int? MaxDatajobs { get; set; }
-        public int? DailyTransactionQuota { get; set; }
-        public DateTime? ExpiryDate { get; set; }
+//		public int? MaxOwners { get; set; }
+//        public int? MaxUsers { get; set; }
+//        public int? MaxReaders { get; set; }
+//        public int? MaxDatalinks { get; set; }
+//        public int? MaxDatajobs { get; set; }
+//        public int? DailyTransactionQuota { get; set; }
+//        public DateTime? ExpiryDate { get; set; }
         public bool IsInternal { get; set; }
 
         public virtual ICollection<DexihConnection> DexihConnections { get; set; }
@@ -41,6 +75,10 @@ namespace dexih.repository
 
         public virtual ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
 
+        // used to provide the current user permissions, not mapped to db.
+        [NotMapped]
+        public DexihHubUser.EPermission HubPermission { get; set; }
+        
         /// <summary>
         /// Searches all connections and table for a columnKey.
         /// </summary>

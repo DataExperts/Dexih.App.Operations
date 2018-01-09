@@ -15,7 +15,7 @@ namespace dexih.operations
 {
     public class DownloadData
     {
-        private string _encryptionKey;
+        private readonly string _encryptionKey;
         private readonly IEnumerable<DexihHubVariable> _hubVariables;
 
         public DownloadData(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables)
@@ -38,7 +38,7 @@ namespace dexih.operations
                     Transform transform = null;
                     var name = "";
 
-                    if (downloadObject.ObjectType == ObjectType.Table)
+                    if (downloadObject.ObjectType == SharedData.EObjectType.Table)
                     {
                         foreach (var dbConnection in cache.DexihHub.DexihConnections)
                         {
@@ -116,16 +116,10 @@ namespace dexih.operations
 
         public class DownloadObject
         {
-            public ObjectType ObjectType { get; set; }
+            public SharedData.EObjectType ObjectType { get; set; }
             public long ObjectKey { get; set; }
             public SelectQuery Query { get; set; }
         }
-
-        public enum ObjectType
-        {
-            Table, Datalink
-        }
-
 
         public enum EDownloadFormat
         {

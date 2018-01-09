@@ -3,6 +3,7 @@ using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Permissions;
 using System.Threading.Tasks;
@@ -98,6 +99,12 @@ namespace dexih.operations
 			}
 		}
 
+		/// <summary>
+		/// Get hubs which the user is either authorized (Owner, User, FullReader) or an admin.
+		/// </summary>
+		/// <param name="userId"></param>
+		/// <param name="isAdmin"></param>
+		/// <returns></returns>
 		public async Task<DexihHub[]> GetUserHubs(string userId, bool isAdmin)
 		{
 			if (isAdmin)
@@ -107,10 +114,205 @@ namespace dexih.operations
 			}
 			else
 			{
-				var hubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == userId && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+				var hubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == userId && c.Permission <= DexihHubUser.EPermission.FullReader && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
                 var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid ).ToArrayAsync();
 				return hubs;
 			}
+		}
+		
+		/// <summary>
+		/// Gets a list of hubs the user can access shared data in.
+		/// </summary>
+		/// <param name="userId"></param>
+		/// <param name="isAdmin"></param>
+		/// <returns></returns>
+		public async Task<DexihHub[]> GetSharedHubs(string userId, bool isAdmin)
+		{
+			// determine the hubs which can be shared data can be accessed from
+			DexihHub[] hubs;
+			if (isAdmin)
+			{
+				// admin user has access to all hubs
+				return await DbContext.DexihHubs.Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
+			}
+			else
+			{
+				if (string.IsNullOrEmpty(userId))
+				{
+					// no user can only see public hubs
+					return await DbContext.DexihHubs.Where(c => c.SharedAccess == DexihHub.ESharedAccess.Public && !c.IsInternal && c.IsValid).ToArrayAsync();
+				}
+				else
+				{
+					// all hubs the user has reader access to.
+					var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == userId && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+					
+					// all hubs the user has reader access to, or are public
+					return await DbContext.DexihHubs.Where(c => 
+						(!c.IsInternal && c.IsValid) &&
+						(
+							c.SharedAccess == DexihHub.ESharedAccess.Public ||
+							c.SharedAccess == DexihHub.ESharedAccess.Registered ||
+							readerHubKeys.Contains(c.HubKey)
+						)
+						).ToArrayAsync();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Checks is the user can access shared objects in the hub.
+		/// </summary>
+		/// <param name="userId"></param>
+		/// <param name="isAdmin"></param>
+		/// <param name="hubKey"></param>
+		/// <returns></returns>
+		public async Task<bool> CanAccessSharedObjects(string userId, bool isAdmin, long hubKey)
+		{
+			// determine the hubs which can be shared data can be accessed from
+			DexihHub[] hubs;
+			if (isAdmin)
+			{
+				return true;
+			}
+			else
+			{
+				if (string.IsNullOrEmpty(userId))
+				{
+					// no user can only see public hubs
+					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.SharedAccess == DexihHub.ESharedAccess.Public && !c.IsInternal && c.IsValid);
+					return hub != null;
+				}
+				else
+				{
+					// all hubs the user has reader access to.
+					var readerHubKey = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid);
+
+					if (readerHubKey != null)
+					{
+						return true;
+					}
+					
+					// all hubs other public/shared hubs
+					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => 
+						c.HubKey == hubKey &&
+						(!c.IsInternal && c.IsValid) &&
+						(
+							c.SharedAccess == DexihHub.ESharedAccess.Public ||
+							c.SharedAccess == DexihHub.ESharedAccess.Registered 
+						)
+					);
+					return hub != null;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets a list of all the shared datalinks/table available to the user.
+		/// </summary>
+		/// <param name="userId">User.Id</param>
+		/// <param name="isAdmin">Is user admin</param>
+		/// <param name="searchString">Search string to restrict</param>
+		/// <param name="hubKeys">HubKeys to restrict search to (null/empty will use all available hubs)</param>
+		/// <param name="maxResults">Maximum results to return (0 for all).</param>
+		/// <returns></returns>
+		/// <exception cref="RepositoryException"></exception>
+		public async Task<IEnumerable<SharedData>> GetSharedDataIndex(string userId, bool isAdmin, string searchString, long[] hubKeys, int maxResults = 0)
+		{
+			var availableHubs = await GetSharedHubs(userId, isAdmin);
+
+			// check user has access to all the requested hub keys
+			if (hubKeys != null && hubKeys.Length > 0)
+			{
+				foreach (var hubKey in hubKeys)
+				{
+					if (!availableHubs.Select(c=>c.HubKey).Contains(hubKey))
+					{
+						throw new RepositoryException($"The user does not have access to the hub with the key ${hubKey}");
+					}
+				}
+			}
+			else
+			{
+				// if no hubkeys specified, then user all available.
+				hubKeys = availableHubs.Select(c => c.HubKey).ToArray();
+			}
+
+			var sharedData = new List<SharedData>();
+			var counter = 0;
+
+			IQueryable<DexihTable> tables;
+
+			if (string.IsNullOrEmpty(searchString))
+			{
+				tables = DbContext.DexihTables.Where(c =>
+					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid && !c.IsInternal);
+			}
+			else
+			{
+				var search = searchString.ToLower();
+				tables = DbContext.DexihTables.Where(c =>
+					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid && !c.IsInternal &&
+					(c.Name.ToLower().Contains(search) || c.LogicalName.ToLower().Contains(search)));
+			}
+
+			foreach (var table in tables)
+			{
+				var hub = availableHubs.Single(c => c.HubKey == table.HubKey);
+				sharedData.Add(new SharedData()
+				{
+					HubKey = hub.HubKey,
+					HubName = hub.Name,
+					ObjectKey = table.TableKey,
+					ObjectType = SharedData.EObjectType.Table,
+					Name =  table.Name,
+					LogicalName =  table.LogicalName,
+					Description =  table.Description,
+					UpdateDate =  table.UpdateDate
+				});
+
+				if (maxResults > 0 && counter++ >= maxResults)
+				{
+					return sharedData;
+				}
+			}
+			
+			IQueryable<DexihDatalink> datalinks;
+
+			if (string.IsNullOrEmpty(searchString))
+			{
+				datalinks = DbContext.DexihDatalinks.Where(c =>
+					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid);
+			}
+			else
+			{
+				var search = searchString.ToLower();
+				datalinks = DbContext.DexihDatalinks.Where(c =>
+					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid && 
+					(c.Name.ToLower().Contains(search) ));
+			}			
+			foreach (var datalink in datalinks)
+			{
+				var hub = availableHubs.Single(c => c.HubKey == datalink.HubKey);
+				sharedData.Add(new SharedData()
+				{
+					HubKey = hub.HubKey,
+					HubName = hub.Name,
+					ObjectKey = datalink.DatalinkKey,
+					ObjectType = SharedData.EObjectType.Datalink,
+					Name =  datalink.Name,
+					LogicalName =  datalink.Name,
+					Description =  datalink.Description,
+					UpdateDate =  datalink.UpdateDate
+				});
+
+				if (maxResults > 0 && counter++ >= maxResults)
+				{
+					return sharedData;
+				}
+			}
+
+			return sharedData;
 		}
 
         public async Task SaveChangesAsync(long hubKey, CancellationToken cancellationToken = default(CancellationToken))
@@ -296,30 +498,35 @@ namespace dexih.operations
         }
 
 
-        public async Task<string[]> HubAddUsers(long hubKey, string[] userIds, DexihHubUser.EPermission permission)
+        public async Task HubSetUserPermissions(long hubKey, IEnumerable<string> userIds, DexihHubUser.EPermission permission)
         {
             try
             {
-                var addedEmails = new List<string>();
-                var rejectedEmails = new List<string>();
+	            var usersHub = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && userIds.Contains(c.UserId)).ToListAsync();
 
                 foreach (var userId in userIds)
                 {
-                    var subcriptionUser = new DexihHubUser
-                    {
-                        UserId = userId,
-                        Permission = permission,
-                        HubKey = hubKey,
-                        IsValid = true
-                    };
+	                var userHub = usersHub.SingleOrDefault(c => c.UserId == userId);
+	                if (userHub == null)
+	                {
+		                userHub = new DexihHubUser
+		                {
+			                UserId = userId,
+			                Permission = permission,
+			                HubKey = hubKey,
+			                IsValid = true
+		                };
 
-                    DbContext.DexihHubUser.Add(subcriptionUser);
+		                DbContext.DexihHubUser.Add(userHub);
+	                }
+	                else
+	                {
+		                userHub.Permission = permission;
+		                userHub.IsValid = true;
+	                }
+
                     await DbContext.SaveChangesAsync();
-                    addedEmails.Add(userId);
                 }
-
-                //InvalidEmails = RejectedEmails.ToArray();
-                return addedEmails.ToArray();
             }
             catch (Exception ex)
             {
@@ -327,21 +534,16 @@ namespace dexih.operations
             }
         }
 
-    public async Task<bool> HubDeleteUsers(long hubKey, string[] userIds)
+    public async Task HubDeleteUsers(long hubKey, IEnumerable<string> userIds)
 		{
             try
             {
-                var addedEmails = new List<string>();
-                var rejectedEmails = new List<string>();
-
-                foreach (var userId in userIds)
-                {
-                    var usersub = await DbContext.DexihHubUser.Where(c => c.UserId == userId).ToListAsync();
-                    DbContext.DexihHubUser.RemoveRange(usersub);
-                    await DbContext.SaveChangesAsync();
-                }
-
-                return true;
+	            var usersHub = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && userIds.Contains(c.UserId)).ToListAsync();
+	            foreach (var userHub in usersHub)
+	            {
+		            userHub.IsValid = false;
+	            }
+	            await DbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {
