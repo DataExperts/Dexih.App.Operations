@@ -4,16 +4,15 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace dexih.operations
 {
     public class ResponseMessage : RemoteMessage
     {
-        public ResponseMessage(string remoteToken, string messageId, ReturnValue<JToken> returnMessage)
+        public ResponseMessage(string securityToken, string messageId, ReturnValue<JToken> returnMessage)
         {
             MessageId = messageId;
-            RemoteToken = remoteToken;
+            SecurityToken = securityToken;
             Method = "Response";
 
             Success = returnMessage.Success;
@@ -48,9 +47,9 @@ namespace dexih.operations
             Exception = returnValue.Exception;
         }
 
-        public RemoteMessage(string remoteToken, string messageId, string method, KeyValuePair[] parameters, JToken value)
+        public RemoteMessage(string securityToken, string messageId, string method, KeyValuePair[] parameters, JToken value)
         {
-            RemoteToken = remoteToken;
+            SecurityToken = securityToken;
             MessageId = messageId;
             Method = method;
             Success = true;
@@ -61,7 +60,7 @@ namespace dexih.operations
         }
 
         public string MessageId { get; set; }
-        public string RemoteToken { get; set; }
+        public string SecurityToken { get; set; }
         public string Method { get; set; }
         public KeyValuePair[] Parameters { get; set; }
         public long HubKey { get; set; }

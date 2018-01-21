@@ -1,5 +1,4 @@
-﻿using dexih.functions;
-using dexih.functions.Query;
+﻿using dexih.functions.Query;
 using dexih.repository;
 using dexih.transforms;
 using System;

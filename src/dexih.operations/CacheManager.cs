@@ -1,5 +1,4 @@
-﻿using dexih.functions;
-using dexih.repository;
+﻿using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -319,9 +318,10 @@ namespace dexih.operations
                 {
                     await AddTables(new[] {(long)datalink.TargetTableKey}, dbContext);
                 }
-                if (datalink.DatalinkType != DexihDatalink.EDatalinkType.Publish)
+
+                if (datalink.AuditConnectionKey != null)
                 {
-                    await AddConnections(new[] { datalink.AuditConnectionKey }, false, dbContext);
+                    await AddConnections(new[] {datalink.AuditConnectionKey.Value}, false, dbContext);
                 }
             }
 
@@ -379,7 +379,10 @@ namespace dexih.operations
 
             if(includeDependencies)
             {
-                await AddConnections(new[] { datajob.AuditConnectionKey }, false, dbContext);
+                if (datajob.AuditConnectionKey != null)
+                {
+                    await AddConnections(new[] {datajob.AuditConnectionKey.Value}, false, dbContext);
+                }
 
                 foreach(var datalinkStep in datajob.DexihDatalinkSteps)
                 {

@@ -3,17 +3,13 @@ using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Security.Permissions;
 using System.Threading.Tasks;
 using static dexih.functions.TableColumn;
 using Microsoft.Extensions.Logging;
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 using System.Threading;
-using Microsoft.AspNetCore.Http.Internal;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace dexih.operations
 {
@@ -129,7 +125,6 @@ namespace dexih.operations
 		public async Task<DexihHub[]> GetSharedHubs(string userId, bool isAdmin)
 		{
 			// determine the hubs which can be shared data can be accessed from
-			DexihHub[] hubs;
 			if (isAdmin)
 			{
 				// admin user has access to all hubs
@@ -170,7 +165,6 @@ namespace dexih.operations
 		public async Task<bool> CanAccessSharedObjects(string userId, bool isAdmin, long hubKey)
 		{
 			// determine the hubs which can be shared data can be accessed from
-			DexihHub[] hubs;
 			if (isAdmin)
 			{
 				return true;
@@ -401,6 +395,10 @@ namespace dexih.operations
 			else
 			{
 				var hub = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.IsValid);
+				if (hub == null)
+				{
+					throw new RepositoryManagerException($"A hub with key {hubKey} is not available to the current user.");
+				}
 				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid);
 			}
 		}
@@ -2613,8 +2611,10 @@ namespace dexih.operations
 				datalink.TargetTableKey = 
 					tableKeyMappings.GetValueOrDefault(datalink.TargetTableKey.Value);
 
-				datalink.AuditConnectionKey =
-					connectionKeyMappings.GetValueOrDefault(datalink.AuditConnectionKey);
+				if (datalink.AuditConnectionKey != null)
+				{
+					datalink.AuditConnectionKey = connectionKeyMappings.GetValueOrDefault(datalink.AuditConnectionKey.Value);
+				}
 
 				datalink.HubKey = hubKey;
 
@@ -2755,7 +2755,10 @@ namespace dexih.operations
 					}
 				}
 
-				datajob.AuditConnectionKey = connectionKeyMappings.GetValueOrDefault(datajob.AuditConnectionKey);
+				if (datajob.AuditConnectionKey != null)
+				{
+					datajob.AuditConnectionKey = connectionKeyMappings.GetValueOrDefault(datajob.AuditConnectionKey.Value);
+				}
 			}
 			
 			return plan;
@@ -2823,9 +2826,12 @@ namespace dexih.operations
 			{
                 if(datalink.DatalinkKey < 0) datalink.DatalinkKey = 0;
 
-                datalink.AuditConnection = connections.GetValueOrDefault(datalink.AuditConnectionKey);
+				if (datalink.AuditConnectionKey != null)
+				{
+					datalink.AuditConnection = connections.GetValueOrDefault(datalink.AuditConnectionKey.Value);
+				}
 
-                datalink.SourceDatalinkTable.SourceDatalink = datalink.SourceDatalinkTable.SourceDatalinkKey == null ? null :
+				datalink.SourceDatalinkTable.SourceDatalink = datalink.SourceDatalinkTable.SourceDatalinkKey == null ? null :
                     datalinks.GetValueOrDefault(datalink.SourceDatalinkTable.SourceDatalinkKey.Value);
 
                 datalink.SourceDatalinkTable.SourceTable = datalink.SourceDatalinkTable.SourceTableKey == null ? null : 
@@ -2890,7 +2896,10 @@ namespace dexih.operations
 			{
                 if (datajob.DatajobKey < 0) datajob.DatajobKey = 0;
 
-                datajob.AuditConnection = connections.GetValueOrDefault(datajob.AuditConnectionKey);
+				if (datajob.AuditConnectionKey != null)
+				{
+					datajob.AuditConnection = connections.GetValueOrDefault(datajob.AuditConnectionKey.Value);
+				}
 
 				foreach (var trigger in datajob.DexihTriggers)
 				{

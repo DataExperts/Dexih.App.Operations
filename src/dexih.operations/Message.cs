@@ -1,7 +1,5 @@
 ﻿using Dexih.Utils.MessageHelpers;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace dexih.operations
 {

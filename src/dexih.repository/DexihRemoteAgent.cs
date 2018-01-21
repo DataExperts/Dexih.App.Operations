@@ -39,8 +39,8 @@ namespace dexih.repository
         public string Status {
             get
             {
-                if (!IsRunning) return "Not Running";
-                if (!IsAuthorized) return "Not Authorirized";
+                if (!IsRunning) return "Offline";
+                if (!IsAuthorized) return "Unauthorized";
                 if (IsActive) return "Ready";
                 if (RestrictIp && !IpAddresses.Contains((IpAddress))) return "Invalid IpAddress";
                 return "Unknown";

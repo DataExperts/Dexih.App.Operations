@@ -39,7 +39,7 @@ namespace dexih.repository
             get { return FailAction.ToString(); }
             set { FailAction = (EFailAction)Enum.Parse(typeof(EFailAction), value); }
         }
-        public long AuditConnectionKey { get; set; }
+        public long? AuditConnectionKey { get; set; }
 
         /// <summary>
         /// Indicates if the job should watch for any new files.

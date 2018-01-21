@@ -41,9 +41,8 @@ namespace dexih.repository
         public string Description { get; set; }
         public long SourceDatalinkTableKey { get; set; }
         public long? TargetTableKey { get; set; }
-        public long AuditConnectionKey { get; set; }
-
-        public long UpdateStrategyKey { get; set; }
+        public long? AuditConnectionKey { get; set; }
+        public long? UpdateStrategyKey { get; set; }
 		public bool VirtualTargetTable { get; set; }
 
 
@@ -72,7 +71,6 @@ namespace dexih.repository
 
         [CopyReference]
         public virtual DexihUpdateStrategy UpdateStrategy { get; set; }
-
         public virtual ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
         public virtual ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
