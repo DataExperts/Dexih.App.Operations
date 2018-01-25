@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace dexih.repository
 {
@@ -840,48 +839,30 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihRemoteAgent>(entity =>
             {
-                entity.HasKey(e => e.RemoteAgentKey)
-                    .HasName("PK_dexih_remotes");
+                entity.HasKey(e => e.RemoteAgentKey).HasName("PK_dexih_remotes");
 
                 entity.ToTable("dexih_remote_agents");
 
-                entity.Property(e => e.RemoteAgentKey)
-                    .HasColumnName("remote_agent_key");
+                entity.Property(e => e.RemoteAgentKey).HasColumnName("remote_agent_key");
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(50)");
 
-                entity.Property(e => e.IsDefault)
-                    .HasColumnName("is_default");
+                entity.Property(e => e.IsDefault).HasColumnName("is_default");
 
-                entity.Property(e => e.AllowExternalConnect)
-                    .HasColumnName("allow_external_connect");
+                entity.Property(e => e.AllowExternalConnect).HasColumnName("allow_external_connect");
 
-                entity.Property(e => e.CreateDate)
-					.HasColumnName("create_date");
-                    // .HasColumnType("datetime");
 
-                entity.Property(e => e.IpAddressesString)
-                    .HasColumnName("ip_addresses")
-                    .HasColumnType("varchar(8000)");
-
-                entity.Property(e => e.RemoteAgentId)
-                    .IsRequired()
-                    .HasColumnName("remote_agent_id")
-                    .HasColumnType("varchar(50)");
-
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
-                entity.Property(e => e.Name)
-                    .IsRequired()
-                    .HasColumnName("name")
-                    .HasColumnType("varchar(50)");
-
+                entity.Property(e => e.IpAddressesString).HasColumnName("ip_addresses").HasColumnType("varchar(8000)");
+                entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasColumnType("varchar(50)");
                 entity.Property(e => e.RestrictIp).HasColumnName("restrict_ip");
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                
+                entity.Property(e => e.LastLoginDate).HasColumnName("last_login_date");
+                entity.Property(e => e.LastLoginIpAddress).HasColumnName("last_login_ip");
+                
 
-                entity.Property(e => e.HubKey)
-                    .HasColumnName("hub_key");
-
-				entity.Property(e => e.UpdateDate)
-					  .HasColumnName("update_date");
-                    // .HasColumnType("datetime");
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
             });
 
 
@@ -1024,6 +1005,7 @@ namespace dexih.repository
                 entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(50)");
                 entity.Property(e => e.Value).HasColumnName("value").HasColumnType("varchar(1024)");
                 entity.Property(e => e.IsEncrypted).HasColumnName("is_encrypted");
+                entity.Property(e => e.IsEnvironmentVariable).HasColumnName("is_environment_var");
 
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");

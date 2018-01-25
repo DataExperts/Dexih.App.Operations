@@ -5,7 +5,6 @@ using static dexih.transforms.Transform;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using Dexih.Utils.CopyProperties;
-using static dexih.repository.DexihDatalink;
 using dexih.transforms;
 using System.Linq;
 using dexih.functions.Query;

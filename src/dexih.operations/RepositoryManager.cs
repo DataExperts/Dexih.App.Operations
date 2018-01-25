@@ -1530,7 +1530,7 @@ namespace dexih.operations
         /// <param name="remoteAgentId"></param>
         /// <param name="iPAddress"></param>
         /// <returns></returns>
-        public async Task<DexihRemoteAgent> RemoteAgentIsAuthorized(long hubKey, string remoteAgentId, string iPAddress)
+        public async Task<DexihRemoteAgent> RemoteAgentAuthorize(long hubKey, string remoteAgentId, string iPAddress)
 		{
             try
             {
@@ -1544,6 +1544,10 @@ namespace dexih.operations
                 }
                 else
                 {
+	                remoteAgent.LastLoginDate = DateTime.Now;
+	                remoteAgent.IpAddress = iPAddress;
+	                await DbContext.SaveChangesAsync();
+	                
                     return remoteAgent;
                 }
             }
@@ -1551,7 +1555,6 @@ namespace dexih.operations
             {
                 throw new RepositoryManagerException($"Check remote agent is authorized failed.  {ex.Message}", ex);
             }
-
         }
 
         public async Task<DexihRemoteAgent[]> GetRemoteAgents(long hubKey)

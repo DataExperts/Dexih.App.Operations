@@ -1,11 +1,8 @@
-﻿using dexih.functions;
-using Dexih.Utils.CopyProperties;
+﻿using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 using static dexih.functions.TableColumn;
 using static Dexih.Utils.DataType.DataType;
 

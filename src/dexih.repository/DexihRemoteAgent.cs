@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Dexih.Utils.CopyProperties;
@@ -28,6 +29,9 @@ namespace dexih.repository
 
         public bool IsDefault { get; set; }
         public bool AllowExternalConnect { get; set; }
+
+        public string LastLoginIpAddress { get; set; }
+        public DateTime? LastLoginDate { get; set; } 
 
         [NotMapped]
         public bool IsRunning { get; set; }

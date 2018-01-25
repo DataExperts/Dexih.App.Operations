@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using dexih.functions;
-using Dexih.Utils.CopyProperties;
+﻿using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 
 namespace dexih.repository

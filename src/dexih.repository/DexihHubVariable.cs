@@ -18,30 +18,42 @@ namespace dexih.repository
         public string ValueRaw { get; set; }
         public string Value { get; set; }
         public bool IsEncrypted { get; set; }
+        public bool IsEnvironmentVariable { get; set; }
 
         public string GetValue(string key)
         {
+            string value;
+            
             if (IsEncrypted)
             {
                 if (String.IsNullOrEmpty(ValueRaw))
                 {
                     if (String.IsNullOrEmpty(Value))
                     {
-                        return "";
+                        value = "";
                     }
                     else
                     {
-                        return EncryptString.Decrypt(Value, key, 1000);
+                        value =  EncryptString.Decrypt(Value, key, 1000);
                     }
                 }
                 else
                 {
-                    return ValueRaw;
+                    value =  ValueRaw;
                 }
             } 
             else
             {
-                return Value;
+                value =  Value;
+            }
+            
+            if (IsEnvironmentVariable)
+            {
+                return Environment.GetEnvironmentVariable(value);
+            }
+            else
+            {
+                return value;
             }
         }
 

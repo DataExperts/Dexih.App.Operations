@@ -27,4 +27,8 @@
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.functions\dexih.functions.csproj" />
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.transforms\dexih.transforms.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <LinkerRootAssemblies Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
 </Project>

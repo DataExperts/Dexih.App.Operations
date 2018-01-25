@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Converters;
-using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using System.Linq;
 using static dexih.repository.DexihTransform;
-using static dexih.repository.DexihDatalinkTable;
 
 namespace dexih.repository
 {

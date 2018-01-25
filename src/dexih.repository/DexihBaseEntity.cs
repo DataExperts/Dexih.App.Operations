@@ -1,5 +1,4 @@
 ﻿using System;
-using dexih.functions;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository

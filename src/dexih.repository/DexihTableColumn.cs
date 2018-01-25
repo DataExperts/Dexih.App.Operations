@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
-using static dexih.functions.TableColumn;
 using System.ComponentModel.DataAnnotations.Schema;
-using Newtonsoft.Json.Converters;
 using dexih.functions;
-using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository

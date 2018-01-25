@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.ComponentModel.DataAnnotations.Schema;
-using dexih.functions;
 using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Reflection;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace dexih.repository
 {
@@ -96,6 +94,7 @@ namespace dexih.repository
                 {
                     return Password;
                 }
+                
                 return EncryptString.Decrypt(Password, key, 1000);
             }
             return PasswordRaw;

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using dexih.functions;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
