@@ -43,8 +43,6 @@ namespace dexih.repository
         public long? UpdateStrategyKey { get; set; }
 		public bool VirtualTargetTable { get; set; }
 
-
-
         [NotMapped]
         public EDatalinkType DatalinkType { get; set; }
 

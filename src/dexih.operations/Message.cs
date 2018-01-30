@@ -6,15 +6,15 @@ namespace dexih.operations
     public class Message : ReturnValue<object>
     {
         public string MessageId { get; set; }
-        public string RemoteToken { get; set; }
+        public string SecurityToken { get; set; }
         public string Command { get; set; }
         public long HubKey { get; set; }
 
         public Message() { }
 
-        public Message(string remoteToken, string messageId, string command, ReturnValue<object> returnValue)
+        public Message(string securityToken, string messageId, string command, ReturnValue<object> returnValue)
         {
-            RemoteToken = remoteToken;
+            SecurityToken = securityToken;
             MessageId = messageId;
             Command = command;
             Success = returnValue.Success;
@@ -23,9 +23,9 @@ namespace dexih.operations
             Value = returnValue.Value;
         }
 
-        public Message(string remoteToken, string messageId, string command, object value)
+        public Message(string securityToken, string messageId, string command, object value)
         {
-            RemoteToken = remoteToken;
+            SecurityToken = securityToken;
             MessageId = messageId;
             Command = command;
             Success = true;
@@ -34,9 +34,9 @@ namespace dexih.operations
             Value = value;
         }
 
-        public Message(string remoteToken, string messageId, string command, string returnValue)
+        public Message(string securityToken, string messageId, string command, string returnValue)
         {
-            RemoteToken = remoteToken;
+            SecurityToken = securityToken;
             MessageId = messageId;
             Command = command;
             Success = true;

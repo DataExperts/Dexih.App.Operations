@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using static dexih.transforms.Connection;
@@ -34,9 +35,11 @@ namespace dexih.repository
 		[CopyCollectionKey()]
         public long DatalinkTableKey { get; set; }
 
-        public long? SourceTableKey { get; set; }
+	    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+	    public long? SourceTableKey { get; set; }
 
-        public long? SourceDatalinkKey { get; set; }
+	    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+	    public long? SourceDatalinkKey { get; set; }
 	    
 	    public int? RowsStartAt { get; set; }
 	    public int? RowsEndAt { get; set; }

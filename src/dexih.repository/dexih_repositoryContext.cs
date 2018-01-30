@@ -222,7 +222,7 @@ namespace dexih.repository
                 entity.Property(e => e.Server).HasColumnName("server").HasColumnType("varchar(250)");
 
                 entity.Property(e => e.DefaultDatabase).HasColumnName("default_database").HasColumnType("varchar(50)");
-				entity.Property(e => e.EmbedTablekey).HasColumnName("embed_tablekey");
+				entity.Property(e => e.EmbedTableKey).HasColumnName("embed_tablekey");
                 entity.Property(e => e.Filename).HasColumnName("filename").HasColumnType("varchar(1000)");
                 entity.Property(e => e.IsInternal).HasColumnName("is_internal");
 
@@ -317,25 +317,17 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatajob>(entity =>
             {
-                entity.HasKey(e => e.DatajobKey)
-                    .HasName("PK_dexih_datajob");
+                entity.HasKey(e => e.DatajobKey).HasName("PK_dexih_datajob");
 
                 entity.ToTable("dexih_datajobs");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
-
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(50)");
-
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
-
                 entity.Property(e => e.FailActionString).HasColumnName("fail_action").HasColumnType("varchar(20)");
-
                 entity.Property(e => e.AuditConnectionKey).HasColumnName("audit_connection_key");
-                
                 entity.Property(e => e.ExternalTrigger).HasColumnName("external_trigger");
-
                 entity.Property(e => e.FileWatch).HasColumnName("file_watch");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
@@ -355,13 +347,12 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkColumn>(entity =>
             {
-                entity.HasKey(e => e.DatalinkColumnKey)
-                    .HasName("PK_dexih_datalink_columns");
+                entity.HasKey(e => e.DatalinkColumnKey).HasName("PK_dexih_datalink_columns");
 
                 entity.ToTable("dexih_datalink_columns");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(250)");
@@ -395,14 +386,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkTable>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTableKey)
-                    .HasName("PK_dexih_datalink_table");
+                entity.HasKey(e => e.DatalinkTableKey).HasName("PK_dexih_datalink_table");
 
                 entity.ToTable("dexih_datalink_table");
 
+                entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(50)");
-                entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
                 entity.Property(e => e.SourceTypeString).IsRequired().HasColumnName("source_type").HasColumnType("varchar(20)");

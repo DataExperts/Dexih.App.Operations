@@ -60,7 +60,7 @@ namespace dexih.repository
         public string ConnectionString { get; set; }
         public bool UseConnectionStringVariable { get; set; }
         public bool IsInternal { get; set; }
-        public bool EmbedTablekey { get; set; }
+        public bool EmbedTableKey { get; set; }
  
         //these store the raw (unencrypted values) and are not saved to the database.
         [NotMapped]

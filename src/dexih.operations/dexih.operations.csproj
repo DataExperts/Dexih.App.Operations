@@ -18,7 +18,4 @@
     <PackageReference Include="System.Collections.NonGeneric" Version="4.3.0" />
     <PackageReference Include="System.Reflection" Version="4.3.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Microsoft.VisualBasic" />
-  </ItemGroup>
 </Project>

@@ -453,7 +453,7 @@ namespace dexih.operations
 						Purpose = DexihConnection.EConnectionPurpose.Internal,
 						UseWindowsAuth = false,
 						UseConnectionString = false,
-						EmbedTablekey = false,
+						EmbedTableKey = false,
 						IsInternal = true,
 						IsValid = true,
 					};
@@ -2575,7 +2575,7 @@ namespace dexih.operations
 
 			//loop through the datalinks again, and reset the other keys.
 			//this requires a second loop as a datalink can reference another datalink.
-			foreach (var datalink in plan.Datalinks.Select(c=>c.Item))
+			foreach (var datalink in plan.Datalinks.Select(c => c.Item))
 			{
 				var datalinkColumnKeyMapping = new Dictionary<long, long>();
 
@@ -2583,6 +2583,8 @@ namespace dexih.operations
 				{
 					if (datalinkColumn != null)
 					{
+						datalinkColumn.DatalinkTable = null;
+						datalinkColumn.DatalinkTableKey = null;
 						var newKey = keySequence--;
 						datalinkColumnKeyMapping.Add(datalinkColumn.DatalinkColumnKey, newKey);
 						datalinkColumn.DatalinkColumnKey = newKey;
@@ -2595,11 +2597,15 @@ namespace dexih.operations
 					if (datalinkTable != null)
 					{
 						datalinkTable.DatalinkTableKey = 0;
-						datalinkTable.SourceDatalinkKey = 0;
-						datalinkTable.SourceDatalinkKey =
-							datalinkKeyMappings.GetValueOrDefault(datalinkTable.SourceDatalinkKey.Value);
-						datalinkTable.SourceTableKey =
-							tableKeyMappings.GetValueOrDefault(datalinkTable.SourceTableKey.Value);
+						if (datalinkTable.SourceDatalinkKey != null)
+						{
+							datalinkTable.SourceDatalinkKey = datalinkKeyMappings.GetValueOrDefault(datalinkTable.SourceDatalinkKey.Value);
+						}
+
+						if (datalinkTable.SourceTableKey != null)
+						{
+							datalinkTable.SourceTableKey = tableKeyMappings.GetValueOrDefault(datalinkTable.SourceTableKey.Value);
+						}
 
 						foreach (var column in datalinkTable.DexihDatalinkColumns)
 						{
@@ -2621,7 +2627,7 @@ namespace dexih.operations
 
 				datalink.HubKey = hubKey;
 
-				foreach (var datalinkTransform in datalink.DexihDatalinkTransforms)
+				foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c=>c.Position))
 				{
 					datalinkTransform.DatalinkKey = 0;
 					datalinkTransform.DatalinkTransformKey = 0;
@@ -2661,7 +2667,7 @@ namespace dexih.operations
 						{
 							parameter.FunctionParameterKey = 0;
 							parameter.HubKey = hubKey;
-							parameter.DatalinkColumnKey = 0;
+							if (parameter.DatalinkColumnKey != null) parameter.DatalinkColumnKey = 0;
 							parameter.DatalinkTransformItemKey = 0;
 
 							if (parameter.Direction == DexihFunctionParameter.EParameterDirection.Input)
@@ -2682,7 +2688,7 @@ namespace dexih.operations
 							}
 						}
 
-						item.TargetDatalinkColumnKey = 0;
+						if(item.TargetDatalinkColumnKey != null)  item.TargetDatalinkColumnKey = 0;
 						ResetDatalinkColumn(item.TargetDatalinkColumn);
 					}
 				}
@@ -2860,6 +2866,12 @@ namespace dexih.operations
 
                         datalinkTransform.JoinDatalinkTable.SourceTable = datalinkTransform.JoinDatalinkTable.SourceTableKey == null ? null :
 							tables.GetValueOrDefault(datalinkTransform.JoinDatalinkTable.SourceTableKey.Value);
+
+						foreach (var column in datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns)
+						{
+							datalinkColumns.Add(column.DatalinkColumnKey, column);
+							column.DatalinkColumnKey = 0;
+						}
 					}
 
                     foreach(var item in datalinkTransform.DexihDatalinkTransformItems)
@@ -3001,15 +3013,7 @@ namespace dexih.operations
 						if (attrib is CopyCollectionKeyAttribute)
 						{
 							var value = (long) property.GetValue(item);
-							if (value <= 0)
-							{
-								entry.State = EntityState.Added;
-								// property.SetValue(item, 0);
-							}
-							else
-							{
-								entry.State = EntityState.Modified;
-							}
+							entry.State = value <= 0 ? EntityState.Added : EntityState.Modified;
 						}
 					}
 				}
