@@ -30,6 +30,7 @@ namespace dexih.repository
         public long HubKey { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        
         [NotMapped]
         public ETypeCode Datatype { get; set; }
         [JsonIgnore, CopyIgnore]

@@ -162,12 +162,12 @@ namespace dexih.repository
 					{
 						var hubVariablesManager = new HubVariablesManager(encryptionKey, hubVariablesArray);
 
-						flatFile.FileIncomingPath = hubVariablesManager.InsertHubVariables(flatFile.FileIncomingPath);
-						flatFile.FileMatchPattern = hubVariablesManager.InsertHubVariables(flatFile.FileMatchPattern);
-						flatFile.FileOutgoingPath = hubVariablesManager.InsertHubVariables(flatFile.FileOutgoingPath);
-						flatFile.FileProcessedPath = hubVariablesManager.InsertHubVariables(flatFile.FileProcessedPath);
-						flatFile.FileRejectedPath = hubVariablesManager.InsertHubVariables(flatFile.FileRejectedPath);
-						flatFile.FileRootPath = hubVariablesManager.InsertHubVariables(flatFile.FileRootPath);
+						flatFile.FileIncomingPath = hubVariablesManager.InsertHubVariables(flatFile.FileIncomingPath, false);
+						flatFile.FileMatchPattern = hubVariablesManager.InsertHubVariables(flatFile.FileMatchPattern, false);
+						flatFile.FileOutgoingPath = hubVariablesManager.InsertHubVariables(flatFile.FileOutgoingPath, false);
+						flatFile.FileProcessedPath = hubVariablesManager.InsertHubVariables(flatFile.FileProcessedPath, false);
+						flatFile.FileRejectedPath = hubVariablesManager.InsertHubVariables(flatFile.FileRejectedPath, false);
+						flatFile.FileRootPath = hubVariablesManager.InsertHubVariables(flatFile.FileRootPath, false);
 					}
 
 					break;
@@ -177,8 +177,8 @@ namespace dexih.repository
 				   {
 					   var hubVariablesManager = new HubVariablesManager(encryptionKey, hubVariablesArray);
 
-					   restFunction.RestfulUri = hubVariablesManager.InsertHubVariables(restFunction.RestfulUri);
-					   restFunction.RowPath = hubVariablesManager.InsertHubVariables(restFunction.RowPath);
+					   restFunction.RestfulUri = hubVariablesManager.InsertHubVariables(restFunction.RestfulUri, false);
+					   restFunction.RowPath = hubVariablesManager.InsertHubVariables(restFunction.RowPath, false);
 				   }
 
 				   break;
@@ -200,16 +200,6 @@ namespace dexih.repository
             return table.GetRejectedTable(RejectedTableName);
         }
 
-
-        //public TableColumn GetTableColumn(long? columnKey)
-        //{
-        //    var column = DexihTableColumns.SingleOrDefault(c => c.ColumnKey == columnKey);
-
-        //    if (column == null)
-        //        return null;
-
-        //    return column.GetTableColumn();
-        //}
 
         
     }

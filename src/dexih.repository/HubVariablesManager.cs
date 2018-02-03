@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -19,7 +20,13 @@ namespace dexih.repository
             _hubVariables = hubVariables;
         }
 
-        public string InsertHubVariables(string value)
+        /// <summary>
+        /// Replaces variables with actual values
+        /// </summary>
+        /// <param name="value">String to replace</param>
+        /// <param name="allowSecureVariables">Allow encrypted and environment variables to be used.</param>
+        /// <returns></returns>
+        public string InsertHubVariables(string value, bool allowSecureVariables)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -64,6 +71,11 @@ namespace dexih.repository
                     }
                     else
                     {
+                        if (!allowSecureVariables && (variable.IsEncrypted || variable.IsEnvironmentVariable))
+                        {
+                            throw new Exception($"The variable {variable.Name} could not be used as encrypted or enviornment variables and not available for this parameter.");
+                        }
+                        
                         if (newValue == null)
                         {
                             newValue = new StringBuilder();

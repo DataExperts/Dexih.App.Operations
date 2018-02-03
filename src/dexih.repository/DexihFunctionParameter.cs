@@ -26,8 +26,8 @@ namespace dexih.repository
         public int Position { get; set; } = 0;
         [JsonIgnore, CopyIgnore]
         public string DirectionString {
-            get { return Direction.ToString(); }
-            set { Direction = (EParameterDirection)Enum.Parse(typeof(EParameterDirection), value); }
+            get => Direction.ToString();
+            set => Direction = (EParameterDirection)Enum.Parse(typeof(EParameterDirection), value);
         }
         [NotMapped]
         public EParameterDirection Direction { get; set; }
@@ -37,8 +37,8 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public string DatatypeString
         {
-            get { return Datatype.ToString();  }
-            set { Datatype = (ETypeCode)Enum.Parse(typeof(ETypeCode), value); }
+            get => Datatype.ToString();
+            set => Datatype = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
         }
         public bool IsArray { get; set; } = false;
         public long? DatalinkColumnKey { get; set; }

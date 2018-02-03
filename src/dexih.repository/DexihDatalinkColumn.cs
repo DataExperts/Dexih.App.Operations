@@ -19,7 +19,7 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
 
-	    [CopyCollectionKey((long)0, true)]
+	    [CopyCollectionKey((long)0)]
         public long DatalinkColumnKey { get; set; }
 
         public long? DatalinkTableKey { get; set; }

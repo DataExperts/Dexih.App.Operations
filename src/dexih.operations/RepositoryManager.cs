@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 using System.Threading;
+using Microsoft.CodeAnalysis.Semantics;
 
 namespace dexih.operations
 {
@@ -472,7 +473,7 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihHub[]> DeleteHubs(long[] hubKeys)
+        public async Task<DexihHub[]> DeleteHubs(string userId, bool isAdmin, long[] hubKeys)
 		{
 			try
 			{
@@ -482,6 +483,16 @@ namespace dexih.operations
 
 				foreach (var dbHub in dbHubs)
 				{
+					if (!isAdmin)
+					{
+						var hubUser =
+							await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == dbHub.HubKey && c.UserId == userId && c.IsValid);
+						if (hubUser.Permission != DexihHubUser.EPermission.Owner)
+						{
+							throw new RepositoryManagerException($"Failed to delete the hub with name {dbHub.Name} as user does not have owner permission on this  hub.");
+						}
+					}
+
 					dbHub.IsValid = false;
 				}
 
@@ -585,12 +596,11 @@ namespace dexih.operations
 		/// Cache the naming standards records.
 		/// </summary>
 		/// <returns></returns>
-		private async Task<bool> LoadNamingStandards()
+		private async Task LoadNamingStandards()
 		{
 			try
 			{
 				_namingStandards = await DbContext.DexihSettings.Where(c => c.Category == "Naming").ToDictionaryAsync(n => n.Name);
-				return true;
 			}
             catch (Exception ex)
             {
@@ -1230,13 +1240,22 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihDatalink[]> NewDatalinks(long hubKey, string datalinkName, DexihDatalink.EDatalinkType datalinkType, long? targetConnectionKey, long[] sourceTableKeys, long? targetTableKey, string targetTableName, long auditConnectionKey)
+        public async Task<DexihDatalink[]> NewDatalinks(long hubKey, 
+	        string datalinkName, 
+	        DexihDatalink.EDatalinkType datalinkType, 
+	        long? targetConnectionKey, 
+	        long[] sourceTableKeys, 
+	        long? targetTableKey, 
+	        string targetTableName, 
+	        long auditConnectionKey, 
+	        bool addSourceColumns,
+	        EDeltaType[] auditColumns)
 		{
 			try
 			{
 				if (_namingStandards == null)
 				{
-					var returnValue = await LoadNamingStandards();
+					await LoadNamingStandards();
 				}
 
 				var newDatalinks = new List<DexihDatalink>();
@@ -1273,29 +1292,34 @@ namespace dexih.operations
 
 					var sourceTable = sourceTables[sourceTableKey];
 
+					if (sourceTable == null)
+					{
+						throw new RepositoryManagerException($"The source table with the key {sourceTableKey} does not exist in the repository.");
+					}
+
 					var newDatalinkName = datalinkName;
 
 					// if the generated name exists, incrementally add a counter to the name until a free one is found.
 					if (string.IsNullOrEmpty(newDatalinkName))
 					{
 						var count = 0;
-						var baseName = ApplyNamingStandard(datalinkType + ".Datalink.Name", sourceTable != null ? sourceTable.Name : targetTableName);
-						var newName = baseName;
-						while (await DbContext.DexihDatalinks.AnyAsync(c => c.HubKey == hubKey && c.Name == newName && c.IsValid))
+						var baseName = ApplyNamingStandard(datalinkType + ".Datalink.Name", sourceTable.Name);
+						string[] newName = {baseName};
+						while (await DbContext.DexihDatalinks.AnyAsync(c => c.HubKey == hubKey && c.Name == newName[0] && c.IsValid))
 						{
-							newName = $"{baseName} ({count++})";
+							newName[0] = $"{baseName} ({count++})";
 
 							if (count > 100)
 							{
                                 throw new RepositoryManagerException("An unexpected nested loop occurred when attempting to create the datalink name.");
 							}
 						}
-                        newDatalinkName = newName;
+                        newDatalinkName = newName[0];
 					}
 
 					var updateStrategy = await GetBestUpdateStrategy(sourceTable);
 
-					var datalink = new DexihDatalink()
+					var datalink = new DexihDatalink
 					{
 						HubKey = hubKey,
 						Name = newDatalinkName,
@@ -1304,32 +1328,29 @@ namespace dexih.operations
 						AuditConnectionKey = auditConnectionKey,
 						MaxRows = 1000,
 						RowsPerProgress = 1000,
-						IsValid = true
+						IsValid = true,
+						SourceDatalinkTable = new DexihDatalinkTable()
+						{
+							SourceType = DexihDatalinkTable.ESourceType.Table,
+							SourceTableKey = sourceTable?.TableKey,
+							SourceTable = sourceTable,
+							Name = sourceTable?.Name
+						}
 					};
 
-                    datalink.SourceDatalinkTable = new DexihDatalinkTable()
-                    {
-                        SourceType = DexihDatalinkTable.ESourceType.Table,
-                        SourceTableKey = sourceTable.TableKey,
-                        SourceTable = sourceTable,
-                        Name = sourceTable.Name
-                    };
-
-                    // create a copy of the source table columns, and convert to dexihdatalinkColumn type.
-                    var sourceDatalinkColumns = sourceTable.DexihTableColumns.OrderBy(c => c.Position).Select(c =>
-                      {
-                          var newColumn = new DexihDatalinkColumn();
-                          c.CopyProperties(newColumn, true);
-                          newColumn.DatalinkColumnKey = tempColumnKeys--;
-                          return newColumn;
-                      }).ToList();
-
-                    datalink.SourceDatalinkTable.DexihDatalinkColumns = sourceDatalinkColumns;
+					// create a copy of the source table columns, and convert to dexihdatalinkColumn type.
+					foreach (var column in sourceTable.DexihTableColumns.OrderBy(c => c.Position))
+					{
+						var newColumn = new DexihDatalinkColumn();
+						column.CopyProperties(newColumn, true);
+						newColumn.DatalinkColumnKey = tempColumnKeys--;
+						datalink.SourceDatalinkTable.DexihDatalinkColumns.Add(newColumn);
+					}
 
                     // if there is no target table specified, then create one with the default columns mapped from the source table.
                     if (targetTableKey == null)
                     {
-                        targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon);
+                        targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns);
                         datalink.TargetTable = targetTable;
                     }
                     else
@@ -1345,7 +1366,7 @@ namespace dexih.operations
 					var position = 1;
 					foreach (var targetColumn in targetTable.DexihTableColumns)
 					{
-						var sourceColumn = sourceDatalinkColumns.FirstOrDefault(c => c.LogicalName == targetColumn.LogicalName);
+						var sourceColumn = datalink.SourceDatalinkTable.DexihDatalinkColumns.FirstOrDefault(c => c.LogicalName == targetColumn.LogicalName);
 
 						//any columns which have been renamed in the target table, will get a mapping created for them, as passthrough won't map
 						if (sourceColumn != null && sourceColumn.Name != targetColumn.Name)
@@ -1630,219 +1651,18 @@ namespace dexih.operations
 
         #region Datalink Transform Functions
 
-  //      /// <summary>
-  //      /// Finds the target column reference for a transfrom contained within a datalink
-  //      /// </summary>
-  //      /// <param name="datalink"></param>
-  //      /// <param name="datalinkTransform"></param>
-  //      /// <param name="columnKey"></param>
-  //      /// <returns></returns>
-  //      public DexihDatalinkColumn FindTargetColumn(DexihDatalink datalink, DexihDatalinkTransform datalinkTransform, long datalinkColumnKey)
-		//{
-  //          try
-  //          {
-  //              var found = false;
-  //              // loop through each transform to search for the matching column
-  //              foreach (var transform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
-  //              {
-  //                  if (transform.DatalinkTransformKey == datalinkTransform.DatalinkTransformKey) found = true;
-
-  //                  if (found)
-  //                  {
-  //                      foreach(var item in transform.DexihDatalinkTransformItems)
-  //                      {
-  //                          if(item.TargetDatalinkColumn.DatalinkColumnKey == datalinkColumnKey)
-  //                          {
-  //                              return item.TargetDatalinkColumn;
-  //                          }
-  //                          foreach(var param in item.DexihFunctionParameters)
-  //                          {
-  //                              if(param.DatalinkColumn.DatalinkColumnKey == datalinkColumnKey)
-  //                              {
-  //                                  return param.DatalinkColumn;
-  //                              }
-  //                          }
-  //                      }
-
-  //                      // if the transform does not passthrough columns then stop here.
-  //                      if (!transform.PassThroughColumns)
-  //                      {
-  //                          throw new RepositoryManagerException($"The target column with the key {datalinkColumnKey} could not be found.");
-  //                      }
-  //                  }
-  //              }
-
-  //              if (!found)
-  //              {
-  //                  throw new RepositoryManagerException($"The datalink transform with the key {datalinkTransform.DatalinkTransformKey} could not be found in the datalink with the key {datalink.DatalinkKey}.");
-  //              }
-
-  //              // finally search the target table for the matching column key.
-  //              if(!datalink.VirtualTargetTable && datalink.TargetDatalinkTable?.Table != null)
-  //              var targetColumn = datalink.TargetTable.DexihTableColumns.SingleOrDefault(c =>  == datalinkColumnKey);
-  //              if (targetColumn == null)
-  //              {
-  //                  throw new RepositoryManagerException($"The target column with the key {columnKey} could not be found.");
-  //              }
-  //              else
-  //              {
-  //                  return targetColumn;
-  //              }
-  //          }
-  //          catch (Exception ex)
-  //          {
-  //              throw new RepositoryManagerException($"Find target column failed.  {ex.Message}", ex);
-  //          }
-
-  //      }
-
-  //      /// <summary>
-  //      /// Finds the target column reference for a transfrom contained within a datalink
-  //      /// </summary>
-  //      /// <param name="datalink"></param>
-  //      /// <param name="datalinkTransform"></param>
-  //      /// <param name="columnKey"></param>
-  //      /// <returns></returns>
-  //      public DexihTableColumn FindTargetColumnByName(DexihDatalink datalink, DexihDatalinkTransform datalinkTransform, string columnName)
-		//{
-  //          try
-  //          {
-  //              var found = false;
-  //              // loop through each transform to search for the matching column
-  //              foreach (var transform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
-  //              {
-  //                  if (transform.DatalinkTransformKey == datalinkTransform.DatalinkTransformKey) found = true;
-
-  //                  if (found)
-  //                  {
-  //                      if (transform.TransformTable != null)
-  //                      {
-  //                          var table = transform.TransformTable;
-  //                          var column = table.DexihTableColumns.SingleOrDefault(c => c.Name == columnName);
-  //                          if (column != null)
-  //                          {
-  //                              return column;
-  //                          }
-  //                      }
-  //                      // if the transform does not passthrough columns then stop here.
-  //                      if (!transform.PassThroughColumns)
-  //                      {
-  //                          throw new RepositoryManagerException($"The target column with the name {columnName} could not be found.");
-  //                      }
-  //                  }
-  //              }
-
-  //              if (!found)
-  //              {
-  //                  throw new RepositoryManagerException($"The datalink transform with the key {datalinkTransform.DatalinkTransformKey} could not be found in the datalink with the key {datalink.DatalinkKey}.");
-  //              }
-
-  //              // finally search the target table for the matching column key.
-  //              var targetColumn = datalink.TargetTable.DexihTableColumns.SingleOrDefault(c => c.Name == columnName);
-  //              if (targetColumn == null)
-  //              {
-  //                  throw new RepositoryManagerException($"The target column with the name {columnName} could not be found.");
-  //              }
-  //              else
-  //              {
-  //                  return targetColumn;
-  //              }
-  //          }
-  //          catch (Exception ex)
-  //          {
-  //              throw new RepositoryManagerException($"Find target column by name failed.  {ex.Message}", ex);
-  //          }
-
-  //      }
-
-  //      public async Task<DexihDatalinkTransform> FixTargetColumnKeys(DexihDatalink datalink, DexihDatalinkTransform datalinkTransform)
-		//{
-  //          try
-  //          {
-  //              var modified = false;
-
-  //              foreach (var datalinkTransformItem in datalinkTransform.DexihDatalinkTransformItems.OrderBy(c => c.Position))
-  //              {
-  //                  if (datalinkTransformItem.TargetColumnKey != null)
-  //                  {
-  //                      var targetColumn = FindTargetColumn(datalink, datalinkTransform, (long)datalinkTransformItem.TargetColumnKey);
-  //                      if (targetColumn == null)
-  //                      {
-  //                          var oldColumn = await DbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.ColumnKey == datalinkTransformItem.TargetColumnKey);
-  //                          if (oldColumn != null)
-  //                          {
-  //                              var newColumn = FindTargetColumnByName(datalink, datalinkTransform, oldColumn.Name);
-  //                              datalinkTransformItem.TargetColumnKey = newColumn.ColumnKey;
-  //                              modified = true;
-  //                          }
-  //                      }
-  //                  }
-
-  //                  foreach (var functionParameter in datalinkTransformItem.DexihFunctionParameters)
-  //                  {
-  //                      if (functionParameter.Direction == DexihFunctionParameter.EParameterDirection.Output)
-  //                      {
-  //                          if (functionParameter.ColumnKey != null)
-  //                          {
-  //                              var targetColumn = FindTargetColumn(datalink, datalinkTransform, (long)functionParameter.ColumnKey);
-  //                              if (targetColumn == null)
-  //                              {
-  //                                  var oldColumn = await DbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.ColumnKey == functionParameter.ColumnKey);
-  //                                  if (oldColumn != null)
-  //                                  {
-  //                                      var newColumn = FindTargetColumnByName(datalink, datalinkTransform, oldColumn.Name);
-  //                                      functionParameter.ColumnKey = newColumn.ColumnKey;
-  //                                      modified = true;
-  //                                  }
-  //                              }
-  //                          }
-  //                      }
-  //                  }
-  //              }
-  //              if (modified)
-  //              {
-  //                  await SaveChangesAsync();
-  //              }
-
-  //              return datalinkTransform;
-  //          }
-  //          catch (Exception ex)
-  //          {
-  //              throw new RepositoryManagerException($"Fix target column keys failed.  {ex.Message}", ex);
-  //          }
-
-  //      }
-
         private DexihDatalinkTransform CreateDefaultDatalinkTransform(long hubKey, DexihTransform transform)
 		{
             try
             {
                 var datalinkTransform = new DexihDatalinkTransform()
                 {
+	                HubKey = hubKey,
                     TransformKey = transform.TransformKey,
                     Name = transform.Name,
                     Description = transform.Description,
                     IsValid = true
                 };
-
-                // DexihTable transformTable;
-
-                //if the transfrom requires an internal transform table, then add a blank one.
-                //if (transform.RequiresTransformTable)
-                //{
-                //    var connectionKey = await GetInternalConnectionKey(hubKey);
-                //    transformTable = new DexihTable()
-                //    {
-                //        HubKey = hubKey,
-                //        IsInternal = true,
-                //        ConnectionKey = connectionKey,
-                //        Name = Guid.NewGuid().ToString(),
-                //        BaseTableName = "",
-                //        IsValid = true
-                //    };
-
-                //    datalinkTransform.TransformTable = transformTable;
-                //}
 
                 return datalinkTransform;
             }
@@ -1854,7 +1674,14 @@ namespace dexih.operations
         }
         #endregion
 
-        private async Task<DexihTable> CreateDefaultTargetTable(long hubKey, DexihDatalink.EDatalinkType datalinkType, DexihTable sourceTable, string tableName, DexihConnection targetConnection)
+        private async Task<DexihTable> CreateDefaultTargetTable(
+	        long hubKey, 
+	        DexihDatalink.EDatalinkType datalinkType, 
+	        DexihTable sourceTable, 
+	        string tableName, 
+	        DexihConnection targetConnection,
+	        bool addSourceColumns,
+	        EDeltaType[] auditColumns)
 		{
             try
             {
@@ -1862,7 +1689,7 @@ namespace dexih.operations
 
                 if (_namingStandards == null)
                 {
-                    var returnValue = await LoadNamingStandards();
+                    await LoadNamingStandards();
                 }
 
                 DexihDatabaseType dbType;
@@ -1874,6 +1701,8 @@ namespace dexih.operations
                 {
                     dbType = targetConnection.DatabaseType;
                 }
+	            
+	            var position = 1;
 
                 if (sourceTable == null)
                 {
@@ -1895,7 +1724,7 @@ namespace dexih.operations
                         BaseTableName = tableName,
                         LogicalName = tableName,
                         Description = ApplyNamingStandard(datalinkType + ".Table.Description", tableName),
-                        RejectedTableName = ApplyNamingStandard("Table.RejectName", sourceTable.BaseTableName),
+                        RejectedTableName = "",
                     };
                 }
                 else
@@ -1923,52 +1752,53 @@ namespace dexih.operations
                         Description = ApplyNamingStandard(datalinkType + ".Table.Description", sourceTable.BaseTableName),
                         RejectedTableName = ApplyNamingStandard("Table.RejectName", sourceTable.BaseTableName),
                     };
+	                
+	                //columns in the source table are added to the target table
+	                if (addSourceColumns)
+	                {
+		                foreach (var col in sourceTable.DexihTableColumns.Where(c => c.IsSourceColumn).ToList())
+		                {
+			                var newColumn = new DexihTableColumn();
+			                col.CopyProperties(newColumn, true);
+			                newColumn.TableKey = 0; // reset as this will be pointing to source table key.
+			                newColumn.ColumnKey = 0;
+			                newColumn.MapToTargetColumnProperties();
+			                newColumn.Name = dbType.RemoveUnsupportedCharacaters(newColumn.Name);
+			                newColumn.Position = position++;
+			                newColumn.IsValid = true;
+			                table.DexihTableColumns.Add(newColumn);
+		                }
+	                }
+	                
+	                // if there is a surrogate key in the source table, then map it to a column to maintain lineage.
+	                if (sourceTable.DexihTableColumns.Count(c => c.DeltaType == TableColumn.EDeltaType.SurrogateKey) > 0)
+	                {
+		                table.DexihTableColumns.Add(NewDefaultTableColumn("SourceSurrogateKey", table.Name, ETypeCode.Int64, EDeltaType.SourceSurrogateKey, position++));
+	                }
                 }
 
-                var position = 1;
+	            // add the default for each of the requested auditColumns.
+	            foreach (var auditColumn in auditColumns)
+	            {
+		            var exists = table.DexihTableColumns.FirstOrDefault(c => c.DeltaType == auditColumn && c.IsValid);
+		            if (exists == null)
+		            {
+			            var dataType = TableColumn.GetDeltaDataType(auditColumn);
+			            var newColumn =
+				            NewDefaultTableColumn(auditColumn.ToString(), table.Name, dataType, auditColumn, position++);
 
-                //columns in the source table are added for all types except transform, as transform datatypes usually involve custom mappings.
-                if (datalinkType != DexihDatalink.EDatalinkType.Transform)
-                {
-                    foreach (var col in sourceTable.DexihTableColumns.Where(c => c.IsSourceColumn).ToList())
-                    {
-                        var newColumn = new DexihTableColumn();
-                        col.CopyProperties(newColumn, true);
-                        newColumn.TableKey = 0; // reset as this will be pointing to source table key.
-                        newColumn.ColumnKey = 0;
-                        newColumn.MapToTargetColumnProperties();
-                        newColumn.Name = dbType.RemoveUnsupportedCharacaters(newColumn.Name);
-                        newColumn.Position = position++;
-                        newColumn.IsValid = true;
-                        table.DexihTableColumns.Add(newColumn);
-                    }
-                }
-
-                //// if there is a surrogate key in the source table, then map it to a column to maintain lineage.
-                if (sourceTable.DexihTableColumns.Count(c => c.DeltaType == TableColumn.EDeltaType.SurrogateKey) > 0)
-                {
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("SourceSurrogateKey", table.Name, ETypeCode.Int64, EDeltaType.SourceSurrogateKey, position++));
-                }
-
-                //// a publish datalink does not have a "physical" target table, so mapping audit type of columns is not neccessary.
-                if (datalinkType != DexihDatalink.EDatalinkType.Publish)
-                {
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("SurrogateKey", table.Name, ETypeCode.Int64, EDeltaType.SurrogateKey, position++));
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("ValidFromDate", table.Name, ETypeCode.DateTime, EDeltaType.ValidFromDate, position++));
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("ValidToDate", table.Name, ETypeCode.DateTime, EDeltaType.ValidToDate, position++));
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("IsCurrentField", table.Name, ETypeCode.Boolean, EDeltaType.IsCurrentField, position++));
-
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("CreateDate", table.Name, ETypeCode.DateTime, EDeltaType.CreateDate, position++));
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("UpdateDate", table.Name, ETypeCode.DateTime, EDeltaType.UpdateDate, position++));
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("CreateAuditKey", table.Name, ETypeCode.Int64, EDeltaType.CreateAuditKey, position++));
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("UpdateAuditKey", table.Name, ETypeCode.Int64, EDeltaType.UpdateAuditKey, position++));
-                }
-
-                // add a validation status column for validation datalinks.
-                if (datalinkType == DexihDatalink.EDatalinkType.Validate)
-                {
-                    table.DexihTableColumns.Add(NewDefaultTableColumn("ValidationStatus", table.Name, ETypeCode.String, EDeltaType.ValidationStatus, position++));
-                }
+			            // ensure the name is unique.
+			            string[] baseName = {newColumn.Name};
+			            var version = 1;
+			            while (table.DexihTableColumns.FirstOrDefault(c => c.Name == baseName[0] && c.IsValid) != null)
+			            {
+				            baseName[0] = newColumn.Name + (version++).ToString();
+			            }
+			            newColumn.Name = baseName[0];
+				            
+			            table.DexihTableColumns.Add(newColumn);
+		            }
+	            }
 
                 table.IsValid = true;
 
@@ -1979,6 +1809,7 @@ namespace dexih.operations
                 throw new RepositoryManagerException($"Create default target table failed.  {ex.Message}", ex);
             }
         }
+
 
         private DexihTableColumn NewDefaultTableColumn(string namingStandard, string tableName, ETypeCode dataType, EDeltaType deltaType, int position)
 		{
@@ -1998,7 +1829,7 @@ namespace dexih.operations
                     Description = ApplyNamingStandard(namingStandard + ".Column.Description", tableName),
                     IsUnique = false,
                     DeltaType = deltaType,
-                    Position = position++,
+                    Position = position,
                     IsValid = true
                 };
 
@@ -2778,8 +2609,9 @@ namespace dexih.operations
 		/// Imports are package into the current repository.
 		/// </summary>
 		/// <param name="import"></param>
+		/// <param name="allowPasswordImport">Allows the import to import passwords/connection strings</param>
 		/// <returns></returns>
-		public async Task ImportPackage(Import import)
+		public async Task ImportPackage(Import import, bool allowPasswordImport)
 		{
 
 			//load all the objects into dictionaries, which can be used to reference them by their key
@@ -2804,10 +2636,20 @@ namespace dexih.operations
                 .ToDictionary(c => c.DatajobKey, c => c);
 
            
-			// reset all the connection keys.
+			// reset all the connection keys, and the connection passwords
             foreach (var connection in connections.Values)
 			{
                 if (connection.ConnectionKey < 0) connection.ConnectionKey = 0;
+
+				if (!allowPasswordImport)
+				{
+					connection.ConnectionString = "";
+					connection.ConnectionStringRaw = "";
+					connection.UseConnectionStringVariable = false;
+					connection.Password = "";
+					connection.PasswordRaw = "";
+					connection.UsePasswordVariable = false;
+				}
 			}
 
             foreach(var table in tables.Values)

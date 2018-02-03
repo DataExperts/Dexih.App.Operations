@@ -45,7 +45,7 @@ namespace dexih.repository
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
         public string CronExpression { get; set; }
-        public int? MaxRecurrs { get; set; }
+        public int? MaxRecurs { get; set; }
 
         [NotMapped]
         public string Details
@@ -64,8 +64,8 @@ namespace dexih.repository
                     desc.AppendLine("Only on:" + String.Join(",", DaysOfWeek.Select(c => c.ToString()).ToArray()));
                 if (IntervalTime != null)
                     desc.AppendLine("Runs every: " + IntervalTime.Value.ToString());
-                if (MaxRecurrs != null)
-                    desc.AppendLine("Recurrs for: " + MaxRecurrs.Value.ToString());
+                if (MaxRecurs != null)
+                    desc.AppendLine("Recurs for: " + MaxRecurs.Value.ToString());
 
                 return desc.ToString();
             }

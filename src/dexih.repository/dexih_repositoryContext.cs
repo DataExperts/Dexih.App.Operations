@@ -1260,7 +1260,7 @@ namespace dexih.repository
 
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
-                entity.Property(e => e.MaxRecurrs).HasColumnName("max_recurrs");
+                entity.Property(e => e.MaxRecurs).HasColumnName("max_recurrs");
 
 				entity.Property(e => e.StartDate)
 					  .HasColumnName("start_date");

@@ -16,11 +16,13 @@ namespace dexih.repository
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EDatalinkType
         {
+            General,
             Stage,
             Validate,
             Transform,
             Deliver,
-            Publish
+            Publish,
+            Share
         }
 
         public DexihDatalink()

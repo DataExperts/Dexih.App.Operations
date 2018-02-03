@@ -178,12 +178,12 @@ namespace dexih.repository
                 {
                     var hubVariablesManager = new HubVariablesManager(encryptionKey, hubVariablesArray);
 
-                    connection.ConnectionString = hubVariablesManager.InsertHubVariables(connection.ConnectionString);
-                    connection.Server = hubVariablesManager.InsertHubVariables(connection.Server);
-                    connection.Password = hubVariablesManager.InsertHubVariables(connection.Password);
-                    connection.Username = hubVariablesManager.InsertHubVariables(connection.Username);
-                    connection.DefaultDatabase = hubVariablesManager.InsertHubVariables(connection.DefaultDatabase);
-                    connection.Filename = hubVariablesManager.InsertHubVariables(connection.Filename);
+                    connection.ConnectionString = hubVariablesManager.InsertHubVariables(connection.ConnectionString, true);
+                    connection.Server = hubVariablesManager.InsertHubVariables(connection.Server, false);
+                    connection.Password = hubVariablesManager.InsertHubVariables(connection.Password, true);
+                    connection.Username = hubVariablesManager.InsertHubVariables(connection.Username, false);
+                    connection.DefaultDatabase = hubVariablesManager.InsertHubVariables(connection.DefaultDatabase, false);
+                    connection.Filename = hubVariablesManager.InsertHubVariables(connection.Filename, false);
                 }
 
                 return connection;
