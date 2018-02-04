@@ -157,13 +157,13 @@ namespace dexih.repository
                     inputTables.Add(transform.JoinDatalinkTable);
                 }
 
-                // if the transform is a concatinate, then merge common column names together.
-                if (transform.Transform.TransformType == ETransformType.Concatinate)
+                // if the transform is a concatenate, then merge common column names together.
+                if (transform.Transform.TransformType == ETransformType.Concatenate)
                 {
                     var joinTable = transform.JoinDatalinkTable;
 
                     var concatTable = new DexihDatalinkTable();
-                    concatTable.Name = "Concatinated Table";
+                    concatTable.Name = "Concatenated Table";
                     concatTable.DexihDatalinkColumns = new List<DexihDatalinkColumn>();
 
                     foreach (var table in inputTables)

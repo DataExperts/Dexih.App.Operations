@@ -20,7 +20,7 @@ namespace dexih.repository
         [JsonConverter(typeof(StringEnumConverter))]
         public enum ETransformType
         {
-            Mapping, Filter, Sort, Group, Join, Rows, Lookup, Validation, Delta, Concatinate
+            Mapping, Filter, Sort, Group, Join, Rows, Lookup, Validation, Delta, Concatenate
         }
         public long TransformKey { get; set; }
         [NotMapped]
