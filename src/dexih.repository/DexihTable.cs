@@ -152,7 +152,7 @@ namespace dexih.repository
 	        this.CopyProperties(table, false);
 
 	        // shift to array to avoid multiple enumerations.
-	        var hubVariablesArray = hubVariables as DexihHubVariable[] ?? hubVariables.ToArray();
+	        var hubVariablesArray = hubVariables?.ToArray();
 
 	        switch (table)
 	        {

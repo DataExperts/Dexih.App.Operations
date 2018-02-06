@@ -47,7 +47,7 @@ namespace dexih.operations
                 var targetTable = datalink.GetOutputTable();
                 
 
-                var openReturn = await transform.Open(0, null, cancellationToken);
+                var openReturn = await transform.Open(0, selectQuery, cancellationToken);
                 if (!openReturn)
                 {
                     throw new RemoteDataSenderException("Failed to open the transform.");
@@ -68,7 +68,7 @@ namespace dexih.operations
                 var bufferCount = 0;
                 var dataSet = new object[RowsPerBuffer][];
                 //loop through the transform to cache the preview data.
-                while ((await transform.ReadAsync(cancellationToken)) && (selectQuery == null || totalCount < selectQuery.Rows) &&
+                while ((await transform.ReadAsync(cancellationToken)) && (selectQuery == null || totalCount < selectQuery.Rows || selectQuery.Rows == -1) &&
                        cancellationToken.IsCancellationRequested == false)
                 {
                     var row = new object[columnCount];
@@ -109,7 +109,7 @@ namespace dexih.operations
                 }, "");
 
                 var content = new StringContent(message, Encoding.UTF8, "application/json");
-                await _httpClient.PostAsync(_url + "Reader/Fault", content, cancellationToken);
+                await _httpClient.PostAsync(_url + "Reader/SetError", content, cancellationToken);
 
                 throw;
             }
