@@ -21,6 +21,9 @@ namespace dexih.operations
         public string BuildVersion { get; set; }
         public DateTime BuildDate { get; set; }
 
+        public string GoogleClientId { get; set; }
+        public string MicrosoftClientId { get; set; }
+
 		public CacheManager()
 		{
 			

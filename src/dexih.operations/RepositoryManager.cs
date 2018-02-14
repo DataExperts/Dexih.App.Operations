@@ -79,7 +79,7 @@ namespace dexih.operations
 
 		public async Task<IEnumerable<DexihHubVariable>> GetHubVariables(long hubKey)
 		{
-			var hubVariables = await DbContext.DexihHubVariable.Where(c => c.HubKey == hubKey).ToArrayAsync();
+			var hubVariables = await DbContext.DexihHubVariable.Where(c => c.HubKey == hubKey && c.IsValid).ToArrayAsync();
 			return hubVariables;
 		}
 
@@ -2071,7 +2071,7 @@ namespace dexih.operations
 		/// <param name="columnValidationsAction"></param>
 		/// <returns></returns>
 		/// <exception cref="ArgumentOutOfRangeException"></exception>
-		public async Task<Import> CreateImportPlan(long hubKey, DexihHub hub, EImportAction connectionsAction,
+		public async Task<Import> CreateImportPlan(long hubKey, DexihHub hub, EImportAction hubVariableAction,  EImportAction connectionsAction,
 			EImportAction tablesAction, EImportAction datalinksAction, EImportAction datajobsAction,
 			EImportAction fileFormatsAction, EImportAction columnValidationsAction)
 		{
@@ -2084,13 +2084,55 @@ namespace dexih.operations
 			var datajobKeyMappings = new Dictionary<long, long>();
 			var fileFormatKeyMappings = new Dictionary<long, long>();
 			var columnValidationKeyMappings = new Dictionary<long, long>();
+			var hubVariableKeyMappings = new Dictionary<long, long>();
 			
 			var plan = new Import(hubKey);
 
+			var existingHubVariables =
+				await DbContext.DexihHubVariable.Where(var => var.HubKey == hubKey && hub.DexihHubVariables.Select(c => c.Name).Contains(var.Name) && var.IsValid).ToArrayAsync();
+
+			foreach (var hubVariable in hub.DexihHubVariables)
+			{
+				hubVariable.HubKey = hubKey;
+				var existingHubVariable = existingHubVariables.SingleOrDefault(var => hubVariable.Name == var.Name);
+
+				if (existingHubVariable != null)
+				{
+					switch (hubVariableAction)
+					{
+						case EImportAction.Replace:
+							hubVariableKeyMappings.Add(hubVariable.HubVariableKey, existingHubVariable.HubVariableKey);
+							hubVariable.HubVariableKey = existingHubVariable.HubVariableKey;
+							plan.HubVariables.Add(hubVariable, EImportAction.Replace);
+							break;
+						case EImportAction.New:
+							var newKey = keySequence--;
+							hubVariableKeyMappings.Add(hubVariable.HubVariableKey, newKey);
+							hubVariable.HubVariableKey = newKey;
+							hubVariable.Name = hubVariable.Name + " - duplicate rename " + DateTime.Now;
+							plan.HubVariables.Add(hubVariable, EImportAction.New);
+							break;
+						case EImportAction.Leave:
+						case EImportAction.Skip:
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(columnValidationsAction), columnValidationsAction, null);
+					}
+				}
+				else
+				{
+					if (hubVariableAction != EImportAction.Skip)
+					{
+						var newKey = keySequence--;
+						hubVariableKeyMappings.Add(hubVariable.HubVariableKey, newKey);
+						hubVariable.HubVariableKey = newKey;
+						plan.HubVariables.Add(hubVariable, EImportAction.New);
+					}
+				}
+			}
 
 			var existingFileFormats =
 				await DbContext.DexihFileFormat.Where(con => con.HubKey == hubKey && hub.DexihFileFormats.Select(c => c.Name).Contains(con.Name) && con.IsValid).ToArrayAsync();
-
 
 			foreach (var fileFormat in hub.DexihFileFormats)
 			{
@@ -2616,6 +2658,9 @@ namespace dexih.operations
 
 			//load all the objects into dictionaries, which can be used to reference them by their key
 			
+			var hubVariables = import.HubVariables
+				.Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+				.ToDictionary(c => c.HubVariableKey, c => c);
             var fileFormats = import.FileFormats
                 .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
                 .ToDictionary(c => c.FileFormatKey, c => c);
@@ -2635,6 +2680,17 @@ namespace dexih.operations
                 .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
                 .ToDictionary(c => c.DatajobKey, c => c);
 
+			// reset all the keys
+			foreach (var hubVariable in hubVariables.Values)
+			{
+				if (hubVariable.HubVariableKey < 0) hubVariable.HubVariableKey = 0;
+
+				if (!allowPasswordImport && hubVariable.IsEncrypted)
+				{
+					hubVariable.Value = "";
+					hubVariable.ValueRaw = "";
+				}
+			}
            
 			// reset all the connection keys, and the connection passwords
             foreach (var connection in connections.Values)
@@ -2835,6 +2891,7 @@ namespace dexih.operations
 				column.UpdateDate = DateTime.Now;
 			}
 
+			DbContext.AddRange(hubVariables.Values);
 			DbContext.AddRange(columnValidations.Values);
 			DbContext.AddRange(fileFormats.Values);
 			DbContext.AddRange(connections.Values);

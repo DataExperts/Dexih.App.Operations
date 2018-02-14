@@ -159,7 +159,7 @@ namespace dexih.repository
 						DataType = parameter.Datatype,
 						IsArray = parameter.IsArray,
 						IsColumn = parameter.DatalinkColumn != null,
-						Name = parameter.ParameterName
+						Name = parameter.ParameterName,
 					};
 
 					try
@@ -188,6 +188,7 @@ namespace dexih.repository
 				if (StandardFunction != null)
                 {
                     function = StandardFunctions.GetFunctionReference(StandardFunction.Method);
+	                function.CompareEnum = StandardFunction.CompareEnum;
                 }
                 else
                 {

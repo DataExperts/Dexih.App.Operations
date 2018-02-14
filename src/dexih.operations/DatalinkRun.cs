@@ -269,6 +269,11 @@ namespace dexih.operations
                 transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, _hub.EncryptionKey);
 
                 var writer = new TransformWriter();
+                if (Datalink.RowsPerCommit > 0)
+                {
+                    writer.CommitSize = Datalink.RowsPerCommit;
+                }
+
                 var runJob = await writer.WriteAllRecords(WriterResult, transformDelta, targetTable, TargetConnection,
                     rejectTable, profileTable, cancellationToken);
 

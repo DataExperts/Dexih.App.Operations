@@ -157,8 +157,22 @@ namespace dexih.repository
                     break;
             }
 
-            if (SecurityFlag != ESecurityFlag.None)
-                SecurityFlag = ESecurityFlag.Hide;
+            switch (SecurityFlag)
+            {
+                case ESecurityFlag.FastEncrypt:
+                    SecurityFlag = ESecurityFlag.FastEncrypted;
+                    break;
+               case ESecurityFlag.StrongEncrypt:
+                   SecurityFlag = ESecurityFlag.StrongEncrypted;
+                   break;
+               case ESecurityFlag.OneWayHash:
+                   SecurityFlag = ESecurityFlag.OnWayHashed;
+                   break;
+               case ESecurityFlag.FastDecrypt:
+               case ESecurityFlag.StrongDecrypt:
+                   SecurityFlag = ESecurityFlag.None;
+                   break;
+            }
 
             if (IsIncrementalUpdate)
                 IsIncrementalUpdate = false;

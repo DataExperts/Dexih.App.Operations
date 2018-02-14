@@ -1,6 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
+using Newtonsoft.Json.Converters;
 
 namespace dexih.repository
 {
@@ -18,7 +22,18 @@ namespace dexih.repository
         public string Assembly { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        public string CompareEnum { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public string CompareEnumString
+        {
+            get => CompareEnum == null ? null : CompareEnum.ToString();
+            set => CompareEnum = string.IsNullOrEmpty(value) ? null : (Filter.ECompare?)Enum.Parse(typeof(Filter.ECompare), value);
+        }
+
+        [NotMapped]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public Filter.ECompare? CompareEnum { get; set; }
+        
         public bool IsAggregate { get; set; }
         public bool IsCondition { get; set; }
         public bool IsRow { get; set; }

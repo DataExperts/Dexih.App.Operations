@@ -877,7 +877,7 @@ namespace dexih.repository
                     .HasColumnName("category")
                     .HasColumnType("varchar(50)");
 
-                entity.Property(e => e.CompareEnum).HasColumnType("varchar(20)");
+                entity.Property(e => e.CompareEnumString).HasColumnName("CompareEnum").HasColumnType("varchar(20)");
 
 				entity.Property(e => e.CreateDate)
 					  .HasColumnName("create_date");

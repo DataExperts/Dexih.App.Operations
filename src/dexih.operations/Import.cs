@@ -14,6 +14,7 @@ namespace dexih.operations
     public class Import
     {
         public long HubKey { get; set; }
+        public ImportObjects<DexihHubVariable> HubVariables { get; set; }
         public ImportObjects<DexihDatajob> Datajobs { get; set; }
         public ImportObjects<DexihDatalink> Datalinks { get; set; }
         public ImportObjects<DexihConnection> Connections { get; set; }
@@ -25,6 +26,7 @@ namespace dexih.operations
         {
             HubKey = hubKey;
             
+            HubVariables = new ImportObjects<DexihHubVariable>();           
             Datajobs = new ImportObjects<DexihDatajob>();
             Datalinks = new ImportObjects<DexihDatalink>();
             Connections = new ImportObjects<DexihConnection>();
