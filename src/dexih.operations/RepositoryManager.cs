@@ -1121,7 +1121,7 @@ namespace dexih.operations
                     {
                         var existingDatalink = await GetDatalink(hubKey, datalink.DatalinkKey);
 
-	                    if (existingDatalink.UpdateStrategy.UpdateStrategyKey == datalink.UpdateStrategy.UpdateStrategyKey)
+	                    if (existingDatalink.UpdateStrategy != null && existingDatalink.UpdateStrategy.UpdateStrategyKey == datalink.UpdateStrategy.UpdateStrategyKey)
 	                    {
 		                    datalink.UpdateStrategy = existingDatalink.UpdateStrategy;
 	                    }
