@@ -294,25 +294,25 @@ public class Program
 	public static void Main()
 	{
         //Input Parameters
-		$InputParameters
+$InputParameters
 
         //Output Parameters
-        $OutputParameters
+$OutputParameters
 
         //call the custom function.
-        $TestFunction
+$TestFunction
 
         //write out results to the console.
-        $WriteResults
+$WriteResults
     }
 
     public static $FunctionReturn CustomFunction($Parameters)
     {
-        // start cut and paste code below here into the custom function dialog.
+        // start: code below here goes into the custom function dialog.
 
-        $FunctionCode
+$FunctionCode
 
-        // end cut and paste of code into the custom function dialog.
+        // end: end of code to go into the custom function dialog.
     }
 
 	// The reset function is called when a new group starts on an aggregate function
@@ -327,82 +327,118 @@ public class Program
 }
                     ");
 
-            code.Replace("$FunctionCode", FunctionCode);
+	        var tabbedCode = "\t\t" + FunctionCode.Replace("\n", "\n\t\t");
+	        
+            code.Replace("$FunctionCode", tabbedCode);
             code.Replace("$FunctionReturn", ReturnType.ToString());
 
             if (createConsoleSample)
             {
                 var testFunction = new StringBuilder();
-                TableColumn targetColumn = null;
-                if (TargetDatalinkColumn != null)
-                {
-                    targetColumn = TargetDatalinkColumn.GetTableColumn();
-                    if (targetColumn != null)
-                        testFunction.Append(targetColumn.Name + " = ");
-                }
+                var returnName = "returnValue";
+	            var returnColumn = TargetDatalinkColumn?.GetTableColumn();
+	            if (returnColumn != null && !string.IsNullOrEmpty(returnColumn.Name))
+	            {
+		            returnName = returnColumn.Name;
+	            }
 
+	            testFunction.Append("\t\t" + returnName + " = ");
                 testFunction.Append("CustomFunction(");
-                testFunction.Append(string.Join(",", DexihFunctionParameters.OrderBy(c => c.Position).Select(c => c.Direction == DexihFunctionParameter.EParameterDirection.Output ? "out " + c.ParameterName : c.ParameterName).ToArray()));
+	            var p = DexihFunctionParameters.OrderBy(c => c.Position)
+		            .Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Input).Select(c => c.ParameterName)
+		            .ToList();
+	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Output).Select(c => "out " + c.ParameterName));
+	            
+	            testFunction.Append(string.Join(", ", p));
                 testFunction.Append(");");
                 code.Replace("$TestFunction", testFunction.ToString());
 
                 var inputParameters = new StringBuilder();
                 foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Input))
                 {
-                    inputParameters.Append(inputParameter.Datatype + " " + inputParameter.ParameterName + " = ");
-                    switch (inputParameter.Datatype)
-                    {
-                        case ETypeCode.Byte:
-                        case ETypeCode.SByte:
-                        case ETypeCode.UInt16:
-                        case ETypeCode.UInt32:
-                        case ETypeCode.UInt64:
-                        case ETypeCode.Int16:
-                        case ETypeCode.Int32:
-                        case ETypeCode.Int64:
-                            inputParameters.Append("1;");
-                            break;
-                        case ETypeCode.Decimal:
-                        case ETypeCode.Double:
-                        case ETypeCode.Single:
-                            inputParameters.Append("1.1;");
-                            break;
-                        case ETypeCode.String:
-                            inputParameters.Append("\"sample\";");
-                            break;
-                        case ETypeCode.Boolean:
-                            inputParameters.Append("\"false\";");
-                            break;
-                        case ETypeCode.DateTime:
-                            inputParameters.Append("DateTime.Now;");
-                            break;
-                        case ETypeCode.Time:
-                            inputParameters.Append("\"" + TimeSpan.FromDays(1) + "\";");
-                            break;
-                        case ETypeCode.Guid:
-                            inputParameters.Append("\"" + Guid.NewGuid() + "\";");
-                            break;
-                        case ETypeCode.Unknown:
-                        default:
-                            break;
-                    }
+                    inputParameters.Append("\t\t" + inputParameter.Datatype + " " + inputParameter.ParameterName + " = ");
+
+	                var parameter = inputs?.SingleOrDefault(c => c.Name == inputParameter.ParameterName);
+	                if (parameter != null)
+	                {
+		                var basicType = GetBasicType(inputParameter.Datatype);
+		                switch (basicType)
+		                {
+			                case EBasicType.Unknown:
+			                case EBasicType.String:
+			                case EBasicType.Date:
+			                case EBasicType.Time:
+			                case EBasicType.Binary:
+				                inputParameters.AppendLine("\"" + parameter.Value + "\";");
+				                break;
+			                case EBasicType.Numeric:
+			                case EBasicType.Boolean:
+				                inputParameters.AppendLine(parameter.Value + ";");
+				                break;
+			                default:
+				                throw new ArgumentOutOfRangeException();
+		                }
+	                }
+	                else
+	                {
+		                switch (inputParameter.Datatype)
+		                {
+			                case ETypeCode.Byte:
+			                case ETypeCode.SByte:
+			                case ETypeCode.UInt16:
+			                case ETypeCode.UInt32:
+			                case ETypeCode.UInt64:
+			                case ETypeCode.Int16:
+			                case ETypeCode.Int32:
+			                case ETypeCode.Int64:
+				                inputParameters.AppendLine("1;");
+				                break;
+			                case ETypeCode.Decimal:
+			                case ETypeCode.Double:
+			                case ETypeCode.Single:
+				                inputParameters.AppendLine("1.1;");
+				                break;
+			                case ETypeCode.Text:
+			                case ETypeCode.String:
+			                case ETypeCode.Unknown:
+				                inputParameters.AppendLine("\"sample\";");
+				                break;
+			                case ETypeCode.Json:
+				                inputParameters.AppendLine("\"{ test: \\\"testValue\\\" }\";");
+				                break;
+			                case ETypeCode.Xml:
+				                inputParameters.AppendLine("\"<test>testValue</test>\";");
+				                break;
+			                case ETypeCode.Boolean:
+				                inputParameters.AppendLine("false;");
+				                break;
+			                case ETypeCode.DateTime:
+				                inputParameters.AppendLine("DateTime.Now;");
+				                break;
+			                case ETypeCode.Time:
+				                inputParameters.AppendLine("\"" + TimeSpan.FromDays(1) + "\";");
+				                break;
+			                case ETypeCode.Guid:
+				                inputParameters.AppendLine("\"" + Guid.NewGuid() + "\";");
+				                break;
+			                default:
+				                throw new ArgumentOutOfRangeException();
+		                }
+	                }
                 }
                 code.Replace("$InputParameters", inputParameters.ToString());
 
                 var outputParameters = new StringBuilder();
                 var writeResults = new StringBuilder();
 
-                if (targetColumn != null)
-                {
-                    outputParameters.Append(ReturnType + " " + targetColumn.Name + ";");
-                    writeResults.Append("Console.WriteLine(\"" + targetColumn.Name + " = {0}\", " + targetColumn.Name + ");");
-                }
+				outputParameters.AppendLine("\t\t" + ReturnType + " " + returnName + ";");
+				writeResults.AppendLine("\t\tConsole.WriteLine(\"" + returnName + " = {0}\", " + returnName + ");");
 
                 foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Output))
                 {
-                    outputParameters.AppendLine(outputParameter.Datatype + " " + outputParameter.ParameterName + ";");
+                    outputParameters.AppendLine("\t\t" + outputParameter.Datatype + " " + outputParameter.ParameterName + ";");
                     testFunction.Append("out " + outputParameter.ParameterName + ", ");
-                    writeResults.Append("Console.WriteLine(\"" + outputParameter.ParameterName + " = {0}\", " + outputParameter.ParameterName + ");");
+                    writeResults.AppendLine("\t\tConsole.WriteLine(\"" + outputParameter.ParameterName + " = {0}\", " + outputParameter.ParameterName + ");");
                 }
 
                 code.Replace("$OutputParameters", outputParameters.ToString());
@@ -411,7 +447,7 @@ public class Program
 
                 foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Output))
                 {
-                    outputParameters.AppendLine(outputParameter.Datatype + " " + outputParameter.ParameterName + ";");
+                    outputParameters.AppendLine("\t\t" + outputParameter.Datatype + " " + outputParameter.ParameterName + ";");
                     testFunction.Append("out " + outputParameter.ParameterName + ", ");
                 }
             }
@@ -425,26 +461,20 @@ public class Program
             }
 
 
-            var parameterString = "";
-            if (inputs != null)
-            {
-                foreach (var t in inputs)
-                {
-                    var addArray = "";
-                    if (t.IsArray) addArray = "[]";
-                    parameterString += t.DataType + addArray + " " + t.Name + ",";
-                }
-            }
+			var parameterString = "";
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihFunctionParameter.EParameterDirection.Input))
+			{
+				var addArray = "";
+				if (t.IsArray) addArray = "[]";
+				parameterString += t.Datatype + addArray + " " + t.ParameterName + ",";
+			}
 
-            if (outputs != null)
-            {
-                foreach (var t in outputs)
-                {
-                    var addArray = "";
-                    if (t.IsArray) addArray = "[]";
-                    parameterString += "out " + t.DataType + addArray + " " + t.Name + ",";
-                }
-            }
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihFunctionParameter.EParameterDirection.Output))
+			{
+				var addArray = "";
+				if (t.IsArray) addArray = "[]";
+				parameterString += "out " + t.Datatype + addArray + " " + t.ParameterName + ",";
+			}
 
             if (parameterString != "") //remove last comma
                 parameterString = parameterString.Substring(0, parameterString.Length - 1);

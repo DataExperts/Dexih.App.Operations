@@ -22,7 +22,8 @@ namespace dexih.repository
             Transform,
             Deliver,
             Publish,
-            Share
+            Share,
+            Query
         }
 
         public DexihDatalink()
