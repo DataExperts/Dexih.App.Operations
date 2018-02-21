@@ -1247,7 +1247,7 @@ namespace dexih.operations
 	        long[] sourceTableKeys, 
 	        long? targetTableKey, 
 	        string targetTableName, 
-	        long auditConnectionKey, 
+	        long? auditConnectionKey, 
 	        bool addSourceColumns,
 	        EDeltaType[] auditColumns)
 		{
@@ -1271,18 +1271,13 @@ namespace dexih.operations
 				var sourceTables = await DbContext.DexihTables.Where(c => c.HubKey == hubKey && sourceTableKeys.Contains(c.TableKey) && c.IsValid).ToDictionaryAsync(c => c.TableKey);
 				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && sourceTables.Keys.Contains(c.TableKey) && c.IsValid).LoadAsync();
 				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.TableKey == targetTableKey);
-				var targetCon = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnectionKey);
+				var targetCon = targetConnectionKey == null ? null : await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnectionKey);
 
 				foreach (var sourceTableKey in sourceTableKeys)
 				{
 					if (sourceTableKey == 0 && targetTableKey != null && targetTableName != null)
 					{
                         throw new RepositoryManagerException("There is no source table selected, so the target table cannot be autonamed and must be defined.");
-					}
-
-					if (targetConnectionKey == null)
-					{
-                        throw new RepositoryManagerException("There is no target connection specified.");
 					}
 
 					if (!string.IsNullOrEmpty(datalinkName) && await DbContext.DexihDatalinks.AnyAsync(c => c.Name == datalinkName && c.IsValid))
@@ -1350,12 +1345,21 @@ namespace dexih.operations
                     // if there is no target table specified, then create one with the default columns mapped from the source table.
                     if (targetTableKey == null)
                     {
-                        targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns);
-                        datalink.TargetTable = targetTable;
+	                    if (targetCon == null)
+	                    {
+		                    datalink.VirtualTargetTable = true;
+	                    }
+	                    else
+	                    {
+		                    targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns);
+		                    datalink.TargetTable = targetTable;
+		                    datalink.VirtualTargetTable = false;
+	                    }
                     }
                     else
                     {
                         datalink.TargetTableKey = targetTableKey;
+	                    datalink.VirtualTargetTable = false;
 					}
 
 					//add a mapping transform, with source/target fields mapped.
@@ -1363,29 +1367,34 @@ namespace dexih.operations
 					var datalinkTransform = CreateDefaultDatalinkTransform(hubKey, mappingTransform);
 					datalinkTransform.PassThroughColumns = true;
 
-					var position = 1;
-					foreach (var targetColumn in targetTable.DexihTableColumns)
+					if (targetTable != null)
 					{
-						var sourceColumn = datalink.SourceDatalinkTable.DexihDatalinkColumns.FirstOrDefault(c => c.LogicalName == targetColumn.LogicalName);
-
-						//any columns which have been renamed in the target table, will get a mapping created for them, as passthrough won't map
-						if (sourceColumn != null && sourceColumn.Name != targetColumn.Name)
+						var position = 1;
+						foreach (var targetColumn in targetTable.DexihTableColumns)
 						{
-							var item = new DexihDatalinkTransformItem()
+							var sourceColumn =
+								datalink.SourceDatalinkTable.DexihDatalinkColumns.FirstOrDefault(c =>
+									c.LogicalName == targetColumn.LogicalName);
+
+							//any columns which have been renamed in the target table, will get a mapping created for them, as passthrough won't map
+							if (sourceColumn != null && sourceColumn.Name != targetColumn.Name)
 							{
-								Position = position++,
-								TransformItemType = DexihDatalinkTransformItem.ETransformItemType.ColumnPair
-							};
+								var item = new DexihDatalinkTransformItem()
+								{
+									Position = position++,
+									TransformItemType = DexihDatalinkTransformItem.ETransformItemType.ColumnPair
+								};
 
-                            item.SourceDatalinkColumn = sourceColumn;
+								item.SourceDatalinkColumn = sourceColumn;
 
-                            var newColumn = new DexihDatalinkColumn();
-                            targetColumn.CopyProperties(newColumn, true);
-                            newColumn.DatalinkColumnKey = tempColumnKeys--;
-                            item.TargetDatalinkColumn = newColumn;
-                            item.TargetDatalinkColumnKey = 0;
+								var newColumn = new DexihDatalinkColumn();
+								targetColumn.CopyProperties(newColumn, true);
+								newColumn.DatalinkColumnKey = tempColumnKeys--;
+								item.TargetDatalinkColumn = newColumn;
+								item.TargetDatalinkColumnKey = 0;
 
-							datalinkTransform.DexihDatalinkTransformItems.Add(item);
+								datalinkTransform.DexihDatalinkTransformItems.Add(item);
+							}
 						}
 					}
 

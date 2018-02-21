@@ -86,6 +86,8 @@ namespace dexih.operations
                                 return (name, fileStream);
                             }
                             break;
+                        default:
+                            throw new Exception("The file format " + downloadFormat.ToString() + " is not currently supported for downloading data.");
                     }
 
                     if (zipFiles)
