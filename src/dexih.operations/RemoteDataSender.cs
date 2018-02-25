@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using dexih.functions.Query;
 using dexih.repository;
 using Dexih.Utils.Crypto;
@@ -34,19 +35,16 @@ namespace dexih.operations
             _url = url;
         }
 
-        public async Task SendDatalinkData(DexihHub hub, DexihDatalink datalink, SelectQuery selectQuery, string continuationToken, CancellationToken cancellationToken)
+        public async Task SendDatalinkData(DexihHub hub, DexihDatalink datalink, SelectQuery selectQuery, BufferBlock<object> buffer, CancellationToken cancellationToken)
         {
             try
             {
-
                 var transformOperations = new TransformsManager(_encryptionKey, _hubVariables);
-
                 var runPlan = transformOperations.CreateRunPlan(hub, datalink, null, null, false, selectQuery);
                 var transform = runPlan.sourceTransform;
 
                 var targetTable = datalink.GetOutputTable();
                 
-
                 var openReturn = await transform.Open(0, selectQuery, cancellationToken);
                 if (!openReturn)
                 {
@@ -63,7 +61,6 @@ namespace dexih.operations
                     ordinals[i] = transform.GetOrdinal(columns[i]);
                 }
                 
-
                 var totalCount = 0;
                 var bufferCount = 0;
                 var dataSet = new object[RowsPerBuffer][];
@@ -84,7 +81,8 @@ namespace dexih.operations
 
                     if (bufferCount >= RowsPerBuffer)
                     {
-                        await SendRemoteData(columns, dataSet, continuationToken, cancellationToken);
+                        var dataset = new DataSet() {columns = columns, data = dataSet};
+                        await buffer.SendAsync(dataset, cancellationToken);
                         bufferCount = 0;
                     }
                 }
@@ -93,10 +91,11 @@ namespace dexih.operations
                 if (bufferCount > 0)
                 {
                     Array.Resize(ref dataSet, bufferCount);
-                    await SendRemoteData(columns, dataSet, continuationToken, cancellationToken);
+                    var dataset = new DataSet() {columns = columns, data = dataSet};
+                    await buffer.SendAsync(dataset, cancellationToken);
                 }
 
-                await SendComplete(continuationToken, cancellationToken);
+                buffer.Complete();
                 
                 transform.Dispose();
             }
@@ -104,7 +103,6 @@ namespace dexih.operations
             {
                 var message = Json.SerializeObject(new
                 {
-                    ContinuationToken = continuationToken,
                     Exception = ex
                 }, "");
 
