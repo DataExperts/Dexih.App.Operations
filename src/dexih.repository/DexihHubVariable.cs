@@ -1,6 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.CompilerServices;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.Crypto;
 
@@ -20,7 +21,7 @@ namespace dexih.repository
         public bool IsEncrypted { get; set; }
         public bool IsEnvironmentVariable { get; set; }
 
-        public string GetValue(string key)
+        public string GetValue(string key, int iterations)
         {
             string value;
             
@@ -34,7 +35,7 @@ namespace dexih.repository
                     }
                     else
                     {
-                        value =  EncryptString.Decrypt(Value, key, 1000);
+                        value =  EncryptString.Decrypt(Value, key, iterations);
                     }
                 }
                 else
@@ -57,11 +58,11 @@ namespace dexih.repository
             }
         }
 
-        public void Encrypt(string key)
+        public void Encrypt(string key, int iterations)
         {
             if(!String.IsNullOrEmpty(ValueRaw))
             {
-                Value = EncryptString.Encrypt(ValueRaw, key, 1000);
+                Value = EncryptString.Encrypt(ValueRaw, key, iterations);
                 ValueRaw = null;
             }
         }

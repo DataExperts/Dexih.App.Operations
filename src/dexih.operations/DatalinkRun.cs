@@ -39,8 +39,7 @@ namespace dexih.operations
         private DexihTable _targetTable;
         private readonly DexihHub _hub;
         private readonly SelectQuery _selectQuery;
-		private readonly string _encryptionKey;
-        private readonly IEnumerable<DexihHubVariable> _hubVariables;
+		private readonly TransformSettings _transformSettings;
 
         private readonly bool _truncateTarget;
         private readonly bool _resetIncremental;
@@ -49,10 +48,9 @@ namespace dexih.operations
         private readonly ILogger _logger;
 
 
-        public DatalinkRun(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables, ILogger logger, DexihDatalink datalink, DexihHub hub, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery)
+        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery)
         {
-			_encryptionKey = encryptionKey;
-            _hubVariables = hubVariables;
+            _transformSettings = transformSettings;
             _logger = logger;
             _hub = hub;
             Datalink = datalink;
@@ -113,7 +111,7 @@ namespace dexih.operations
                 {
 
                     var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == Datalink.AuditConnectionKey);
-                    auditConnection = dbAuditConnection.GetConnection(_encryptionKey, _hubVariables);;
+                    auditConnection = dbAuditConnection.GetConnection(_transformSettings);;
                 }
                 else
                 {
@@ -169,7 +167,7 @@ namespace dexih.operations
                 _logger.LogTrace($"Initialize datalink {Datalink.Name} audit table initialized.  Elapsed: {timer.Elapsed}.");
 
                 var dbConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == _targetTable.ConnectionKey);
-                TargetConnection = dbConnection.GetConnection(_encryptionKey, _hubVariables);
+                TargetConnection = dbConnection.GetConnection(_transformSettings);
 
                 _logger.LogTrace($"Initialize datalink {Datalink.Name} completed.  Elapsed: {timer.Elapsed}.");
 
@@ -192,7 +190,7 @@ namespace dexih.operations
         {
             try
             {
-                var transformManager = new TransformsManager(_encryptionKey, _hubVariables, _logger);
+                var transformManager = new TransformsManager(_transformSettings, _logger);
                 //Get the last Transform that will load the target table.
                 Reader = transformManager.CreateRunPlan(_hub, Datalink, null, WriterResult.LastMaxIncrementalValue, WriterResult.TruncateTarget, _selectQuery);
             }
@@ -228,7 +226,7 @@ namespace dexih.operations
                     throw new DatalinkRunException($"Failed to set run status.");
                 }
 
-                var targetTable = _targetTable.GetTable(Connection.ECategory.SqlDatabase, _encryptionKey, _hubVariables);
+                var targetTable = _targetTable.GetTable(Connection.ECategory.SqlDatabase, _transformSettings);
                 var rejectTable = targetTable.GetRejectedTable(_targetTable.RejectedTableName);
                 var profileTable = Reader.sourceTransform.GetProfileTable(Datalink.ProfileTableName);
 

@@ -11,12 +11,12 @@ namespace dexih.repository
     /// </summary>
     public class HubVariablesManager
     {
-        private readonly string _encryptionKey;
+        private readonly TransformSettings _transformSettings;
         private readonly IEnumerable<DexihHubVariable> _hubVariables;
 
-        public HubVariablesManager(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables)
+        public HubVariablesManager(TransformSettings transformSettings, IEnumerable<DexihHubVariable> hubVariables)
         {
-            _encryptionKey = encryptionKey;
+            _transformSettings = transformSettings;
             _hubVariables = hubVariables;
         }
 
@@ -82,7 +82,7 @@ namespace dexih.repository
                         }
 
                         newValue.Append(value.Substring(previousPos, openStart - previousPos));
-                        newValue.Append(variable.GetValue(_encryptionKey));
+                        newValue.Append(variable.GetValue(_transformSettings.RemoteSettings.AppSettings.EncryptionKey, _transformSettings.RemoteSettings.SystemSettings.EncryptionIterations));
                         previousPos = pos + 1;
                         openStart = -1;
                     }

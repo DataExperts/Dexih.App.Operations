@@ -14,20 +14,18 @@ namespace dexih.operations
 {
     public class DownloadData
     {
-        private readonly string _encryptionKey;
-        private readonly IEnumerable<DexihHubVariable> _hubVariables;
+        private readonly TransformSettings _transformSettings;
 
-        public DownloadData(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables)
+        public DownloadData(TransformSettings transformSettings)
         {
-            _encryptionKey = encryptionKey;
-            _hubVariables = hubVariables;
+            _transformSettings = transformSettings;
         }
 
         public async Task<(string FileName, Stream Stream)> GetStream(CacheManager cache, DownloadObject[] downloadObjects, EDownloadFormat downloadFormat, bool zipFiles, CancellationToken cancellationToken)
         {
             try
             {
-                var transformManager = new TransformsManager(_encryptionKey, _hubVariables);
+                var transformManager = new TransformsManager(_transformSettings);
 
                 var zipStream = new MemoryStream();
                 var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true);
@@ -44,8 +42,8 @@ namespace dexih.operations
                             var dbTable = dbConnection.DexihTables.SingleOrDefault(c => c.TableKey == downloadObject.ObjectKey);
                             if (dbTable != null)
                             {
-                                var connection = dbConnection.GetConnection(_encryptionKey, _hubVariables);
-                                var table = dbTable.GetTable(dbConnection.DatabaseType.Category, _encryptionKey, _hubVariables);
+                                var connection = dbConnection.GetConnection(_transformSettings);
+                                var table = dbTable.GetTable(dbConnection.DatabaseType.Category, _transformSettings);
                                 name = table.Name + ".csv";
 
                                 transform = connection.GetTransformReader(table, true);
@@ -86,6 +84,14 @@ namespace dexih.operations
                                 return (name, fileStream);
                             }
                             break;
+                        case EDownloadFormat.Json:
+                            fileStream = new TransformJsonStream(transform);
+                            if (!zipFiles)
+                            {
+                                return (name, fileStream);
+                            }
+                            break;
+                            
                         default:
                             throw new Exception("The file format " + downloadFormat.ToString() + " is not currently supported for downloading data.");
                     }
@@ -124,7 +130,7 @@ namespace dexih.operations
 
         public enum EDownloadFormat
         {
-            Csv, Excel, Pdf, Raw
+            Csv, Excel, Pdf, Raw, Json
         }
     }
 }

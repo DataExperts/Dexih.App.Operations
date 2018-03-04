@@ -131,7 +131,7 @@ namespace dexih.repository
 	    [CopyReference]
         public virtual DexihFileFormat FileFormat { get; set; }
 
-        public Table GetTable(ECategory databaseTypeCategory, string encryptionKey, IEnumerable<DexihHubVariable> hubVariables)
+        public Table GetTable(ECategory databaseTypeCategory, TransformSettings transformSettings)
         {
             Table table;
             switch (databaseTypeCategory)
@@ -152,15 +152,15 @@ namespace dexih.repository
 	        this.CopyProperties(table, false);
 
 	        // shift to array to avoid multiple enumerations.
-	        var hubVariablesArray = hubVariables?.ToArray();
+	        var hubVariablesArray = transformSettings.HubVariables?.ToArray();
 
 	        switch (table)
 	        {
 				case FlatFile flatFile:
                 
-					if (hubVariables != null && hubVariablesArray.Any())
+					if (transformSettings.HubVariables != null && hubVariablesArray.Any())
 					{
-						var hubVariablesManager = new HubVariablesManager(encryptionKey, hubVariablesArray);
+						var hubVariablesManager = new HubVariablesManager(transformSettings, hubVariablesArray);
 
 						flatFile.FileIncomingPath = hubVariablesManager.InsertHubVariables(flatFile.FileIncomingPath, false);
 						flatFile.FileMatchPattern = hubVariablesManager.InsertHubVariables(flatFile.FileMatchPattern, false);
@@ -173,9 +173,9 @@ namespace dexih.repository
 					break;
 			   case WebService restFunction:
                 
-				   if (hubVariables != null && hubVariablesArray.Any())
+				   if (transformSettings.HubVariables != null && hubVariablesArray.Any())
 				   {
-					   var hubVariablesManager = new HubVariablesManager(encryptionKey, hubVariablesArray);
+					   var hubVariablesManager = new HubVariablesManager(transformSettings, hubVariablesArray);
 
 					   restFunction.RestfulUri = hubVariablesManager.InsertHubVariables(restFunction.RestfulUri, false);
 					   restFunction.RowPath = hubVariablesManager.InsertHubVariables(restFunction.RowPath, false);
@@ -194,9 +194,9 @@ namespace dexih.repository
             return table;
         }
 
-        public Table GetRejectedTable(ECategory databaseTypeCategory, string encryptionKey, IEnumerable<DexihHubVariable> hubVariables)
+        public Table GetRejectedTable(ECategory databaseTypeCategory, TransformSettings transformSettings)
         {
-            var table = GetTable(databaseTypeCategory, encryptionKey, hubVariables);
+            var table = GetTable(databaseTypeCategory, transformSettings);
             return table.GetRejectedTable(RejectedTableName);
         }
 

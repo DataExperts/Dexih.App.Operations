@@ -212,6 +212,8 @@ namespace dexih.repository
 
                 entity.Property(e => e.ConnectionKey).HasColumnName("connection_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(50)");
+                entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
+
                 entity.Property(e => e.PurposeString).IsRequired().HasColumnName("purpose").HasColumnType("varchar(10)");
                 entity.Property(e => e.DatabaseTypeKey).HasColumnName("database_type_key");
 

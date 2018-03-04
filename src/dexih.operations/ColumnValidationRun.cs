@@ -15,19 +15,17 @@ namespace dexih.operations
 {
     public class ColumnValidationRun
     {
-        public ColumnValidationRun(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables, DexihColumnValidation columnValidation, DexihHub hub)
+        public ColumnValidationRun(TransformSettings transformSettings, DexihColumnValidation columnValidation, DexihHub hub)
         {
             ColumnValidation = columnValidation;
             Hub = hub;
-            _encryptionKey = encryptionKey;
-            _hubVariables = hubVariables;
+            _transformSettings = transformSettings;
         }
 
         private DexihColumnValidation ColumnValidation { get; }
         private DexihHub Hub { get; }
 
-        private readonly string _encryptionKey;
-        private readonly IEnumerable<DexihHubVariable> _hubVariables;
+        private readonly TransformSettings _transformSettings;
 
         private StandardFunctions _standardFunctions;
         private Transform _lookup;
@@ -217,9 +215,9 @@ namespace dexih.operations
                         }
 
                         var dbConnection = Hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == dbTable.ConnectionKey);
-                        var connection = dbConnection.GetConnection(_encryptionKey, _hubVariables);
+                        var connection = dbConnection.GetConnection(_transformSettings);
 
-                        var table = dbTable.GetTable(dbConnection.DatabaseType.Category, _encryptionKey, _hubVariables);
+                        var table = dbTable.GetTable(dbConnection.DatabaseType.Category, _transformSettings);
                         _lookupColumn = dbColumn.GetTableColumn();
 
                         _lookup = connection.GetTransformReader(table);

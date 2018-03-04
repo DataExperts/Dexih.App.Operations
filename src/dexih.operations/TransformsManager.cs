@@ -19,20 +19,17 @@ namespace dexih.operations
 {
     public class TransformsManager
     {
-        private readonly string _encryptionKey;
-        private readonly IEnumerable<DexihHubVariable> _hubVariables;
+        private readonly TransformSettings _transformSettings;
         private readonly ILogger _logger;
 
-        public TransformsManager(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables)
+        public TransformsManager(TransformSettings transformSettings)
         {
-            _encryptionKey = encryptionKey;
-            _hubVariables = hubVariables;
+            _transformSettings = transformSettings;
         }
 
-        public TransformsManager(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables, ILogger logger)
+        public TransformsManager(TransformSettings transformSettings, ILogger logger)
         {
-            _encryptionKey = encryptionKey;
-            _hubVariables = hubVariables;
+            _transformSettings = transformSettings;
             _logger = logger;
         }
 
@@ -256,7 +253,7 @@ namespace dexih.operations
                         else
                         {
                             var dbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey);
-                            var sourceConnection = dbConnection.GetConnection(_encryptionKey, _hubVariables);
+                            var sourceConnection = dbConnection.GetConnection(_transformSettings);
 
                             var transform = sourceConnection.GetTransformReader(sourceTable);
                             transform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
@@ -447,8 +444,8 @@ namespace dexih.operations
                 }
                 
 
-                var connection = dbConnection.GetConnection(_encryptionKey, _hubVariables);
-                var table = rejectedTable ? dbTable.GetRejectedTable(connection.DatabaseCategory, _encryptionKey, _hubVariables) : dbTable.GetTable(connection.DatabaseCategory, _encryptionKey, _hubVariables);
+                var connection = dbConnection.GetConnection(_transformSettings);
+                var table = rejectedTable ? dbTable.GetRejectedTable(connection.DatabaseCategory, _transformSettings) : dbTable.GetTable(connection.DatabaseCategory, _transformSettings);
 
                 var previewResult = await connection.GetPreview(table, query, cancellationToken);
 
@@ -459,5 +456,7 @@ namespace dexih.operations
                 throw new TransformManagerException($"Get input transform failed.  {ex.Message}", ex);
             }
         }
+        
+
     }
 }

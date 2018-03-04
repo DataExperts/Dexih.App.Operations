@@ -41,7 +41,7 @@ namespace dexih.operations
 		private readonly DexihHub _hub;
 		public TransformWriterResult WriterResult { get; set; }
 
-		private readonly string _encryptionKey;
+		private readonly TransformSettings _transformSettings;
         private readonly IEnumerable<DexihHubVariable> _hubVariables;
 
 		private Connection _auditConnection;
@@ -52,10 +52,9 @@ namespace dexih.operations
 		private readonly ILogger _logger;
 
 
-		public DatajobRun(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables, ILogger logger, DexihDatajob datajob, DexihHub hub, bool truncateTarget, bool resetIncremental, object resetIncrementalValue)
+		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, bool truncateTarget, bool resetIncremental, object resetIncrementalValue)
 		{
-			_encryptionKey = encryptionKey;
-            _hubVariables = hubVariables;
+			_transformSettings = transformSettings;
 			_logger = logger;
 			
 			_truncateTarget = truncateTarget;
@@ -89,7 +88,7 @@ namespace dexih.operations
 					{
 						throw new DatajobRunException("There is no audit connection specified.");
 					}
-					_auditConnection = dbAuditConnection.GetConnection(_encryptionKey, _hubVariables);
+					_auditConnection = dbAuditConnection.GetConnection(_transformSettings);
 				}
 				else
 				{
@@ -187,7 +186,7 @@ namespace dexih.operations
 				foreach (var step in Datajob.DexihDatalinkSteps)
 				{
 					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == step.DatalinkKey);
-					var datalinkRun = new DatalinkRun(_encryptionKey, _hubVariables, _logger, datalink, _hub, "Datalink", datalink.DatalinkKey, WriterResult.AuditKey, ETriggerMethod.Manual, "Triggered by datajob " + Datajob.Name, _truncateTarget, _resetIncremental, _resetIncrementalValue, null);
+					var datalinkRun = new DatalinkRun(_transformSettings, _logger, datalink, _hub, "Datalink", datalink.DatalinkKey, WriterResult.AuditKey, ETriggerMethod.Manual, "Triggered by datajob " + Datajob.Name, _truncateTarget, _resetIncremental, _resetIncrementalValue, null);
 					DatalinkSteps.Add(datalinkRun);
 
 					//start datalinks that have no dependencies.

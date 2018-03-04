@@ -23,14 +23,12 @@ namespace dexih.operations
         private const int RowsPerBuffer = 10000;
 
         private readonly HttpClient _httpClient;
-        private readonly string _encryptionKey;
-        private readonly IEnumerable<DexihHubVariable> _hubVariables;
+        private readonly TransformSettings _transformSettings;
         private readonly string _url;
         
-        public RemoteDataSender(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables, HttpClient httpClient, string url)
+        public RemoteDataSender(TransformSettings transformSettings, HttpClient httpClient, string url)
         {
-            _encryptionKey = encryptionKey;
-            _hubVariables = hubVariables;
+            _transformSettings = transformSettings;
             _httpClient = httpClient;
             _url = url;
         }
@@ -39,7 +37,7 @@ namespace dexih.operations
         {
             try
             {
-                var transformOperations = new TransformsManager(_encryptionKey, _hubVariables);
+                var transformOperations = new TransformsManager(_transformSettings);
                 var runPlan = transformOperations.CreateRunPlan(hub, datalink, null, null, false, selectQuery);
                 var transform = runPlan.sourceTransform;
 
@@ -128,7 +126,7 @@ namespace dexih.operations
             {
                 throw new RemoteDataSenderException($"The data could not be sent to the http server.  Reason {response.ReasonPhrase}.");
             }
-            var returnValue = Json.DeserializeObject<ReturnValue>(await response.Content.ReadAsStringAsync(), _encryptionKey);
+            var returnValue = Json.DeserializeObject<ReturnValue>(await response.Content.ReadAsStringAsync(), _transformSettings.RemoteSettings.AppSettings.EncryptionKey);
             if (!returnValue.Success)
             {
                 throw new RemoteDataSenderException($"The data could not be sent to the http server.  {returnValue.Message}", returnValue.Exception);
@@ -147,7 +145,7 @@ namespace dexih.operations
             {
                 throw new RemoteDataSenderException($"The data could not be sent to the http server.  Reason {response.ReasonPhrase}.");
             }
-            var returnValue = Json.DeserializeObject<ReturnValue>(await response.Content.ReadAsStringAsync(), _encryptionKey);
+            var returnValue = Json.DeserializeObject<ReturnValue>(await response.Content.ReadAsStringAsync(), _transformSettings.RemoteSettings.AppSettings.EncryptionKey);
             if (!returnValue.Success)
             {
                 throw new RemoteDataSenderException($"The data could not be sent to the http server.  {returnValue.Message}", returnValue.Exception);

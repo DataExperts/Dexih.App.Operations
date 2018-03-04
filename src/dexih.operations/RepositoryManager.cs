@@ -945,12 +945,20 @@ namespace dexih.operations
 		{
             try
             {
-                var dbTable = await DbContext.DexihTables.SingleOrDefaultAsync(c => c.TableKey == tableKey && c.HubKey == hubKey && c.IsValid);
+                var dbTable = await DbContext.DexihTables
+	                .SingleOrDefaultAsync(c => c.TableKey == tableKey && c.HubKey == hubKey && c.IsValid);
 
                 if (dbTable == null)
                 {
                     throw new RepositoryManagerException($"The table with the key {tableKey} could not be found.");
                 }
+
+	            if (dbTable.FileFormatKey != null)
+	            {
+		            dbTable.FileFormat =
+			            await DbContext.DexihFileFormat.SingleOrDefaultAsync(
+				            c => c.FileFormatKey == dbTable.FileFormatKey && c.IsValid);
+	            }
 
                 if (includeColumns)
                 {

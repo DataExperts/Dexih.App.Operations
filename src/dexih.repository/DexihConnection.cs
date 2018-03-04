@@ -9,6 +9,7 @@ using dexih.transforms;
 using System.Reflection;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace dexih.repository
 {
@@ -49,6 +50,7 @@ namespace dexih.repository
         public EConnectionPurpose Purpose { get; set; }
 
         public string Name { get; set; }
+        public string Description { get; set; }
         public string Server { get; set; }
         public bool UseWindowsAuth { get; set; }
         public string Username { get; set; }
@@ -81,7 +83,7 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public virtual DexihHub Hub { get; set; }
 
-        public string GetPassword(string key)
+        public string GetPassword(string key, int iterations)
         {
             if(string.IsNullOrEmpty(PasswordRaw))
             {
@@ -95,12 +97,12 @@ namespace dexih.repository
                     return Password;
                 }
                 
-                return EncryptString.Decrypt(Password, key, 1000);
+                return EncryptString.Decrypt(Password, key, iterations);
             }
             return PasswordRaw;
         }
 
-        public string GetConnectionString(string key)
+        public string GetConnectionString(string key, int iterations)
         {
             if(string.IsNullOrEmpty(ConnectionStringRaw))
             {
@@ -113,28 +115,28 @@ namespace dexih.repository
                 {
                     return ConnectionString;
                 }
-                return EncryptString.Decrypt(ConnectionString, key, 1000);
+                return EncryptString.Decrypt(ConnectionString, key, iterations);
             }
             return ConnectionStringRaw;
         }
 
-        public bool Encrypt(string key)
+        public bool Encrypt(string key, int iterations)
         {
             if(!string.IsNullOrEmpty(PasswordRaw))
             {
-                Password = EncryptString.Encrypt(PasswordRaw, key, 1000);
+                Password = EncryptString.Encrypt(PasswordRaw, key, iterations);
                 PasswordRaw = null;
             } 
             if(!string.IsNullOrEmpty(PasswordRaw))
             {
-                ConnectionString = EncryptString.Encrypt(ConnectionStringRaw, key, 1000);
+                ConnectionString = EncryptString.Encrypt(ConnectionStringRaw, key, iterations);
                 ConnectionStringRaw = null;
             }
 
             return true;
         }
 
-        public Connection GetConnection(string encryptionKey, IEnumerable<DexihHubVariable> hubVariables)
+        public Connection GetConnection(TransformSettings transformSettings)
         {
             try
             {
@@ -168,15 +170,15 @@ namespace dexih.repository
                 var connection = (Connection)Activator.CreateInstance(type);
                 this.CopyProperties(connection, true);
 
-                connection.Password = GetPassword(encryptionKey);
-                connection.ConnectionString = GetConnectionString(encryptionKey);
+                connection.Password = GetPassword(transformSettings.RemoteSettings.AppSettings.EncryptionKey, transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
+                connection.ConnectionString = GetConnectionString(transformSettings.RemoteSettings.AppSettings.EncryptionKey, transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
 
                 // shift to array to avoid multiple enumerations.
-                var hubVariablesArray = hubVariables as DexihHubVariable[] ?? hubVariables.ToArray();
+                var hubVariablesArray = transformSettings.HubVariables as DexihHubVariable[] ?? transformSettings.HubVariables.ToArray();
                 
-                if (hubVariables != null && hubVariablesArray.Any())
+                if (transformSettings.HubVariables != null && hubVariablesArray.Any())
                 {
-                    var hubVariablesManager = new HubVariablesManager(encryptionKey, hubVariablesArray);
+                    var hubVariablesManager = new HubVariablesManager(transformSettings, hubVariablesArray);
 
                     connection.ConnectionString = hubVariablesManager.InsertHubVariables(connection.ConnectionString, true);
                     connection.Server = hubVariablesManager.InsertHubVariables(connection.Server, false);
@@ -185,6 +187,9 @@ namespace dexih.repository
                     connection.DefaultDatabase = hubVariablesManager.InsertHubVariables(connection.DefaultDatabase, false);
                     connection.Filename = hubVariablesManager.InsertHubVariables(connection.Filename, false);
                 }
+
+                connection.AllowAllPaths = transformSettings.RemoteSettings.AppSettings.AllowAllPaths;
+                connection.AllowedPaths = transformSettings.RemoteSettings.AppSettings.AllowedPaths;
 
                 return connection;
             }

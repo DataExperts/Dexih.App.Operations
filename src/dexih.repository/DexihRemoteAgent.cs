@@ -14,7 +14,11 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
         public string Name { get; set; }
+        
         public bool RestrictIp { get; set; }
+
+        [NotMapped]
+        public string UserId { get; set; }
 
         [NotMapped]
         public string[] IpAddresses { get; set; }
