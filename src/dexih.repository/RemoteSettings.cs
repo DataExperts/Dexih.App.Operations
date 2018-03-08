@@ -52,11 +52,6 @@ namespace dexih.repository
         public string Name { get; set; }
         
         /// <summary>
-        /// Auto schedule jobs when the remote agent logs in.
-        /// </summary>
-        public bool AutoSchedule { get; set; }
-        
-        /// <summary>
         /// Auto upgrade the remote agent when a new version is available.
         /// </summary>
         public bool AutoUpgrade { get; set; }
@@ -64,7 +59,7 @@ namespace dexih.repository
         /// <summary>
         /// Allow pre-release versions to be included in the auto upgrade.
         /// </summary>
-        public bool PreRelease { get; set; } = false;
+        public bool AllowPreReleases { get; set; } = false;
         
         /// <summary>
         /// Allow files and data to be downloaded through the web browser from this agent.
@@ -80,11 +75,31 @@ namespace dexih.repository
         /// Local download port to use 
         /// </summary>
         public int? DownloadPort { get; set; } = 33944; //default port
-        
+
+        /// <summary>
+        /// Upload/download data and files directly from the remote agent.
+        /// </summary>
+        public bool DownloadDirectly { get; set; } = false;
+
         /// <summary>
         /// URL to upload/download from this agent.
         /// </summary>
         public string ExternalDownloadUrl { get; set; }
+        
+        /// <summary>
+        /// File name of the ssl certificate
+        /// </summary>
+        public string PfxCertificateFilename { get; set; }
+        
+        /// <summary>
+        /// Password for the ssl certificate
+        /// </summary>
+        public string PfxCertificatePassword { get; set; }
+        
+        /// <summary>
+        /// Allow agent to read/write files to the local filesystem
+        /// </summary>
+        public bool AllowLocalFiles { get; set; }
         
         /// <summary>
         /// Allow agent to access files anywhere.
@@ -112,26 +127,28 @@ namespace dexih.repository
         [JsonIgnore]
         public string IpAddress { get; set; }
 
-        public string GetDownloadUrl()
+        public string GetDownloadUrl(long hubKey, string remoteAgentId, bool direct = false)
         {
-            if (!string.IsNullOrEmpty(ExternalDownloadUrl))
+            if (DownloadDirectly || direct)
             {
-                return ExternalDownloadUrl;
+                if (!string.IsNullOrEmpty(ExternalDownloadUrl))
+                {
+                    return ExternalDownloadUrl;
+                }
+                else
+                {
+                    var url = "http://" + IpAddress + ":" + (DownloadPort??33944).ToString();
+                    return url;
+                }
             }
             else
             {
-                var url = "http://" + IpAddress;
-				
-                if (DownloadPort != null)
-                {
-                    url += ":" + DownloadPort;
-                }
-
+                var url = WebServer + $"/api/Remote/GetRemoteData/{hubKey}/{remoteAgentId}";
                 return url;
             }
-
         }
     }
+
 
     public class SystemSettingsSection
     {

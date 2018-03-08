@@ -63,5 +63,6 @@ namespace dexih.repository
         
         [NotMapped]
         public string InstanceId { get; set; }
+        
     }
 }

@@ -140,6 +140,11 @@ namespace dexih.repository
         {
             try
             {
+                if (!transformSettings.RemoteSettings.AppSettings.AllowLocalFiles && DatabaseType.Name == "dexih.connections.flatfile.ConnectionFlatFileLocal")
+                {
+                    throw new RepositoryException($"The connection {DatabaseType.Name} can not be used on this remote agent as local file access is forbidden.");
+                }
+                
                 Type type;
                 if (string.IsNullOrEmpty(DatabaseType.Assembly))
                 {
