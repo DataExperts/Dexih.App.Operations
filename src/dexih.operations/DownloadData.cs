@@ -43,7 +43,7 @@ namespace dexih.operations
                             if (dbTable != null)
                             {
                                 var connection = dbConnection.GetConnection(_transformSettings);
-                                var table = dbTable.GetTable(dbConnection.DatabaseType.Category, _transformSettings);
+                                var table = dbTable.GetTable(connection, _transformSettings);
                                 name = table.Name + ".csv";
 
                                 transform = connection.GetTransformReader(table, true);

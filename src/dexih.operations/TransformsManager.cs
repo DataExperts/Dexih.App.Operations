@@ -9,9 +9,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using static dexih.repository.DexihTransform;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.Query;
+using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
 using static dexih.repository.DexihDatalinkTable;
 
@@ -155,29 +155,29 @@ namespace dexih.operations
 
 
 
-        public Function GetProfileFunction(DexihProfileRule profileRule, string columnName, bool detailedResults)
+        public TransformFunction GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults)
         {
             try
             {
                 Type type;
-                if (string.IsNullOrEmpty(profileRule.Assembly))
+                if (string.IsNullOrEmpty(functionAssemblyName))
                 {
-                    type = Type.GetType(profileRule.Class);
+                    type = Type.GetType(functionClassName);
                 }
                 else
                 {
 
-                    var assemblyName = new AssemblyName(profileRule.Assembly).Name;
+                    var assemblyName = new AssemblyName(functionAssemblyName).Name;
                     var folderPath = Path.GetDirectoryName(this.GetType().GetTypeInfo().Assembly.Location);
                     var assemblyPath = Path.Combine(folderPath, assemblyName + ".dll");
                     if (!File.Exists(assemblyPath))
                     {
-                        throw new TransformManagerException("The profile function could not be started due to a missing assembly.  The assembly name is: " + profileRule.Assembly + ", and class: " + profileRule.Class + ", and expected in directory: " + this.GetType().GetTypeInfo().Assembly.Location + ".  Has this been installed?");
+                        throw new TransformManagerException("The profile function could not be started due to a missing assembly.  The assembly name is: " + functionAssemblyName + ", and class: " + functionClassName+ ", and expected in directory: " + this.GetType().GetTypeInfo().Assembly.Location + ".  Has this been installed?");
                     }
 
                     var loader = new AssemblyLoader(folderPath);
                     var assembly = loader.LoadFromAssemblyName(new AssemblyName(assemblyName));
-                    type = assembly.GetType(profileRule.Class);
+                    type = assembly.GetType(functionClassName);
                 }
 
                 var profileObject = Activator.CreateInstance(type);
@@ -186,7 +186,7 @@ namespace dexih.operations
                 if(property != null)
                     property.SetValue(profileObject, detailedResults);
 
-                var profileFunction = new Function(profileObject, profileRule.Method, profileRule.ResultMethod, "", new TableColumn[] { new TableColumn(columnName) }, null, null);
+                var profileFunction = new TransformFunction(profileObject, functionMethodName, new TableColumn[] { new TableColumn(columnName) }, null, null);
                 return profileFunction;
             }
             catch (Exception ex)
@@ -195,12 +195,12 @@ namespace dexih.operations
             }
         }
 
-        public Function GetValidationFunction(DexihColumnValidation columnValidation, string columnName)
+        public TransformFunction GetValidationFunction(DexihColumnValidation columnValidation, string columnName)
         {
             var inputs = new string[] { columnName };
             var outputs = new string[] { columnName };
 
-            var validationFunction = new Function(this, this.GetType().GetMethod("Run"), new TableColumn[] { new TableColumn(columnName) }, new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") })
+            var validationFunction = new TransformFunction(this, this.GetType().GetMethod("Run"), new TableColumn[] { new TableColumn(columnName) }, new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") })
             {
                 InvalidAction = columnValidation.InvalidAction
             };
@@ -239,10 +239,9 @@ namespace dexih.operations
                         {
                             throw new TransformManagerException($"The source table with the key {datalinkTable.SourceTableKey.Value} could not be found.");
                         }
-                        var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
-
-                        var sourceTable = datalinkTable.GetTable(sourceDbTable, sourceDbConnection.DatabaseType.Category); // sourceDbTable.GetTable(sourceDbConnection.DatabaseType.Category);
-
+                        
+                        var sourceTable = datalinkTable.GetTable(sourceDbTable);
+                        
                         if (sourceDbTable.IsInternal)
                         {
                             var rowCreator = new ReaderRowCreator();
@@ -252,9 +251,8 @@ namespace dexih.operations
                         }
                         else
                         {
-                            var dbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey);
-                            var sourceConnection = dbConnection.GetConnection(_transformSettings);
-
+                            var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
+                            var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
                             var transform = sourceConnection.GetTransformReader(sourceTable);
                             transform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
                             return (transform, sourceTable);
@@ -308,16 +306,21 @@ namespace dexih.operations
                 var incrementalCol = sourceTable?.GetIncrementalUpdateColumn();
                 var updateStrategy = datalink.UpdateStrategy;
 
-                if (truncateTargetTable == false && updateStrategy != null && updateStrategy.TruncateBeforeLoad == false && incrementalCol != null && updateStrategy.DeleteWhenNotExists == false && maxIncrementalValue != null && maxIncrementalValue.ToString() != "")
+                if (truncateTargetTable == false && 
+                    updateStrategy != TransformDelta.EUpdateStrategy.Reload && 
+                    incrementalCol != null && 
+                    (updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDelete || updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve) && 
+                    maxIncrementalValue != null && 
+                    maxIncrementalValue.ToString() != "")
                 {
-                    var function = StandardFunctions.GetFunctionReference("GreaterThan");
-                    function.Inputs[0].Column = incrementalCol;
-                    function.Inputs[0].DataType = incrementalCol.Datatype;
-                    function.Inputs[1].DataType = incrementalCol.Datatype;
-                    function.Inputs[1].IsColumn = false;
-                    function.Inputs[1].SetValue(maxIncrementalValue);
+                    var filterPair = new FilterPair()
+                    {
+                        Column1 = incrementalCol,
+                        FilterValue = maxIncrementalValue,
+                        Compare = Filter.ECompare.GreaterThan
+                    };
 
-                    var filterTransform = new TransformFilter(primaryTransform, new List<Function>() { function });
+                    var filterTransform = new TransformFilter(primaryTransform, null, new List<FilterPair> { filterPair} );
                     filterTransform.SetInTransform(primaryTransform);
                     primaryTransform = filterTransform;
                 }
@@ -327,14 +330,15 @@ namespace dexih.operations
                 //loop through the transforms to create the chain.
                 foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
                 {
-                    var transform = datalinkTransform.GetTransform(_logger);
+                    var transform = datalinkTransform.GetTransform(hub, _logger);
+                    var transformReference = Transforms.GetTransform(transform.GetType());
 
                     _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 
                     //if this is an empty transform, then ignore it.
                     if (datalinkTransform.DexihDatalinkTransformItems.Count == 0)
                     {
-                        if (datalinkTransform.Transform.TransformType == ETransformType.Filter || (datalinkTransform.Transform.TransformType == ETransformType.Mapping && datalinkTransform.PassThroughColumns))
+                        if (transformReference.TransformType == TransformAttribute.ETransformType.Filter || (transformReference.TransformType == TransformAttribute.ETransformType.Mapping && datalinkTransform.PassThroughColumns))
                         {
                             if (datalinkTransform.DatalinkTransformKey == maxDatalinkTransformKey)
                                 break;
@@ -344,7 +348,7 @@ namespace dexih.operations
                     }
 
                     //if this is a validation transform. add the column validations also.
-                    if (datalinkTransform.Transform.TransformType == ETransformType.Validation)
+                    if (transformReference.TransformType == TransformAttribute.ETransformType.Validation)
                     {
 						if (datalink.VirtualTargetTable && datalink.TargetTableKey != null)
 						{
@@ -390,12 +394,12 @@ namespace dexih.operations
                 {
 					var targetTable = hub.GetTableFromKey((long)datalink.TargetTableKey);
 
-                    var profileRules = new List<Function>();
+                    var profileRules = new List<TransformFunction>();
                     foreach (var profile in datalink.DexihDatalinkProfiles)
                     {
                         foreach (var column in targetTable.DexihTableColumns.Where(c => c.IsSourceColumn))
                         {
-                            var profileFunction = GetProfileFunction(profile.ProfileRule, column.Name, profile.DetailedResults);
+                            var profileFunction = GetProfileFunction(profile.FunctionAssemblyName, profile.FunctionClassName, profile.FunctionMethodName, column.Name, profile.DetailedResults);
                             profileRules.Add(profileFunction);
                         }
                     }
@@ -445,7 +449,7 @@ namespace dexih.operations
                 
 
                 var connection = dbConnection.GetConnection(_transformSettings);
-                var table = rejectedTable ? dbTable.GetRejectedTable(connection.DatabaseCategory, _transformSettings) : dbTable.GetTable(connection.DatabaseCategory, _transformSettings);
+                var table = rejectedTable ? dbTable.GetRejectedTable(connection, _transformSettings) : dbTable.GetTable(connection, _transformSettings);
 
                 var previewResult = await connection.GetPreview(table, query, cancellationToken);
 

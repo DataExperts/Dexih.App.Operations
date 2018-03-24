@@ -28,8 +28,8 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public string PermissionString
         {
-            get { return Permission.ToString(); }
-            set { Permission = (EPermission)Enum.Parse(typeof(EPermission), value); }
+            get => Permission.ToString();
+            set => Permission = (EPermission)Enum.Parse(typeof(EPermission), value);
         }
 
         [JsonIgnore, CopyIgnore]

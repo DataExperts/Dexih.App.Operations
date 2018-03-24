@@ -6,6 +6,7 @@ using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
 using System;
+using dexih.transforms;
 using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
@@ -40,8 +41,8 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public string FormatTypeString
         {
-            get { return FormatType.ToString(); }
-            set
+            get => FormatType.ToString();
+	        set
             {
                 if (string.IsNullOrEmpty(value))
                 {
@@ -131,22 +132,31 @@ namespace dexih.repository
 	    [CopyReference]
         public virtual DexihFileFormat FileFormat { get; set; }
 
-        public Table GetTable(ECategory databaseTypeCategory, TransformSettings transformSettings)
+        public Table GetTable(Connection connection, TransformSettings transformSettings)
         {
-            Table table;
-            switch (databaseTypeCategory)
-            {
-                case ECategory.File:
-                    table = new FlatFile();
-	                ((FlatFile)table).FileConfiguration = FileFormat?.GetFileFormat();
-                    break;
-                case ECategory.WebService:
-                    table = new WebService();
-                    break;
-                default:
-                    table = new Table();
-                    break;
-            }
+	        Table table;
+
+	        if (connection == null)
+	        {
+		        table = new Table();
+	        }
+	        else
+	        {
+		        var connectionReference = Connections.GetConnection(connection.GetType());
+		        switch (connectionReference.ConnectionCategory)
+		        {
+			        case EConnectionCategory.File:
+				        table = new FlatFile();
+				        ((FlatFile)table).FileConfiguration = FileFormat?.GetFileFormat();
+				        break;
+			        case EConnectionCategory.WebService:
+				        table = new WebService();
+				        break;
+			        default:
+				        table = new Table();
+				        break;
+		        }
+	        }
 	        
 	        // create a temporary copy and exclude the fileformat (which is different between DexihTable & Table)
 	        this.CopyProperties(table, false);
@@ -194,9 +204,9 @@ namespace dexih.repository
             return table;
         }
 
-        public Table GetRejectedTable(ECategory databaseTypeCategory, TransformSettings transformSettings)
+        public Table GetRejectedTable(Connection connection, TransformSettings transformSettings)
         {
-            var table = GetTable(databaseTypeCategory, transformSettings);
+            var table = GetTable(connection, transformSettings);
             return table.GetRejectedTable(RejectedTableName);
         }
 

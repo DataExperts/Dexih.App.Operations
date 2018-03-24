@@ -7,7 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static dexih.functions.Function;
+using dexih.functions.BuiltIn;
+using static dexih.functions.FunctionReference;
 using static dexih.repository.DexihColumnValidation;
 using static Dexih.Utils.DataType.DataType;
 
@@ -27,7 +28,7 @@ namespace dexih.operations
 
         private readonly TransformSettings _transformSettings;
 
-        private StandardFunctions _standardFunctions;
+        private ConditionFunctions _conditionFunctions;
         private Transform _lookup;
         private TableColumn _lookupColumn;
 
@@ -35,9 +36,9 @@ namespace dexih.operations
         private int ValidationFailCount { get; set; }
 
 
-        public Function GetValidationFunction(string columnName)
+        public TransformFunction GetValidationFunction(string columnName)
         {
-            var validationFunction = new Function(this, this.GetType().GetMethod("Run"), new TableColumn[] { new TableColumn(columnName) }, new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") })
+            var validationFunction = new TransformFunction(this, this.GetType().GetMethod("Run"), new TableColumn[] { new TableColumn(columnName) }, new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") })
             {
                 InvalidAction = ColumnValidation.InvalidAction
             };
@@ -71,7 +72,7 @@ namespace dexih.operations
                 ValidationFailCount++;
                 object cleanedValue;
 
-                if (ColumnValidation.InvalidAction == EInvalidAction.Clean || ColumnValidation.InvalidAction == EInvalidAction.RejectClean)
+                if (ColumnValidation.InvalidAction == TransformFunction.EInvalidAction.Clean || ColumnValidation.InvalidAction == TransformFunction.EInvalidAction.RejectClean)
                 {
 
                     switch (ColumnValidation.CleanAction)
@@ -124,14 +125,14 @@ namespace dexih.operations
                 }
 
                 var stringValue = value.ToString();
-                var basicDataType = GetBasicType(ColumnValidation.Datatype);
+                var basicDataType = GetBasicType(ColumnValidation.DataType);
 
                 //test for datatype
-                var result = TryParse(ColumnValidation.Datatype, value);
+                var result = TryParse(ColumnValidation.DataType, value);
 
                 if (result == null)
                 {
-                    return (false, $"The value return a null when attempting to convert to datatype {ColumnValidation.Datatype}.");
+                    return (false, $"The value return a null when attempting to convert to datatype {ColumnValidation.DataType}.");
                 }
 
                 if (ColumnValidation.MaxLength != null && stringValue.Length > ColumnValidation.MaxLength)
@@ -168,8 +169,8 @@ namespace dexih.operations
 
                 if (ColumnValidation.PatternMatch != null)
                 {
-                    if (_standardFunctions == null) _standardFunctions = new StandardFunctions();
-                    if (_standardFunctions.IsPattern(stringValue, ColumnValidation.PatternMatch) == false)
+                    if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
+                    if (_conditionFunctions.IsPattern(stringValue, ColumnValidation.PatternMatch) == false)
                     {
                         return (false, "The value \"" + stringValue + "\" does not match the pattern " + ColumnValidation.PatternMatch);
                     }
@@ -177,8 +178,8 @@ namespace dexih.operations
 
                 if (ColumnValidation.RegexMatch != null)
                 {
-                    if (_standardFunctions == null) _standardFunctions = new StandardFunctions();
-                    if (_standardFunctions.RegexMatch(stringValue, ColumnValidation.RegexMatch) == false)
+                    if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
+                    if (_conditionFunctions.RegexMatch(stringValue, ColumnValidation.RegexMatch) == false)
                     {
                         return (false, "The value \"" + stringValue + "\" does not match the regular expression " + ColumnValidation.RegexMatch);
                     }
@@ -216,8 +217,7 @@ namespace dexih.operations
 
                         var dbConnection = Hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == dbTable.ConnectionKey);
                         var connection = dbConnection.GetConnection(_transformSettings);
-
-                        var table = dbTable.GetTable(dbConnection.DatabaseType.Category, _transformSettings);
+                        var table = dbTable.GetTable(connection, _transformSettings);
                         _lookupColumn = dbColumn.GetTableColumn();
 
                         _lookup = connection.GetTransformReader(table);

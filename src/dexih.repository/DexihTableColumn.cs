@@ -13,9 +13,11 @@ namespace dexih.repository
 
         [CopyCollectionKey((long)0, true)]
         public long ColumnKey { get; set; }
-		[CopyParentCollectionKey]
+		
+	    [CopyParentCollectionKey]
 		public long TableKey { get; set; }
-        public long? ColumnValidationKey { get; set; }
+        
+	    public long? ColumnValidationKey { get; set; }
 
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }

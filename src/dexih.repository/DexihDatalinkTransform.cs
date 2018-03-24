@@ -8,6 +8,7 @@ using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
 using dexih.functions.Query;
+using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
 
 namespace dexih.repository
@@ -24,7 +25,6 @@ namespace dexih.repository
 
         [CopyParentCollectionKey]
 		public long DatalinkKey { get; set; }
-        public long TransformKey { get; set; }
         public int Position { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
@@ -33,6 +33,9 @@ namespace dexih.repository
         public long? JoinDatalinkTableKey { get; set; }
         public string JoinTableAlias { get; set; }
         public long? JoinSortDatalinkColumnKey { get; set; }
+
+        public string TransformClassName { get; set; }
+        public string TransformAssemblyName { get; set; }
 
         [NotMapped]
         public EDuplicateStrategy JoinDuplicateStrategy { get; set; }
@@ -47,8 +50,6 @@ namespace dexih.repository
         public EntityStatus EntityStatus { get; set; }
 
         public virtual ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
-
-        public virtual DexihTransform Transform { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public virtual DexihDatalink Datalink { get; set; }
@@ -109,14 +110,15 @@ namespace dexih.repository
             return columns;
         }
 
-        public Transform GetTransform(ILogger logger = null)
+        public Transform GetTransform(DexihHub hub, ILogger logger = null)
         {
             try
             {
                 var timer = Stopwatch.StartNew();
                 logger?.LogTrace($"GetTransform {Name}, started.");
                 
-                var transform = Transform.GetTransform();
+                var transformReference = Transforms.GetTransform(TransformClassName, TransformAssemblyName);
+                var transform = transformReference.GetTransform();
 
                 logger?.LogTrace($"GetTransform {Name}, get transform object.  Elapsed: {timer.Elapsed}");
 
@@ -137,6 +139,7 @@ namespace dexih.repository
                     var sourceColumn = item.SourceDatalinkColumn?.GetTableColumn();
 					var targetColumn = item.TargetDatalinkColumn?.GetTableColumn();
 					var joinColumn = item.JoinDatalinkColumn?.GetTableColumn();
+                    var filterColumn = item.FilterDatalinkColumn?.GetTableColumn();
 
                     switch (item.TransformItemType)
                     {
@@ -164,9 +167,19 @@ namespace dexih.repository
                             });
 
                             break;
+                        case DexihDatalinkTransformItem.ETransformItemType.FilterPair:
+                            transform.FilterPairs.Add(new FilterPair()
+                            {
+                                Column1 = sourceColumn,
+                                Column2 = filterColumn,
+                                Compare = item.FilterCompare??Filter.ECompare.IsEqual, 
+                                FilterValue = item.FilterValue
+                            });
+
+                            break;
                         case DexihDatalinkTransformItem.ETransformItemType.BuiltInFunction:
                         case DexihDatalinkTransformItem.ETransformItemType.CustomFunction:
-                            var createNewFunction = item.CreateFunctionMethod(false, logger);
+                            var createNewFunction = item.CreateFunctionMethod(hub, false, logger);
 
                             transform.Functions.Add(createNewFunction);
 

@@ -226,7 +226,7 @@ namespace dexih.operations
                     throw new DatalinkRunException($"Failed to set run status.");
                 }
 
-                var targetTable = _targetTable.GetTable(Connection.ECategory.SqlDatabase, _transformSettings);
+                var targetTable = _targetTable.GetTable(TargetConnection, _transformSettings);
                 var rejectTable = targetTable.GetRejectedTable(_targetTable.RejectedTableName);
                 var profileTable = Reader.sourceTransform.GetProfileTable(Datalink.ProfileTableName);
 
@@ -263,7 +263,7 @@ namespace dexih.operations
 
                 var targetReader = TargetConnection.GetTransformReader(targetTable);
                 var transformDelta = new TransformDelta(Reader.sourceTransform, targetReader,
-                    Datalink.UpdateStrategy.Strategy, surrogateKeyValue, Datalink.AddDefaultRow);
+                    Datalink.UpdateStrategy, surrogateKeyValue, Datalink.AddDefaultRow);
                 transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, _hub.EncryptionKey);
 
                 var writer = new TransformWriter();

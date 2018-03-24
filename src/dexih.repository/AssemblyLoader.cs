@@ -41,7 +41,7 @@ namespace dexih.repository
 
         public AssemblyLoader(string folderPath)
         {
-            this._folderPath = folderPath;
+            _folderPath = folderPath;
         }
 
         protected override Assembly Load(AssemblyName assemblyName)

@@ -22,14 +22,14 @@ namespace dexih.repository
         public string Description { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public string DatatypeString
+        public string DataTypeString
         {
-            get => Datatype.ToString();
-            set => Datatype = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
+            get => DataType.ToString();
+            set => DataType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
         }
 
         [NotMapped]
-        public ETypeCode Datatype { get; set; }
+        public ETypeCode DataType { get; set; }
 
         public int? MaxLength { get; set; }
 

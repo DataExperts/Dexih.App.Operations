@@ -42,7 +42,7 @@ namespace dexih.operations
 		public TransformWriterResult WriterResult { get; set; }
 
 		private readonly TransformSettings _transformSettings;
-        private readonly IEnumerable<DexihHubVariable> _hubVariables;
+        // private readonly IEnumerable<DexihHubVariable> _hubVariables;
 
 		private Connection _auditConnection;
 		private readonly bool _truncateTarget;

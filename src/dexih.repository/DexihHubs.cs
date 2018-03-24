@@ -29,6 +29,7 @@ namespace dexih.repository
             DexihHubUsers = new HashSet<DexihHubUser>();
 			DexihFileFormats = new HashSet<DexihFileFormat>();
             DexihHubVariables = new HashSet<DexihHubVariable>();
+            DexihCustomFunctions = new HashSet<DexihCustomFunction>();
         }
 
         [CopyCollectionKey((long)0, true)]
@@ -73,6 +74,7 @@ namespace dexih.repository
         public virtual ICollection<DexihHubVariable> DexihHubVariables { get; set; }
 
         public virtual ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
+        public virtual ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
 
         // used to provide the current user permissions, not mapped to db.
         [NotMapped]

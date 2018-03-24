@@ -7,41 +7,17 @@ using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
-    public partial class DexihFunctionParameter : DexihBaseEntity
+    public partial class DexihFunctionParameter : DexihParameterBase
     {
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum EParameterDirection
-        {
-            Input, Output
-        }
-
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
         [CopyCollectionKey((long)0, true)]
-		public long FunctionParameterKey { get; set; } = 0;
-		[CopyParentCollectionKey]
-		public long DatalinkTransformItemKey { get; set; } = 0;
-        public string ParameterName { get; set; }
-        public int Position { get; set; } = 0;
-        [JsonIgnore, CopyIgnore]
-        public string DirectionString {
-            get => Direction.ToString();
-            set => Direction = (EParameterDirection)Enum.Parse(typeof(EParameterDirection), value);
-        }
-        [NotMapped]
-        public EParameterDirection Direction { get; set; }
+		public long FunctionParameterKey { get; set; }
+		
+        [CopyParentCollectionKey]
+		public long DatalinkTransformItemKey { get; set; }
 
-        [NotMapped]
-        public ETypeCode Datatype { get; set; }
-        [JsonIgnore, CopyIgnore]
-        public string DatatypeString
-        {
-            get => Datatype.ToString();
-            set => Datatype = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
-        }
-        public bool IsArray { get; set; } = false;
         public long? DatalinkColumnKey { get; set; }
+        
         public string Value { get; set; }
 
         [NotMapped]

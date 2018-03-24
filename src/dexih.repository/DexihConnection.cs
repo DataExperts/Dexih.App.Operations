@@ -37,7 +37,9 @@ namespace dexih.repository
 
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
-        public long DatabaseTypeKey { get; set; }
+
+        public string ConnectionAssemblyName { get; set; }
+        public string ConnectionClassName { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public string PurposeString 
@@ -78,8 +80,6 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public virtual ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
 
-        public virtual DexihDatabaseType DatabaseType { get; set; }
-        
         [JsonIgnore, CopyIgnore]
         public virtual DexihHub Hub { get; set; }
 
@@ -140,39 +140,14 @@ namespace dexih.repository
         {
             try
             {
-                if (!transformSettings.RemoteSettings.AppSettings.AllowLocalFiles && DatabaseType.Name == "dexih.connections.flatfile.ConnectionFlatFileLocal")
-                {
-                    throw new RepositoryException($"The connection {DatabaseType.Name} can not be used on this remote agent as local file access is forbidden.");
-                }
+                var connectionReference = Connections.GetConnection(ConnectionClassName, ConnectionAssemblyName);
                 
-                Type type;
-                if (string.IsNullOrEmpty(DatabaseType.Assembly))
+                if (!transformSettings.RemoteSettings.AppSettings.AllowLocalFiles && connectionReference.RequiresLocalStorage)
                 {
-                    type = Type.GetType(DatabaseType.Class);
-                }
-                else
-                {
-
-                    var assemblyName = new AssemblyName(DatabaseType.Assembly).Name;
-                    var folderPath = Path.GetDirectoryName(this.GetType().GetTypeInfo().Assembly.Location);
-                    var assemblyPath = Path.Combine(folderPath, assemblyName + ".dll");
-                    if (!File.Exists(assemblyPath))
-                    {
-                        throw new RepositoryException("The connection could not be started due to a missing assembly.  The assembly name is: " + DatabaseType.Assembly + ", and class: " + DatabaseType.Class + ", and expected in directory: " + this.GetType().GetTypeInfo().Assembly.Location + ".  Have the connections been installed?");
-                    }
-
-                    var loader = new AssemblyLoader(folderPath);
-                    var assembly = loader.LoadFromAssemblyName(new AssemblyName(assemblyName));
-                    type = assembly.GetType(DatabaseType.Class);
-
+                    throw new RepositoryException($"The connection {connectionReference.Name} can not be used on this remote agent as local file access is forbidden.");
                 }
 
-                if (type == null)
-                {
-                    throw new RepositoryException("The connection failed to initialize due to a missing or faulty assembly.  The assembly name is: " + DatabaseType.Assembly + ", and class: " + DatabaseType.Class + ".  Has the connections been installed?");
-                }
-
-                var connection = (Connection)Activator.CreateInstance(type);
+                var connection = connectionReference.GetConnection();
                 this.CopyProperties(connection, true);
 
                 connection.Password = GetPassword(transformSettings.RemoteSettings.AppSettings.EncryptionKey, transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);

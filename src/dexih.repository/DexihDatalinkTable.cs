@@ -75,22 +75,9 @@ namespace dexih.repository
         /// Converts the datalinkTable to a base "Table" class.
         /// </summary>
         /// <returns></returns>
-		public Table GetTable(DexihTable sourceTable = null, ECategory databaseTypeCategory = ECategory.SqlDatabase)
+		public Table GetTable(DexihTable sourceTable = null)
         {
-			Table table;
-			switch (databaseTypeCategory)
-			{
-				case ECategory.File:
-					table = new FlatFile();
-					((FlatFile)table).FileConfiguration = sourceTable?.FileFormat?.GetFileFormat();
-					break;
-				case ECategory.WebService:
-					table = new WebService();
-					break;
-				default:
-					table = new Table();
-					break;
-			}
+			Table table = new Table();
 
 	        if (sourceTable == null)
 	        {

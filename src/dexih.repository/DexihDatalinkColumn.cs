@@ -36,6 +36,9 @@ namespace dexih.repository
 	    [JsonIgnore, CopyIgnore]
 	    public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemsJoinColumn { get; set; }
 
+	    [JsonIgnore, CopyIgnore]
+	    public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemsFilterColumn { get; set; }
+
         [JsonIgnore, CopyIgnore]
         public ICollection<DexihFunctionParameter> DexihFunctionParameterColumn { get; set; }
 

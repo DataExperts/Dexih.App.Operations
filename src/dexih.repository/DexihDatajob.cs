@@ -36,8 +36,8 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public string FailActionString
         {
-            get { return FailAction.ToString(); }
-            set { FailAction = (EFailAction)Enum.Parse(typeof(EFailAction), value); }
+            get => FailAction.ToString();
+            set => FailAction = (EFailAction)Enum.Parse(typeof(EFailAction), value);
         }
         public long? AuditConnectionKey { get; set; }
 

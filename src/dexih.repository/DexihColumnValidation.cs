@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using dexih.functions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using static dexih.functions.Function;
+using static dexih.functions.FunctionReference;
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 
@@ -32,12 +33,12 @@ namespace dexih.repository
         public string Description { get; set; }
         
         [NotMapped]
-        public ETypeCode Datatype { get; set; }
+        public ETypeCode DataType { get; set; }
         [JsonIgnore, CopyIgnore]
-        public string DatatypeString 
+        public string DataTypeString 
         {
-            get => Datatype.ToString();
-            set => Datatype = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
+            get => DataType.ToString();
+            set => DataType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
         }
         public int? MinLength { get; set; }
         public int? MaxLength { get; set; }
@@ -76,11 +77,11 @@ namespace dexih.repository
         public bool LookupMultipleRecords { get; set; }
 
         [NotMapped]
-        public EInvalidAction InvalidAction { get; set; }
+        public TransformFunction.EInvalidAction InvalidAction { get; set; }
         [JsonIgnore, CopyIgnore]
         public string InvalidActionString {
             get => InvalidAction.ToString();
-            set => InvalidAction = (EInvalidAction)Enum.Parse(typeof(EInvalidAction), value);
+            set => InvalidAction = (TransformFunction.EInvalidAction)Enum.Parse(typeof(TransformFunction.EInvalidAction), value);
         }        
         [NotMapped]
         public ECleanAction CleanAction { get; set; }

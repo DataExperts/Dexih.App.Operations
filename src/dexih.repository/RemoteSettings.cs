@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Collections.Generic;
+using dexih.functions;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -147,6 +149,8 @@ namespace dexih.repository
                 return url;
             }
         }
+        
+        public List<FunctionReference> Functions { get; set; }
     }
 
 

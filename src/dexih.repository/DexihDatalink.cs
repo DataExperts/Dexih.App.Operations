@@ -5,7 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
 using System.Linq;
-using static dexih.repository.DexihTransform;
+using dexih.transforms;
+using dexih.transforms.Transforms;
 
 namespace dexih.repository
 {
@@ -43,8 +44,18 @@ namespace dexih.repository
         public long SourceDatalinkTableKey { get; set; }
         public long? TargetTableKey { get; set; }
         public long? AuditConnectionKey { get; set; }
-        public long? UpdateStrategyKey { get; set; }
-		public bool VirtualTargetTable { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public string UpdateStrategyString
+        {
+            get => UpdateStrategy.ToString();
+            set => UpdateStrategy = value == null ? TransformDelta.EUpdateStrategy.Reload  : (TransformDelta.EUpdateStrategy)Enum.Parse(typeof(TransformDelta.EUpdateStrategy), value);
+        }
+
+        [NotMapped]
+        public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; }
+
+        public bool VirtualTargetTable { get; set; }
 
         [NotMapped]
         public EDatalinkType DatalinkType { get; set; }
@@ -69,7 +80,6 @@ namespace dexih.repository
         public EntityStatus EntityStatus { get; set; }
 
         [CopyReference]
-        public virtual DexihUpdateStrategy UpdateStrategy { get; set; }
         public virtual ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
         public virtual ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
@@ -123,6 +133,7 @@ namespace dexih.repository
             if (transforms.Any())
             {
                 var transform = transforms[0];
+                var transformReference = Transforms.GetTransform(transform.TransformClassName, transform.TransformAssemblyName);
 
                 if (transform.PassThroughColumns)
                 {
@@ -153,13 +164,13 @@ namespace dexih.repository
                 }
 
                 // if the transform is a join, then add the join table columns
-                if (transform.Transform.TransformType == ETransformType.Join)
+                if (transformReference.TransformType == TransformAttribute.ETransformType.Join)
                 {
                     inputTables.Add(transform.JoinDatalinkTable);
                 }
 
                 // if the transform is a concatenate, then merge common column names together.
-                if (transform.Transform.TransformType == ETransformType.Concatenate)
+                if (transformReference.TransformType == TransformAttribute.ETransformType.Concatenate)
                 {
                     var joinTable = transform.JoinDatalinkTable;
 

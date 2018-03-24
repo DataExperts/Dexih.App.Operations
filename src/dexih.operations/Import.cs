@@ -21,6 +21,7 @@ namespace dexih.operations
         public ImportObjects<DexihTable> Tables { get; set; }
         public ImportObjects<DexihColumnValidation> ColumnValidations { get; set; }
         public ImportObjects<DexihFileFormat> FileFormats { get; set; }
+        public ImportObjects<DexihCustomFunction> CustomFunctions { get; set; }
 
         public Import(long hubKey)
         {
@@ -32,6 +33,7 @@ namespace dexih.operations
             Connections = new ImportObjects<DexihConnection>();
             Tables = new ImportObjects<DexihTable>();
             ColumnValidations = new ImportObjects<DexihColumnValidation>();
+            CustomFunctions = new ImportObjects<DexihCustomFunction>();
             FileFormats = new ImportObjects<DexihFileFormat>();
         }
     }
