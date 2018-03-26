@@ -41,7 +41,5 @@ namespace dexih.repository
             set => DataType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
         }
         public bool IsArray { get; set; } = false;
-        public long? DatalinkColumnKey { get; set; }
-
     }
 }

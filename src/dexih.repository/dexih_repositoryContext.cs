@@ -237,7 +237,6 @@ namespace dexih.repository
                 entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasColumnType("varchar(50)");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(50)");
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(250)");
-                entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
                 entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(20)");
                 entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(10)");
                 entity.Property(e => e.Position).HasColumnName("position");
