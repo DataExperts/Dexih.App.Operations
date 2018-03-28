@@ -112,11 +112,11 @@ namespace dexih.repository
         /// If AllowAllPaths = false, a list of the file paths the remote agent can access.
         /// </summary>
         public string[] AllowedPaths { get; set; }
-        
+
         /// <summary>
         /// Allow agent to use any hub on the central web server.
         /// </summary>
-        public bool AllowAllHubs { get; set; }
+        public bool AllowAllHubs { get; set; } = true;
         
         /// <summary>
         /// If AllowAllHubs = false, a list of the hubkeys that agent can access.

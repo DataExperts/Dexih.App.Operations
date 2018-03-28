@@ -12,7 +12,6 @@ using Dexih.Utils.CopyProperties;
 using System.Threading;
 using dexih.transforms;
 using dexih.transforms.Transforms;
-using Microsoft.CodeAnalysis.Semantics;
 
 namespace dexih.operations
 {
@@ -1068,7 +1067,7 @@ namespace dexih.operations
         /// </summary>
         /// <param name="table"></param>
         /// <returns></returns>
-        public async Task<TransformDelta.EUpdateStrategy> GetBestUpdateStrategy(DexihTable table)
+        public TransformDelta.EUpdateStrategy GetBestUpdateStrategy(DexihTable table)
 		{
             try
             {
@@ -1315,7 +1314,7 @@ namespace dexih.operations
                         newDatalinkName = newName[0];
 					}
 
-					var updateStrategy = await GetBestUpdateStrategy(sourceTable);
+					var updateStrategy = GetBestUpdateStrategy(sourceTable);
 
 					var datalink = new DexihDatalink
 					{

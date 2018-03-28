@@ -10,6 +10,7 @@ using System.Linq;
 using dexih.functions.Query;
 using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
+using static dexih.transforms.Transforms.TransformAttribute;
 
 namespace dexih.repository
 {
@@ -33,6 +34,16 @@ namespace dexih.repository
         public long? JoinDatalinkTableKey { get; set; }
         public string JoinTableAlias { get; set; }
         public long? JoinSortDatalinkColumnKey { get; set; }
+
+        [NotMapped]
+        public ETransformType TransformType { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public string TransformTypeString
+        {
+            get => TransformType.ToString();
+            set => TransformType = (ETransformType)Enum.Parse(typeof(ETransformType), value);
+        }
 
         public string TransformClassName { get; set; }
         public string TransformAssemblyName { get; set; }

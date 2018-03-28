@@ -531,7 +531,8 @@ namespace dexih.repository
                 entity.Property(e => e.DatalinkTransformKey).HasColumnName("datalink_transform_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
                 entity.Property(e => e.Position).HasColumnName("position");
-                
+
+                entity.Property(e => e.TransformTypeString).HasColumnName("transform_type").HasColumnType("varchar(50)");
                 entity.Property(e => e.TransformClassName).HasColumnName("transform_class_name").HasColumnType("varchar(250)");
                 entity.Property(e => e.TransformAssemblyName).HasColumnName("transform_assembly_name").HasColumnType("varchar(250)");
 

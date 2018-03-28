@@ -133,7 +133,6 @@ namespace dexih.repository
             if (transforms.Any())
             {
                 var transform = transforms[0];
-                var transformReference = Transforms.GetTransform(transform.TransformClassName, transform.TransformAssemblyName);
 
                 if (transform.PassThroughColumns)
                 {
@@ -164,13 +163,13 @@ namespace dexih.repository
                 }
 
                 // if the transform is a join, then add the join table columns
-                if (transformReference.TransformType == TransformAttribute.ETransformType.Join)
+                if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Join)
                 {
                     inputTables.Add(transform.JoinDatalinkTable);
                 }
 
                 // if the transform is a concatenate, then merge common column names together.
-                if (transformReference.TransformType == TransformAttribute.ETransformType.Concatenate)
+                if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Concatenate)
                 {
                     var joinTable = transform.JoinDatalinkTable;
 

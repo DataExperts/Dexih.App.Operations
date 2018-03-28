@@ -331,14 +331,13 @@ namespace dexih.operations
                 foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
                 {
                     var transform = datalinkTransform.GetTransform(hub, _logger);
-                    var transformReference = Transforms.GetTransform(transform.GetType());
 
                     _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 
                     //if this is an empty transform, then ignore it.
                     if (datalinkTransform.DexihDatalinkTransformItems.Count == 0)
                     {
-                        if (transformReference.TransformType == TransformAttribute.ETransformType.Filter || (transformReference.TransformType == TransformAttribute.ETransformType.Mapping && datalinkTransform.PassThroughColumns))
+                        if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Filter || (datalinkTransform.TransformType == TransformAttribute.ETransformType.Mapping && datalinkTransform.PassThroughColumns))
                         {
                             if (datalinkTransform.DatalinkTransformKey == maxDatalinkTransformKey)
                                 break;
@@ -348,7 +347,7 @@ namespace dexih.operations
                     }
 
                     //if this is a validation transform. add the column validations also.
-                    if (transformReference.TransformType == TransformAttribute.ETransformType.Validation)
+                    if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Validation)
                     {
 						if (datalink.VirtualTargetTable && datalink.TargetTableKey != null)
 						{
