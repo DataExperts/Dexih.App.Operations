@@ -55,6 +55,7 @@ namespace dexih.operations
         {
             DexihHub = await dbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.IsValid);
             DexihHub.DexihHubVariables.Clear();
+            DexihHub.DexihColumnValidations.Clear();
             DexihHub.DexihConnections.Clear();
             DexihHub.DexihDatajobs.Clear();
             DexihHub.DexihFileFormats.Clear();
@@ -277,6 +278,8 @@ namespace dexih.operations
         {
             await dbContext.Entry(table).Collection(a => a.DexihTableColumns).Query().Where(c => c.IsValid && table.TableKey == c.TableKey).LoadAsync();
 
+            var columnValidationKeys = table.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
+            await AddColumnValidations(columnValidationKeys, dbContext);
         }
 
         public async Task LoadDatalinkDependencies(DexihDatalink datalink, bool includeDependencies, DexihRepositoryContext dbContext)

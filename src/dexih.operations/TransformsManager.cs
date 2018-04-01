@@ -195,23 +195,6 @@ namespace dexih.operations
             }
         }
 
-        public TransformFunction GetValidationFunction(DexihColumnValidation columnValidation, string columnName)
-        {
-            var inputs = new string[] { columnName };
-            var outputs = new string[] { columnName };
-
-            var validationFunction = new TransformFunction(this, this.GetType().GetMethod("Run"), new TableColumn[] { new TableColumn(columnName) }, new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") })
-            {
-                InvalidAction = columnValidation.InvalidAction
-            };
-            return validationFunction;
-        }
-
-   
-
-  
-
-    
 
 		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable)
 		{
@@ -349,7 +332,7 @@ namespace dexih.operations
                     //if this is a validation transform. add the column validations also.
                     if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Validation)
                     {
-						if (datalink.VirtualTargetTable && datalink.TargetTableKey != null)
+						if (!datalink.VirtualTargetTable && datalink.TargetTableKey != null)
 						{
 							var targetTable = hub.GetTableFromKey(datalink.TargetTableKey.Value);
 							if(targetTable == null)
@@ -357,10 +340,13 @@ namespace dexih.operations
 								throw new TransformManagerException($"The target table with the key {datalink.TargetTableKey} was not found.");
 							}
 
-							foreach (var column in datalink.TargetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
+							foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
 							{
 								var columnValidation = hub.DexihColumnValidations.SingleOrDefault(c => c.ColumnValidationKey == column.ColumnValidationKey);
-								transform.Functions.Add(GetValidationFunction(columnValidation, column.Name));
+                                var validation = new ColumnValidationRun(_transformSettings, columnValidation, hub);
+                                validation.DefaultValue = column.DefaultValue;
+                                var function = validation.GetValidationFunction(column.Name);
+                                transform.Functions.Add(function);
 							}
 						}
 

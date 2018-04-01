@@ -16,7 +16,7 @@ namespace dexih.repository
         [JsonConverter(typeof(StringEnumConverter))]
         public enum ECleanAction
         {
-            DefaultValue = 1, Truncate = 2, Blank = 3, Null = 4, OriginalValue = 5 //action when clean is required.
+            DefaultValue = 1, Truncate = 2, Blank = 3, Null = 4, OriginalValue = 5, CleanValue = 6 //action when clean is required.
         }
 
         public DexihColumnValidation()
@@ -90,7 +90,7 @@ namespace dexih.repository
             get => CleanAction.ToString();
             set => CleanAction = (ECleanAction)Enum.Parse(typeof(ECleanAction), value);
         }
-        public string DefaultValue { get; set; }
+        public string CleanValue { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public virtual DexihHub Hub { get; set; }

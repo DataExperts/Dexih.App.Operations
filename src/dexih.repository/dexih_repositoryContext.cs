@@ -124,7 +124,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
 
                 entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(50)");
-                entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasColumnType("varchar(250)");
+                entity.Property(e => e.CleanValue).HasColumnName("clean_value").HasColumnType("varchar(250)");
 
                 entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasColumnType("varchar(8000)");
                 entity.Property(e => e.ListOfNotValuesString).HasColumnName("list_of_not_values").HasColumnType("varchar(8000)");

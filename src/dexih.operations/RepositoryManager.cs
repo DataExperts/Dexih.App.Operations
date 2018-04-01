@@ -848,7 +848,8 @@ namespace dexih.operations
 
 				// remove any change tracking on the file format, to aovid an attempted resave.
 				var entities = DbContext.ChangeTracker.Entries().Where(x => (
-						x.Entity is DexihFileFormat 
+						x.Entity is DexihFileFormat ||
+                        x.Entity is DexihColumnValidation
 					) && (x.State == EntityState.Added || x.State == EntityState.Modified));
 				entities.Select(c => { c.State = EntityState.Unchanged; return c; }).ToList();
 

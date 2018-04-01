@@ -21,7 +21,13 @@ namespace dexih.operations
             ColumnValidation = columnValidation;
             Hub = hub;
             _transformSettings = transformSettings;
+
         }
+
+        /// <summary>
+        /// This should be set to the target column default value when the function is initialized.
+        /// </summary>
+        public object DefaultValue { get; set; }
 
         private DexihColumnValidation ColumnValidation { get; }
         private DexihHub Hub { get; }
@@ -35,16 +41,27 @@ namespace dexih.operations
         private int ValidationPassCount { get; set; }
         private int ValidationFailCount { get; set; }
 
-
         public TransformFunction GetValidationFunction(string columnName)
         {
-            var validationFunction = new TransformFunction(this, this.GetType().GetMethod("Run"), new TableColumn[] { new TableColumn(columnName) }, new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") })
+            var validationFunction = new TransformFunction(
+                this, 
+                this.GetType().GetMethod("Run"), 
+                new TableColumn[] { new TableColumn(columnName) }, 
+                new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") }
+                )
             {
                 InvalidAction = ColumnValidation.InvalidAction
             };
             return validationFunction;
         }
 
+        public bool Run(object value, out object cleanedValue, out string rejectReason)
+        {
+            var validateResult = ValidateClean(value, CancellationToken.None).Result;
+            cleanedValue = validateResult.cleanedValue;
+            rejectReason = validateResult.rejectReason;
+            return validateResult.success;
+        }
 
         /// <summary>
         /// Run method is used by the "Function" class to execute a validation call.
@@ -52,7 +69,7 @@ namespace dexih.operations
         /// <param name="value"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<(bool, object cleanedValue, string rejectReason)> Run(object value, CancellationToken cancellationToken)
+        public async Task<(bool, object cleanedValue, string rejectReason)> RunAsync(object value, CancellationToken cancellationToken)
         {
             var validateResult = await ValidateClean(value, cancellationToken);
             return (validateResult.success, validateResult.cleanedValue, validateResult.rejectReason);
@@ -84,7 +101,10 @@ namespace dexih.operations
                             cleanedValue = DBNull.Value;
                             break;
                         case ECleanAction.DefaultValue:
-                            cleanedValue = ColumnValidation.DefaultValue;
+                            cleanedValue = DefaultValue;
+                            break;
+                        case ECleanAction.CleanValue:
+                            cleanedValue = ColumnValidation.CleanValue;
                             break;
                         case ECleanAction.Truncate:
                             if (ColumnValidation.MaxLength == null)

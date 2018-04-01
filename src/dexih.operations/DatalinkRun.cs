@@ -118,38 +118,57 @@ namespace dexih.operations
                     auditConnection = new ConnectionMemory();
                 }
 
-				string sourceName;
-				long sourceKey;
+				string sourceName = null;
+				long sourceKey = 0;
 
-				if(Datalink.SourceDatalinkTable.SourceType == ESourceType.Table)
-				{
-                    if(Datalink.SourceDatalinkTable.SourceTableKey == null)
-                    {
-                        throw new DatalinkRunException("No source table specified.");
-                    }
-					var sourceTable = _hub.GetTableFromKey(Datalink.SourceDatalinkTable.SourceTableKey.Value);
-                    if (sourceTable == null)
-                    {
-                        throw new DatalinkRunException($"A source table with the key {Datalink.SourceDatalinkTable.SourceTableKey.Value} could not be found.");
-                    }
+                switch(Datalink.SourceDatalinkTable.SourceType)
+                {
+                    case ESourceType.Table:
+                        if (Datalink.SourceDatalinkTable.SourceTableKey == null)
+                        {
+                            throw new DatalinkRunException("No source table specified.");
+                        }
+                        var sourceTable = _hub.GetTableFromKey(Datalink.SourceDatalinkTable.SourceTableKey.Value);
+                        if (sourceTable == null)
+                        {
+                            throw new DatalinkRunException($"A source table with the key {Datalink.SourceDatalinkTable.SourceTableKey.Value} could not be found.");
+                        }
 
-                    sourceKey = Datalink.SourceDatalinkTable.SourceTableKey.Value;
-					sourceName = sourceTable?.Name;
-				}
-				else
-				{
-                    if (Datalink.SourceDatalinkTable.SourceDatalinkKey == null)
-                    {
-                        throw new DatalinkRunException("No source datalink specified.");
-                    }
-                    var sourceDatalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == Datalink.SourceDatalinkTable.SourceDatalinkKey);
-                    if (sourceDatalink == null)
-                    {
-                        throw new DatalinkRunException($"A source datalink with the key {Datalink.SourceDatalinkTable.SourceDatalinkKey.Value} could not be found.");
-                    }
-                    sourceKey = Datalink.SourceDatalinkTable.SourceDatalinkKey.Value;
-					sourceName = Datalink?.Name;
-				}
+                        sourceKey = Datalink.SourceDatalinkTable.SourceTableKey.Value;
+                        sourceName = sourceTable?.Name;
+                        break;
+                    case ESourceType.Datalink:
+                        if (Datalink.SourceDatalinkTable.SourceDatalinkKey == null)
+                        {
+                            throw new DatalinkRunException("No source datalink specified.");
+                        }
+                        var sourceDatalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == Datalink.SourceDatalinkTable.SourceDatalinkKey);
+                        if (sourceDatalink == null)
+                        {
+                            throw new DatalinkRunException($"A source datalink with the key {Datalink.SourceDatalinkTable.SourceDatalinkKey.Value} could not be found.");
+                        }
+                        sourceKey = Datalink.SourceDatalinkTable.SourceDatalinkKey.Value;
+                        sourceName = Datalink?.Name;
+                        break;
+                    case ESourceType.Rows:
+                        sourceKey = 0;
+                        sourceName = "No Source";
+                        break;
+                    case ESourceType.Function:
+                        if (Datalink.SourceDatalinkTable.SourceTableKey == null)
+                        {
+                            throw new DatalinkRunException("No source function specified.");
+                        }
+                        var sourceFunction = _hub.GetTableFromKey(Datalink.SourceDatalinkTable.SourceTableKey.Value);
+                        if (sourceFunction == null)
+                        {
+                            throw new DatalinkRunException($"A source function with the key {Datalink.SourceDatalinkTable.SourceTableKey.Value} could not be found.");
+                        }
+
+                        sourceKey = Datalink.SourceDatalinkTable.SourceTableKey.Value;
+                        sourceName = sourceFunction?.Name;
+                        break;
+                }
 
                 await auditConnection.InitializeAudit(WriterResult, _hub.HubKey, WriterResult.AuditType, ReferenceKey, WriterResult.ParentAuditKey, Datalink.Name, sourceKey, sourceName, Datalink.TargetTableKey ?? 0, _targetTable.Name, WriterResult.TriggerMethod, WriterResult.TriggerInfo, cancellationToken);
                 WriterResult.OnProgressUpdate += Datalink_OnProgressUpdate;

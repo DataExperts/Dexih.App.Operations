@@ -30,6 +30,7 @@ namespace dexih.repository
 			DexihFileFormats = new HashSet<DexihFileFormat>();
             DexihHubVariables = new HashSet<DexihHubVariable>();
             DexihCustomFunctions = new HashSet<DexihCustomFunction>();
+            DexihColumnValidations = new HashSet<DexihColumnValidation>();
         }
 
         [CopyCollectionKey((long)0, true)]
