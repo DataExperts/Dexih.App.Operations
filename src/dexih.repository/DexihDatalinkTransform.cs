@@ -137,6 +137,10 @@ namespace dexih.repository
 				{
 					transform.Name = Name;
 				}
+                else
+                {
+                    transform.Name = "Transfom - " + DatalinkTransformKey.ToString();
+                }
 
 				if(JoinDatalinkTable != null)
 				{
@@ -185,6 +189,15 @@ namespace dexih.repository
                                 Column2 = filterColumn,
                                 Compare = item.FilterCompare??Filter.ECompare.IsEqual, 
                                 FilterValue = item.FilterValue
+                            });
+
+                            break;
+                        case DexihDatalinkTransformItem.ETransformItemType.AggregatePair:
+                            transform.AggregatePairs.Add(new AggregatePair()
+                            {
+                                SourceColumn = sourceColumn,
+                                TargetColumn = targetColumn,
+                                Aggregate = item.Aggregate??SelectColumn.EAggregate.Sum
                             });
 
                             break;

@@ -466,6 +466,7 @@ namespace dexih.repository
                 entity.Property(e => e.JoinValue).HasColumnName("join_value").HasColumnType("varchar(1000)");
                 entity.Property(e => e.FilterValue).HasColumnName("filter_value").HasColumnType("varchar(1000)");
                 entity.Property(e => e.FilterCompareString).HasColumnName("filter_compare");
+                entity.Property(e => e.AggregateString).HasColumnName("aggregate");
                 entity.Property(e => e.NotCondition).HasColumnName("not_condition");
                 entity.Property(e => e.OnErrorString).IsRequired().HasColumnName("on_error").HasColumnType("varchar(20)");
                 entity.Property(e => e.OnNullString).IsRequired().HasColumnName("on_null").HasColumnType("varchar(20)");

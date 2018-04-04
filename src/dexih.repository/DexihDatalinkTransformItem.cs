@@ -18,6 +18,7 @@ using System.Collections;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
+using static dexih.functions.Query.SelectColumn;
 
 namespace dexih.repository
 {
@@ -26,7 +27,7 @@ namespace dexih.repository
 		[JsonConverter(typeof(StringEnumConverter))]
 		public enum ETransformItemType
 		{
-			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair
+			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair
 		}
 
 		public DexihDatalinkTransformItem() => DexihFunctionParameters = new HashSet<DexihFunctionParameter>();
@@ -97,8 +98,23 @@ namespace dexih.repository
 			}
 		}
 
-	
-		[NotMapped]
+        [NotMapped]
+        public EAggregate? Aggregate { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public string AggregateString
+        {
+            get => Aggregate.ToString();
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                    Aggregate = null;
+                else
+                    Aggregate = (EAggregate)Enum.Parse(typeof(EAggregate), value);
+            }
+        }
+
+        [NotMapped]
 		public ETypeCode ReturnType { get; set; }
 		[JsonIgnore, CopyIgnore]
 		public string ReturnTypeString
