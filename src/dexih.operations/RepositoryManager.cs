@@ -1469,6 +1469,11 @@ namespace dexih.operations
                     {
                         foreach(var dep in step.DexihDatalinkDependencies)
                         {
+                            if (dep.DatalinkDependencyKey < 0)
+                            {
+                                dep.DatalinkDependencyKey = 0;
+                            }
+
                             if (dep.DependentDatalinkStepKey <= 0)
                             {
                                 dep.DependentDatalinkStep = datajob.DexihDatalinkSteps.SingleOrDefault(c => c.DatalinkStepKey == dep.DependentDatalinkStepKey);
@@ -1477,12 +1482,20 @@ namespace dexih.operations
                         }
                     }
 
+                    foreach (var step in datajob.DexihDatalinkSteps)
+                    {
+                        if (step.DatalinkStepKey < 0)
+                        {
+                            step.DatalinkStepKey = 0;
+                        }
+                    }
+
                     if (datajob.DatajobKey <= 0) {
 						datajob.DatajobKey = 0;
-						var newDatajob = new DexihDatajob();
-						datajob.CopyProperties(newDatajob, false);
-						DbContext.DexihDatajobs.Add(newDatajob);
-						savedDatajobs.Add(newDatajob);
+						// var newDatajob = new DexihDatajob();
+						// datajob.CopyProperties(newDatajob, false);
+						DbContext.DexihDatajobs.Add(datajob);
+						savedDatajobs.Add(datajob);
 					}
 					else
 					{

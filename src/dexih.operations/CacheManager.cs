@@ -377,10 +377,7 @@ namespace dexih.operations
                     await AddConnections(new[] {datajob.AuditConnectionKey.Value}, false, dbContext);
                 }
 
-                foreach(var datalinkStep in datajob.DexihDatalinkSteps)
-                {
-                    await AddDatalinks(datajob.DexihDatalinkSteps.Select(c => c.DatalinkKey).ToArray(), dbContext);
-                }
+                await AddDatalinks(datajob.DexihDatalinkSteps.Select(c => c.DatalinkKey).ToArray(), dbContext);
             }
         }
 
