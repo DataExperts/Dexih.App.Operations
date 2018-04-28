@@ -802,10 +802,8 @@ namespace dexih.operations
                         throw new RepositoryManagerException(table.EntityStatus.Message);
                     }
 
-                    // if the table is a flatfile or webservice synchonize the baseTable name with the name.
-					var connectionReference = Connections.GetConnection(dbConnection.ConnectionClassName, dbConnection.ConnectionAssemblyName);
-                    var category = connectionReference.ConnectionCategory;
-                    if (category == transforms.Connection.EConnectionCategory.File || category == transforms.Connection.EConnectionCategory.WebService || category == transforms.Connection.EConnectionCategory.DatabaseFile )
+                    // use the table name where the base has not been set.
+                    if (string.IsNullOrEmpty(table.BaseTableName) )
                     {
                         table.BaseTableName = table.Name;
                     }
@@ -821,11 +819,6 @@ namespace dexih.operations
 					{
 						dbTable = await GetTable(hubKey, table.TableKey, true);
 						
-						if (dbTable.FileFormat?.FileFormatKey == table.FileFormat?.FileFormatKey)
-						{
-							table.FileFormat = dbTable.FileFormat;
-						}
-
 						if (dbTable == null)
 						{
 							dbTable = new DexihTable();
@@ -835,6 +828,11 @@ namespace dexih.operations
 						}
 						else
 						{
+							if (dbTable.FileFormat?.FileFormatKey == table.FileFormat?.FileFormatKey)
+							{
+								table.FileFormat = dbTable.FileFormat;
+							}
+
 							table.CopyProperties(dbTable, false);
 							savedTables.Add(dbTable);
 						}

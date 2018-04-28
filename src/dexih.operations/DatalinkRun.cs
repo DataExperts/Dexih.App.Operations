@@ -111,7 +111,7 @@ namespace dexih.operations
                 {
 
                     var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == Datalink.AuditConnectionKey);
-                    auditConnection = dbAuditConnection.GetConnection(_transformSettings);;
+                    auditConnection = dbAuditConnection.GetConnection(_transformSettings);
                 }
                 else
                 {

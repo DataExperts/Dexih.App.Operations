@@ -85,7 +85,7 @@ namespace dexih.operations
                             }
                             break;
                         case EDownloadFormat.Json:
-                            fileStream = new TransformJsonStream(transform);
+                            fileStream = new TransformJsonStream(name, transform);
                             if (!zipFiles)
                             {
                                 return (name, fileStream);
