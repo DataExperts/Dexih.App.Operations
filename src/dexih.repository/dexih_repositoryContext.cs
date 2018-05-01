@@ -642,14 +642,14 @@ namespace dexih.repository
                 entity.Property(e => e.MatchHeaderRecord).HasColumnName("match_header_record");
                 entity.Property(e => e.AllowComments).HasColumnName("allow_comments");
                 entity.Property(e => e.BufferSize).HasColumnName("buffer_size");
-                entity.Property(e => e.CommentString).HasColumnName("comment").HasColumnType("char(1)");
+                entity.Property(e => e.Comment).HasColumnName("comment").HasColumnType("char(1)");
                 entity.Property(e => e.Delimiter).HasColumnName("delimiter");
                 entity.Property(e => e.DetectColumnCountChanges).HasColumnName("detect_column_count_changes");
                 entity.Property(e => e.HasHeaderRecord).HasColumnName("has_header_record");
                 entity.Property(e => e.IgnoreHeaderWhiteSpace).HasColumnName("ignore_header_white_space");
                 entity.Property(e => e.IgnoreReadingExceptions).HasColumnName("ignore_reading_exceptions");
                 entity.Property(e => e.IgnoreQuotes).HasColumnName("ignore_quotes");
-                entity.Property(e => e.QuoteString).HasColumnName("quote").HasColumnType("char(1)");
+                entity.Property(e => e.Quote).HasColumnName("quote").HasColumnType("char(1)");
                 entity.Property(e => e.QuoteAllFields).HasColumnName("quote_all_fields");
                 entity.Property(e => e.QuoteNoFields).HasColumnName("quote_no_fields");
                 entity.Property(e => e.SkipEmptyRecords).HasColumnName("skip_empty_records");

@@ -27,13 +27,13 @@ namespace dexih.repository
         [NotMapped]
         public char Comment { get; set; } = '#';
 
-        // Comment string is used, as EF databases do not support char values.
-        [JsonIgnore, CopyIgnore]
-        public string CommentString
-        {
-            get => Comment.ToString();
-            set => Comment = value?.ToCharArray(0, 1)[0] ?? '\0';
-        }
+//        // Comment string is used, as EF databases do not support char values.
+//        [JsonIgnore, CopyIgnore]
+//        public string CommentString
+//        {
+//            get => Comment.ToString();
+//            set => Comment = value?.ToCharArray(0, 1)[0] ?? '\0';
+//        }
 
         public string Delimiter { get; set; } = ",";
         public bool DetectColumnCountChanges { get; set; } = false;
@@ -46,12 +46,12 @@ namespace dexih.repository
         public char Quote { get; set; } = '\"';
 
         // Quote string is used, as EF databases do not support char values.
-        [JsonIgnore,CopyIgnore]
-        public string QuoteString
-        {
-            get => Quote.ToString();
-            set => Quote = value?.ToCharArray(0, 1)[0] ?? '\0';
-        }
+//        [JsonIgnore,CopyIgnore]
+//        public string QuoteString
+//        {
+//            get => Quote.ToString();
+//            set => Quote = value?.ToCharArray(0, 1)[0] ?? '\0';
+//        }
 
         public bool QuoteAllFields { get; set; } = false;
         public bool QuoteNoFields { get; set; } = false;

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using dexih.functions;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -182,11 +183,5 @@ namespace dexih.repository
         public LogLevel Microsoft { get; set; } = LogLevel.Information;
     }
     
-    public enum TransportType
-    {
-        WebSockets = 1,
-        ServerSentEvents = 2,
-        LongPolling = 4,
-        All = LongPolling | ServerSentEvents | WebSockets, // 0x00000007
-    }
+
 }

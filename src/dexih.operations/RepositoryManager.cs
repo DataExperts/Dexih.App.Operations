@@ -489,9 +489,8 @@ namespace dexih.operations
 				{
 					if (!isAdmin)
 					{
-						var hubUser =
-							await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == dbHub.HubKey && c.UserId == userId && c.IsValid);
-						if (hubUser.Permission != DexihHubUser.EPermission.Owner)
+						var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == dbHub.HubKey && c.UserId == userId && c.IsValid);
+						if (hubUser == null || hubUser.Permission != DexihHubUser.EPermission.Owner)
 						{
 							throw new RepositoryManagerException($"Failed to delete the hub with name {dbHub.Name} as user does not have owner permission on this  hub.");
 						}
