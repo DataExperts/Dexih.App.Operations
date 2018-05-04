@@ -75,11 +75,6 @@ namespace dexih.repository
         public bool AllowDataUpload { get; set; }
 
         /// <summary>
-        /// Local download port to use 
-        /// </summary>
-        public int? DownloadPort { get; set; } = 33944; //default port
-
-        /// <summary>
         /// Upload/download data and files directly from the remote agent.
         /// </summary>
         public bool DownloadDirectly { get; set; } = false;
@@ -88,16 +83,36 @@ namespace dexih.repository
         /// URL to upload/download from this agent.
         /// </summary>
         public string ExternalDownloadUrl { get; set; }
+
+        /// <summary>
+        /// Local download port to use 
+        /// </summary>
+        public int? DownloadPort { get; set; } = 33944; //default port
+
+        /// <summary>
+        /// Enforces the server to allow only https connections
+        /// </summary>
+        public bool EnforceHttps { get; set; } = true;
+    
+        /// <summary>
+        /// Automatically generate ssl certificates
+        /// </summary>
+        public bool AutoGenerateCertificate { get; set; }
+
+        /// <summary>
+        /// Dynamic domain used with autogenerate certificates.
+        /// </summary>
+        public string DynamicDomain { get; set; } = "dexih.com";
         
         /// <summary>
         /// File name of the ssl certificate
         /// </summary>
-        public string PfxCertificateFilename { get; set; }
+        public string CertificateFilename { get; set; }
         
         /// <summary>
         /// Password for the ssl certificate
         /// </summary>
-        public string PfxCertificatePassword { get; set; }
+        public string CertificatePassword { get; set; }
         
         /// <summary>
         /// Allow agent to read/write files to the local filesystem
