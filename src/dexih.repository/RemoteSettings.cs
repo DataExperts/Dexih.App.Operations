@@ -145,6 +145,9 @@ namespace dexih.repository
         [JsonIgnore]
         public string IpAddress { get; set; }
 
+        [JsonIgnore]
+        public string UserHash { get; set; }
+
         public string GetDownloadUrl(long hubKey, string remoteAgentId, bool direct = false)
         {
             if (DownloadDirectly || direct)
@@ -155,12 +158,19 @@ namespace dexih.repository
                 }
                 else
                 {
-                    var url = "http://" + IpAddress + ":" + (DownloadPort??33944).ToString();
-                    return url;
+                    if(EnforceHttps && !string.IsNullOrEmpty(DynamicDomain))
+                    {
+                        return $"https://{IpAddress.Replace('.', '-')}/{UserHash}/{DynamicDomain}:{(DownloadPort ?? 33944)}";
+                    }
+                    else
+                    {
+                        return "http://" + IpAddress + ":" + (DownloadPort ?? 33944).ToString();
+                    }
                 }
             }
             else
             {
+                // use the reverse proxy to get the data.
                 var url = WebServer + $"/api/Remote/GetRemoteData/{hubKey}/{remoteAgentId}";
                 return url;
             }
