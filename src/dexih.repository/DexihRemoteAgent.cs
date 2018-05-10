@@ -63,6 +63,13 @@ namespace dexih.repository
         
         [NotMapped]
         public string InstanceId { get; set; }
+
+        [NotMapped]
+        public bool IsEncrypted { get; set; }
         
+        [NotMapped]
+        public EDataPrivacyStatus DataPrivacyStatus { get; set; }
+
+
     }
 }

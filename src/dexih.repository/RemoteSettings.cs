@@ -1,12 +1,21 @@
 ﻿using System.Collections.Generic;
 using dexih.functions;
-using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 namespace dexih.repository
 {
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum EDataPrivacyStatus
+    {
+        NotAllowed,
+        ReverseProxy,
+        LocalNetwork,
+        Internet,
+        CustomUrl
+    }
+    
     /// <summary>
     /// Class mapping of the AppSettings file used for the RemoteAgent settings.
     /// </summary>
@@ -138,20 +147,52 @@ namespace dexih.repository
         /// If AllowAllHubs = false, a list of the hubkeys that agent can access.
         /// </summary>
         public long[] AllowedHubs { get; set; }
-                
+
+        public bool DownloadLocalIp { get; set; } = true;
+
         [JsonIgnore]
         public string Password { get; set; }
-        
+
+        [JsonIgnore]
+        public string LocalIpAddress { get; set; }
+
         [JsonIgnore]
         public string IpAddress { get; set; }
 
         [JsonIgnore]
         public string UserHash { get; set; }
 
+        public EDataPrivacyStatus DataPrivacyStatus()
+        {
+            if (!AllowDataDownload && !AllowDataUpload)
+            {
+                return EDataPrivacyStatus.NotAllowed;
+            }
+            if (DownloadDirectly)
+            {
+                if (!string.IsNullOrEmpty(ExternalDownloadUrl))
+                {
+                    return EDataPrivacyStatus.CustomUrl;
+                }
+                return DownloadLocalIp ? EDataPrivacyStatus.LocalNetwork : EDataPrivacyStatus.Internet;
+            }
+
+            return EDataPrivacyStatus.ReverseProxy;
+        }
+
+        public bool IsEncrypted()
+        {
+            var url = GetDownloadUrl(0, "");
+            return url.StartsWith("https");
+        }
+
+
         public string GetDownloadUrl(long hubKey, string remoteAgentId, bool direct = false)
         {
             if (DownloadDirectly || direct)
             {
+                var ip = DownloadLocalIp ? LocalIpAddress : IpAddress;
+                
                 if (!string.IsNullOrEmpty(ExternalDownloadUrl))
                 {
                     return ExternalDownloadUrl;
@@ -160,11 +201,11 @@ namespace dexih.repository
                 {
                     if(EnforceHttps && !string.IsNullOrEmpty(DynamicDomain))
                     {
-                        return $"https://{IpAddress.Replace('.', '-')}/{UserHash}/{DynamicDomain}:{(DownloadPort ?? 33944)}";
+                        return $"https://{ip.Replace('.', '-')}.{UserHash}.{DynamicDomain}:{(DownloadPort ?? 33944)}";
                     }
                     else
                     {
-                        return "http://" + IpAddress + ":" + (DownloadPort ?? 33944).ToString();
+                        return "http://" + ip + ":" + (DownloadPort ?? 33944);
                     }
                 }
             }
@@ -189,7 +230,7 @@ namespace dexih.repository
         public int MaxPreviewDuration { get; set; } = 10000;
         public int MaxConcurrentTasks { get; set; } = 50;
         public long MaxUploadSize { get; set; } = 1_000_000_000;
-        public TransportType SocketTransportType { get; set; } = TransportType.WebSockets;
+        public string SocketTransportType { get; set; } = "WebSockets";
     }
 
     public class LoggingSection
