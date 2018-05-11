@@ -107,7 +107,7 @@ namespace dexih.repository
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new RepositoryException("Failed to create/update the repository seed data.", ex);
             }
         }
 
