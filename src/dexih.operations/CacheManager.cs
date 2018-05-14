@@ -256,7 +256,7 @@ namespace dexih.operations
 			}
         }
 
-        public async Task<bool> LoadGlobal(DexihRepositoryContext dbContext)
+        public bool LoadGlobal(DexihRepositoryContext dbContext)
         {
             BuildVersion = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
             BuildDate = System.IO.File.GetLastWriteTime(Assembly.GetEntryAssembly().Location);

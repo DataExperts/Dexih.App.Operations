@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using dexih.functions;
+using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -191,14 +193,18 @@ namespace dexih.repository
         {
             if (DownloadDirectly || direct)
             {
-                var ip = DownloadLocalIp ? LocalIpAddress : IpAddress;
-                
                 if (!string.IsNullOrEmpty(ExternalDownloadUrl))
                 {
                     return ExternalDownloadUrl;
                 }
                 else
                 {
+                    var ip = DownloadLocalIp ? LocalIpAddress : IpAddress;
+                    if (string.IsNullOrEmpty(ip))
+                    {
+                        throw new Exception("The remote agent ip address could not be determined which is required for uploading/download data.");
+                    }
+                
                     if(EnforceHttps && !string.IsNullOrEmpty(DynamicDomain))
                     {
                         return $"https://{ip.Replace('.', '-')}.{UserHash}.{DynamicDomain}:{(DownloadPort ?? 33944)}";
