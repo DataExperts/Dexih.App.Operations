@@ -58,8 +58,8 @@ namespace dexih.repository
         [NotMapped]
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
-        [NotMapped]
-		public long[] SortColumnKeys { get; set; } = new long[0];
+	    [NotMapped] 
+	    public long[] SortColumnKeys { get; set; } = new long[0];
 
         [JsonIgnore, CopyIgnore]
         public string SortColumnKeysString

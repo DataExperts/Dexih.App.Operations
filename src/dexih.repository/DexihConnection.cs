@@ -142,7 +142,7 @@ namespace dexih.repository
             {
                 var connectionReference = Connections.GetConnection(ConnectionClassName, ConnectionAssemblyName);
                 
-                if (!transformSettings.RemoteSettings.AppSettings.AllowLocalFiles && connectionReference.RequiresLocalStorage)
+                if (!transformSettings.RemoteSettings.Permissions.AllowLocalFiles && connectionReference.RequiresLocalStorage)
                 {
                     throw new RepositoryException($"The connection {connectionReference.Name} can not be used on this remote agent as local file access is forbidden.");
                 }
@@ -168,8 +168,8 @@ namespace dexih.repository
                     connection.Filename = hubVariablesManager.InsertHubVariables(connection.Filename, false);
                 }
 
-                connection.AllowAllPaths = transformSettings.RemoteSettings.AppSettings.AllowAllPaths;
-                connection.AllowedPaths = transformSettings.RemoteSettings.AppSettings.AllowedPaths;
+                connection.AllowAllPaths = transformSettings.RemoteSettings.Permissions.AllowAllPaths;
+                connection.AllowedPaths = transformSettings.RemoteSettings.Permissions.AllowedPaths;
 
                 return connection;
             }

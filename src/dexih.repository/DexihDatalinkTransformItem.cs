@@ -410,9 +410,9 @@ $FunctionCode
 	            testFunction.Append("\t\t" + returnName + " = ");
                 testFunction.Append("CustomFunction(");
 	            var p = DexihFunctionParameters.OrderBy(c => c.Position)
-		            .Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Input).Select(c => c.ParameterName)
+		            .Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input).Select(c => c.ParameterName)
 		            .ToList();
-	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Output).Select(c => "out " + c.ParameterName));
+	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output).Select(c => "out " + c.ParameterName));
 	            
 	            testFunction.Append(string.Join(", ", p));
                 testFunction.Append(");");

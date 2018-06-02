@@ -744,6 +744,7 @@ namespace dexih.repository
 
                 entity.Property(e => e.IpAddressesString).HasColumnName("ip_addresses").HasColumnType("varchar(8000)");
                 entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasColumnType("varchar(50)");
+                entity.Property(e => e.IsAuthorized).HasColumnName("is_authorized");
                 entity.Property(e => e.RestrictIp).HasColumnName("restrict_ip");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 
@@ -754,6 +755,10 @@ namespace dexih.repository
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihRemoteAgents)
+                    .HasForeignKey(d => d.HubKey);
             });
 
 
@@ -836,7 +841,7 @@ namespace dexih.repository
 
                 entity.HasOne(d => d.Hub)
                       .WithMany(p => p.DexihHubVariables)
-                        .HasForeignKey(d => d.HubKey);
+                    .HasForeignKey(d => d.HubKey);
             });
 
             modelBuilder.Entity<DexihSetting>(entity =>

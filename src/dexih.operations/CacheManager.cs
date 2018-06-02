@@ -66,7 +66,7 @@ namespace dexih.operations
             return DexihHub;
         }
         
-     public async Task<DexihHub> LoadHubSharedObjects(DexihRepositoryContext dbContext)
+        public async Task<DexihHub> LoadHubSharedObjects(DexihRepositoryContext dbContext)
         {
 			try
 			{
@@ -153,6 +153,7 @@ namespace dexih.operations
 				DexihHub.DexihFileFormats = await dbContext.DexihFileFormat.Where(c => (c.HubKey == HubKey || c.HubKey == internalHub.HubKey) && c.IsValid).ToArrayAsync();
 				DexihHub.DexihColumnValidations = await dbContext.DexihColumnValidation.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 			    DexihHub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
+			    DexihHub.DexihRemoteAgents = await dbContext.DexihRemoteAgents.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 
 				return DexihHub;
 			} catch(Exception ex)
@@ -248,6 +249,7 @@ namespace dexih.operations
 				DexihHub.DexihFileFormats = await dbContext.DexihFileFormat.Where(c => (c.HubKey == HubKey || c.HubKey == internalHub.HubKey) && c.IsValid).ToArrayAsync();
 				DexihHub.DexihColumnValidations = await dbContext.DexihColumnValidation.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 			    DexihHub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
+			    DexihHub.DexihRemoteAgents = await dbContext.DexihRemoteAgents.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 
 				return DexihHub;
 			} catch(Exception ex)

@@ -3,6 +3,8 @@ using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Dexih.Utils.CopyProperties;
+using Dexih.Utils.MessageHelpers;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace dexih.repository
 {
@@ -18,9 +20,6 @@ namespace dexih.repository
         public bool RestrictIp { get; set; }
 
         [NotMapped]
-        public string UserId { get; set; }
-
-        [NotMapped]
         public string[] IpAddresses { get; set; }
 
         [JsonIgnore, CopyIgnore]
@@ -32,44 +31,17 @@ namespace dexih.repository
         public string RemoteAgentId { get; set; }
 
         public bool IsDefault { get; set; }
+        public bool IsAuthorized { get; set; }
         public bool AllowExternalConnect { get; set; }
 
         public string LastLoginIpAddress { get; set; }
         public DateTime? LastLoginDate { get; set; } 
+        
+        [JsonIgnore, CopyIgnore]
+        public virtual DexihHub Hub { get; set; }
 
         [NotMapped]
-        public bool IsRunning { get; set; }
-        
-        [NotMapped]
-        public bool IsActive => IsRunning && IsAuthorized && (!RestrictIp || (IpAddresses.Contains(IpAddress)));
-
-        [NotMapped]
-        public string Status {
-            get
-            {
-                if (!IsRunning) return "Offline";
-                if (!IsAuthorized) return "Unauthorized";
-                if (IsActive) return "Ready";
-                if (RestrictIp && !IpAddresses.Contains((IpAddress))) return "Invalid IpAddress";
-                return "Unknown";
-            } 
-        }
-        
-        [NotMapped]
-        public bool IsAuthorized { get; set; }
-        
-        [NotMapped]
-        public string IpAddress { get; set; }
-        
-        [NotMapped]
-        public string InstanceId { get; set; }
-
-        [NotMapped]
-        public bool IsEncrypted { get; set; }
-        
-        [NotMapped]
-        public EDataPrivacyStatus DataPrivacyStatus { get; set; }
-
+        public DexihActiveAgent ActiveAgent { get; set; }
 
     }
 }

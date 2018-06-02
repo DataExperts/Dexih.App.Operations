@@ -105,13 +105,13 @@ namespace dexih.operations
 		{
 			if (isAdmin)
 			{
-				var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
+				var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents).Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
                 return hubs;
 			}
 			else
 			{
 				var hubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == userId && c.Permission <= DexihHubUser.EPermission.FullReader && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
-                var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid ).ToArrayAsync();
+                var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents).Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid ).ToArrayAsync();
 				return hubs;
 			}
 		}
@@ -1581,6 +1581,9 @@ namespace dexih.operations
                 if (remoteAgent == null)
                     return null;
 
+	            if (!remoteAgent.IsAuthorized)
+		            return null;
+
                 if (remoteAgent.RestrictIp && (remoteAgent.IpAddresses == null || !remoteAgent.IpAddresses.Contains(iPAddress)))
                 {
                     return null;
@@ -1588,7 +1591,7 @@ namespace dexih.operations
                 else
                 {
 	                remoteAgent.LastLoginDate = DateTime.Now;
-	                remoteAgent.IpAddress = iPAddress;
+	                remoteAgent.IpAddresses = new [] { iPAddress };
 	                await DbContext.SaveChangesAsync();
 	                
                     return remoteAgent;
@@ -1603,6 +1606,12 @@ namespace dexih.operations
         public async Task<DexihRemoteAgent[]> GetRemoteAgents(long hubKey)
 		{
 			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => c.IsValid && c.HubKey == hubKey).ToArrayAsync();
+			return remoteAgents;
+		}
+
+		public async Task<DexihRemoteAgent[]> GetRemoteAgents(IEnumerable<long> hubKeys)
+		{
+			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => c.IsValid && hubKeys.Contains(c.HubKey)).ToArrayAsync();
 			return remoteAgents;
 		}
 
@@ -1626,6 +1635,7 @@ namespace dexih.operations
                     if (dbRemoteAgent != null)
                     {
                         remoteAgent.CopyProperties(dbRemoteAgent, true);
+	                    dbRemoteAgent.IpAddresses = remoteAgent.IpAddresses;
                     }
                     else
                     {

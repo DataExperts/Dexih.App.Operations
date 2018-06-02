@@ -223,10 +223,11 @@ namespace dexih.operations
                             throw new TransformManagerException($"The source table with the key {datalinkTable.SourceTableKey.Value} could not be found.");
                         }
                         
-                        var sourceTable = datalinkTable.GetTable(sourceDbTable);
+                        
                         
                         if (sourceDbTable.IsInternal)
                         {
+                            var sourceTable = datalinkTable.GetTable();
                             var rowCreator = new ReaderRowCreator();
                             rowCreator.InitializeRowCreator(0, 0, 1);
                             rowCreator.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
@@ -236,6 +237,7 @@ namespace dexih.operations
                         {
                             var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
                             var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
+                            var sourceTable = sourceDbTable.GetTable(sourceConnection, _transformSettings);
                             var transform = sourceConnection.GetTransformReader(sourceTable);
                             transform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
                             return (transform, sourceTable);

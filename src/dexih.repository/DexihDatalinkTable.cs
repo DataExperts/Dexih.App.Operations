@@ -75,17 +75,18 @@ namespace dexih.repository
         /// Converts the datalinkTable to a base "Table" class.
         /// </summary>
         /// <returns></returns>
-		public Table GetTable(DexihTable sourceTable = null)
+		public Table GetTable(Table sourceTable = null)
         {
-			Table table = new Table();
+			Table table;
 
 	        if (sourceTable == null)
 	        {
+		        table = new Table();
 		        this.CopyProperties(table, false);
 	        }
 	        else
 	        {
-		        sourceTable.CopyProperties(table, false);
+		        table = (Table) sourceTable.CloneProperties(false);
 	        }
 
             foreach (var dbColumn in DexihDatalinkColumns.Where(c => c.IsValid).OrderBy(c => c.Position))
