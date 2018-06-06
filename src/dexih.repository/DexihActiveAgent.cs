@@ -8,6 +8,9 @@ namespace dexih.repository
         public string RemoteAgentId { get; set; }
         
         [NotMapped]
+        public string User { get; set; }
+
+        [NotMapped]
         public string Name { get; set; }
         
         [NotMapped]

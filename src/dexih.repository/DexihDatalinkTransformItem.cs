@@ -311,7 +311,7 @@ namespace dexih.repository
             }
             catch (Exception ex)
             {
-                throw new RepositoryException($"Failed create the function.  {ex.Message}", ex);
+                throw new RepositoryException($"Function did not compile.  {ex.Message}", ex);
             }
         }
 
@@ -337,6 +337,11 @@ namespace dexih.repository
 	        else
 	        {
 		        functionCode = FunctionCode;
+	        }
+
+	        if (string.IsNullOrEmpty(functionCode))
+	        {
+		        throw new RepositoryException("The function contains no code.");
 	        }
 	        
             var code = new StringBuilder();
