@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json;
 
 namespace dexih.repository
 {
@@ -30,7 +31,6 @@ namespace dexih.repository
 
         [NotMapped]
         public DownloadUrl[] DownloadUrls { get; set; }
-
-
+        
     }
 }

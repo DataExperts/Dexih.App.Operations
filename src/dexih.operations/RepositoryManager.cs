@@ -1455,6 +1455,11 @@ namespace dexih.operations
 				var savedDatajobs = new List<DexihDatajob>();
 				foreach (var datajob in datajobs)
 				{
+					if (string.IsNullOrEmpty(datajob.Name))
+					{
+						throw new RepositoryManagerException($"The datajob requires a name.");
+					}
+					
 					//check there are no datajobs with the same name
 					var sameName = await DbContext.DexihDatajobs.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datajob.Name && c.DatajobKey != datajob.DatajobKey && c.IsValid);
 					if (sameName != null)
