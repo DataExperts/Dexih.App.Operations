@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using dexih.functions;
+using dexih.transforms;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
@@ -9,29 +10,7 @@ using Newtonsoft.Json.Converters;
 
 namespace dexih.repository
 {
-    [JsonConverter(typeof(StringEnumConverter))]
-    public enum EDataPrivacyStatus
-    {
-        NotAllowed,
-        Proxy,
-        Lan,
-        Internet
-    }
-
-    [JsonConverter(typeof(StringEnumConverter))]
-    public enum EDownloadUrlType
-    {
-        Proxy,
-        Direct
-    }
-
-    public class DownloadUrl
-    {
-        public string Url { get; set; }
-        public EDownloadUrlType DownloadUrlType { get; set; }
-        public bool IsEncrypted { get; set; }
-    }
-    
+   
     /// <summary>
     /// Class mapping of the AppSettings file used for the RemoteAgent settings.
     /// </summary>

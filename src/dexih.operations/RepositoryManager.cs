@@ -2596,7 +2596,7 @@ namespace dexih.operations
 				datalink.SourceDatalinkTableKey = 0;
 				ResetDatalinkTable(datalink.SourceDatalinkTable);
 				
-				datalink.TargetTableKey = 
+				datalink.TargetTableKey = datalink.TargetTableKey == null ? (long?) null :
 					tableKeyMappings.GetValueOrDefault(datalink.TargetTableKey.Value);
 
 				if (datalink.AuditConnectionKey != null)

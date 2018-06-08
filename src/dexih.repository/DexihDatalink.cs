@@ -150,26 +150,23 @@ namespace dexih.repository
                         Name = "Mappings Outputs",
                         DexihDatalinkColumns = new List<DexihDatalinkColumn>()
                     };
-                    inputTables.Prepend(newMappingsTable);
+                    inputTables.Insert(0, newMappingsTable);
                 }
 
                 // add any columns in the transform table that are not already included.
-                if (datalinkTransform != null)
+                foreach (var column in transform.GetOutputColumns())
                 {
-                    foreach (var column in datalinkTransform.GetOutputColumns())
-                    {
-                        newMappingsTable.DexihDatalinkColumns.Add(column);
-                    }
+                    newMappingsTable.DexihDatalinkColumns.Add(column);
                 }
 
                 // if the transform is a join, then add the join table columns
-                if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Join)
+                if (transform.TransformType == TransformAttribute.ETransformType.Join)
                 {
                     inputTables.Add(transform.JoinDatalinkTable);
                 }
 
                 // if the transform is a concatenate, then merge common column names together.
-                if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Concatenate)
+                if (transform.TransformType == TransformAttribute.ETransformType.Concatenate)
                 {
                     var joinTable = transform.JoinDatalinkTable;
 
