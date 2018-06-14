@@ -513,13 +513,13 @@ namespace dexih.repository
                     .HasForeignKey(d => d.FilterDatalinkColumnKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_transform_items_filter_column");
-                
-//                entity.HasOne(d => d.CustomFunction)
-//                    .WithMany(p => p.DexihDatalinkTransformItemCustomFunction)
-//                    .HasForeignKey(d => d.CustomFunctionKey)
-//                    .OnDelete(DeleteBehavior.Restrict)
-//                    .HasConstraintName("FK_dexih_datalink_transform_items_dexih_custom_functions");    
-                
+
+                entity.HasOne(d => d.CustomFunction)
+                    .WithMany(p => p.DexihDatalinkTransformItemCustomFunction)
+                    .HasForeignKey(d => d.CustomFunctionKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_transform_items_dexih_custom_functions");
+
             });
 
             modelBuilder.Entity<DexihDatalinkTransform>(entity =>

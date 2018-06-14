@@ -25,6 +25,7 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public virtual DexihTable Table { get; set; }
 
+        [JsonIgnore, CopyIgnore]
         public virtual DexihColumnValidation ColumnValidation { get; set; }
 
 	    [JsonIgnore, CopyIgnore]
