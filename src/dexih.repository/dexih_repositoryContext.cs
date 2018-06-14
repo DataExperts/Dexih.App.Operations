@@ -107,8 +107,7 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihColumnValidation>(entity =>
             {
-                entity.HasKey(e => e.ColumnValidationKey)
-                    .HasName("PK_dexih_column_validation");
+                entity.HasKey(e => e.ColumnValidationKey).HasName("PK_dexih_column_validation");
 
                 entity.ToTable("dexih_column_validation");
 
@@ -214,7 +213,7 @@ namespace dexih.repository
                 entity.Property(e => e.MethodCode).HasColumnName("method_code").HasColumnType("varchar(8000)");
                 entity.Property(e => e.ResultCode).HasColumnName("result_code").HasColumnType("varchar(8000)");
                 entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasColumnType("varchar(50)");
-                entity.Property(e => e.Description).IsRequired().HasColumnName("description").HasColumnType("varchar(250)");
+                entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
                 
                 entity.Property(e => e.FunctionTypeString).HasColumnName("function_type");
 
@@ -235,7 +234,7 @@ namespace dexih.repository
                 entity.Property(e => e.CustomFunctionParameterKey).HasColumnName("custom_function_parameter_key");
                 entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
                 entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasColumnType("varchar(50)");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(50)");
+                // entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(50)");
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(250)");
                 entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(20)");
                 entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(10)");

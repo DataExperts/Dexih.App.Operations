@@ -2400,6 +2400,14 @@ namespace dexih.operations
                             newKey = keySequence--;
                             columnKeyMappings.Add(column.ColumnKey, newKey);
                             column.ColumnKey = newKey;
+
+	                        if (column.ColumnValidationKey != null)
+	                        {
+		                        if (columnValidationKeyMappings.ContainsKey(column.ColumnValidationKey.Value))
+		                        {
+			                        column.ColumnValidationKey = columnValidationKeyMappings[column.ColumnValidationKey.Value];
+		                        }
+	                        }
                         }
                         plan.Tables.Add(table, EImportAction.New);
                     }
@@ -2649,7 +2657,7 @@ namespace dexih.operations
 							if (parameter.DatalinkColumnKey != null) parameter.DatalinkColumnKey = 0;
 							parameter.DatalinkTransformItemKey = 0;
 
-							if (parameter.Direction == DexihFunctionParameter.EParameterDirection.Input)
+							if (parameter.Direction == DexihParameterBase.EParameterDirection.Input)
 							{
 								if (parameter.DatalinkColumn != null)
 								{
@@ -2724,12 +2732,12 @@ namespace dexih.operations
 					trigger.HubKey = hubKey;
 				}
 
-				var stepKeyMapping = new Dictionary<long, long>();
+				var stepKeyMapping = new Dictionary<long, DexihDatalinkStep>();
 				
 				foreach (var step in datajob.DexihDatalinkSteps)
 				{
 					var newKey = keySequence--;
-					stepKeyMapping.Add(step.DatalinkStepKey, newKey);
+					stepKeyMapping.Add(step.DatalinkStepKey, step);
 					step.DatalinkStepKey = newKey;
 					step.DatalinkKey = datalinkKeyMappings.GetValueOrDefault(step.DatalinkKey);
 				}
@@ -2739,8 +2747,12 @@ namespace dexih.operations
 					foreach (var dep in step.DexihDatalinkDependencies)
 					{
 						dep.DatalinkDependencyKey = 0;
-						dep.DatalinkStepKey = stepKeyMapping.GetValueOrDefault(dep.DatalinkStepKey);
+						dep.DatalinkStepKey = step.DatalinkStepKey;
+						dep.DependentDatalinkStepKey = stepKeyMapping.GetValueOrDefault(dep.DependentDatalinkStepKey).DatalinkStepKey;
+						dep.DependentDatalinkStep = stepKeyMapping.GetValueOrDefault(dep.DependentDatalinkStepKey);
 					}
+
+					step.DexihDatalinkDependentSteps = null;
 				}
 
 				if (datajob.AuditConnectionKey != null)
@@ -2835,6 +2847,11 @@ namespace dexih.operations
                 }
             }
 
+			foreach (var columnValidation in columnValidations.Values.Where(c=>c.ColumnValidationKey <0))
+			{
+				columnValidation.ColumnValidationKey = 0;
+			}
+
 			foreach (var datalink in datalinks.Values)
 			{
                 if(datalink.DatalinkKey < 0) datalink.DatalinkKey = 0;
@@ -2888,7 +2905,7 @@ namespace dexih.operations
                         {
                             param.FunctionParameterKey = 0;
 
-                            if(param.Direction == DexihFunctionParameter.EParameterDirection.Input)
+                            if(param.Direction == DexihParameterBase.EParameterDirection.Input)
                             {
                                 param.DatalinkColumn = param.DatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(param.DatalinkColumnKey.Value);
                             }
@@ -2936,7 +2953,8 @@ namespace dexih.operations
 					foreach (var dep in step.DexihDatalinkDependencies)
 					{
 						dep.DatalinkDependencyKey = 0;
-						dep.DatalinkStep = steps.GetValueOrDefault(dep.DatalinkStepKey);
+						dep.DatalinkStepKey = 0;
+						dep.DependentDatalinkStep = steps.GetValueOrDefault(dep.DependentDatalinkStepKey); 
 					}
 				}
 			}
@@ -2997,13 +3015,13 @@ namespace dexih.operations
 				column.UpdateDate = DateTime.Now;
 			}
 
-			DbContext.AddRange(hubVariables.Values);
-			DbContext.AddRange(columnValidations.Values);
-			DbContext.AddRange(fileFormats.Values);
-			DbContext.AddRange(connections.Values);
-            DbContext.AddRange(tables.Values);
-            DbContext.AddRange(datalinks.Values);
-			DbContext.AddRange(datajobs.Values);
+			await DbContext.AddRangeAsync(hubVariables.Values);
+			await DbContext.AddRangeAsync(columnValidations.Values);
+			await DbContext.AddRangeAsync(fileFormats.Values);
+			await DbContext.AddRangeAsync(connections.Values);
+			await DbContext.AddRangeAsync(tables.Values);
+			await DbContext.AddRangeAsync(datalinks.Values);
+			await DbContext.AddRangeAsync(datajobs.Values);
 
 			var entries = DbContext.ChangeTracker.Entries()
 				.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
