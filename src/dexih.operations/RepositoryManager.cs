@@ -2767,6 +2767,9 @@ namespace dexih.operations
 			var hubVariables = import.HubVariables
 				.Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
 				.ToDictionary(c => c.HubVariableKey, c => c);
+            var customFunctions = import.CustomFunctions
+                .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+                .ToDictionary(c => c.CustomFunctionKey, c => c);
             var fileFormats = import.FileFormats
                 .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
                 .ToDictionary(c => c.FileFormatKey, c => c);
@@ -2884,6 +2887,11 @@ namespace dexih.operations
                         item.SourceDatalinkColumn = item.SourceDatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(item.SourceDatalinkColumnKey.Value);
                         item.JoinDatalinkColumn = item.JoinDatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(item.JoinDatalinkColumnKey.Value);
 
+                        if(item.CustomFunctionKey != null)
+                        {
+                            item.CustomFunction = customFunctions.GetValueOrDefault(item.CustomFunctionKey.Value);
+                        }
+
                         foreach(var param in item.DexihFunctionParameters)
                         {
                             param.FunctionParameterKey = 0;
@@ -2941,9 +2949,18 @@ namespace dexih.operations
 				}
 			}
 
+            foreach(var columnValidation in columnValidations.Values.Where(c => c.ColumnValidationKey < 0))
+            {
+                columnValidation.ColumnValidationKey = 0;
+            }
 
-			// set all existing datalink object to invalid.
-			var datalinkTransforms = datalinks.Values.SelectMany(c => c.DexihDatalinkTransforms).Select(c=>c.DatalinkTransformKey);
+            foreach(var fileFormat in fileFormats.Values.Where(c => c.FileFormatKey < 0))
+            {
+                fileFormat.FileFormatKey = 0;
+            }
+
+            // set all existing datalink object to invalid.
+            var datalinkTransforms = datalinks.Values.SelectMany(c => c.DexihDatalinkTransforms).Select(c=>c.DatalinkTransformKey);
 			var deletedDatalinkTransforms = DbContext.DexihDatalinkTransforms.Include(c=>c.DexihDatalinkTransformItems).ThenInclude(p=>p.DexihFunctionParameters)
 				.Where(t => t.HubKey == import.HubKey &&
 				datalinks.Values.Select(d => d.DatalinkKey).Contains(t.DatalinkKey) &&

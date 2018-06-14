@@ -67,7 +67,7 @@ namespace dexih.repository
 
 		public long? CustomFunctionKey { get; set; }
 
-		[NotMapped]
+        [NotMapped]
 		public Sort.EDirection? SortDirection { get; set; }
 		[JsonIgnore, CopyIgnore]
 		public string SortDirectionString
@@ -173,15 +173,16 @@ namespace dexih.repository
 		[CopyReference]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
 
-		// public virtual DexihStandardFunction StandardFunction { get; set; }
+        // public virtual DexihStandardFunction StandardFunction { get; set; }
 
-		// public virtual DexihCustomFunction CustomFunction { get; set; }
+        [JsonIgnore, CopyIgnore]
+        public virtual DexihCustomFunction CustomFunction { get; set; }
 
-		/// <summary>
-		/// Creates a reference to a compiled version of the mapping function.
-		/// </summary>
-		/// <returns></returns>
-		public TransformFunction CreateFunctionMethod(DexihHub hub, bool createConsoleSample = false, ILogger logger = null)
+        /// <summary>
+        /// Creates a reference to a compiled version of the mapping function.
+        /// </summary>
+        /// <returns></returns>
+        public TransformFunction CreateFunctionMethod(DexihHub hub, bool createConsoleSample = false, ILogger logger = null)
 		{
 			try
 			{
