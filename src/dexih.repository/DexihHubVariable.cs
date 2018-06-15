@@ -1,7 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.CompilerServices;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.Crypto;
 

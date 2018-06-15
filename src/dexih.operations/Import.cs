@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using dexih.repository;
+using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -8,7 +9,7 @@ namespace dexih.operations
     [JsonConverter(typeof(StringEnumConverter))]
     public enum EImportAction
     {
-        Replace, New, Leave, Skip
+        Replace, New, Leave, Skip, Delete
     }
 
     public class Import
@@ -22,6 +23,7 @@ namespace dexih.operations
         public ImportObjects<DexihColumnValidation> ColumnValidations { get; set; }
         public ImportObjects<DexihFileFormat> FileFormats { get; set; }
         public ImportObjects<DexihCustomFunction> CustomFunctions { get; set; }
+        public ImportObjects<DexihRemoteAgent> RemoteAgents { get; set; }
 
         public Import(long hubKey)
         {
@@ -35,6 +37,56 @@ namespace dexih.operations
             ColumnValidations = new ImportObjects<DexihColumnValidation>();
             CustomFunctions = new ImportObjects<DexihCustomFunction>();
             FileFormats = new ImportObjects<DexihFileFormat>();
+            RemoteAgents = new ImportObjects<DexihRemoteAgent>();
+        }
+
+        /// <summary>
+        /// Adds one of the properties to the relevant area.
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="operation"></param>
+        public bool Add(object property, EImportAction operation)
+        {
+            switch (property)
+            {
+                case DexihHubVariable a:
+                    HubVariables.Add(a, operation);
+                    break;
+                case DexihDatajob a:
+                    Datajobs.Add(a, operation);
+                    break;
+                case DexihDatalink a:
+                    Datalinks.Add(a, operation);
+                    break;
+                case DexihConnection a:
+                    Connections.Add(a, operation);
+                    break;
+                case DexihTable a:
+                    Tables.Add(a, operation);
+                    break;
+                case DexihColumnValidation a:
+                    ColumnValidations.Add(a, operation);
+                    break;
+                case DexihCustomFunction a:
+                    CustomFunctions.Add(a, operation);
+                    break;
+                case DexihFileFormat a:
+                    FileFormats.Add(a, operation);
+                    break;
+                case DexihRemoteAgent a:
+                    RemoteAgents.Add(a, operation);
+                    break;
+                default:
+                    return false;
+            }
+
+            return true;
+        }
+
+        public bool Any()
+        {
+            return HubVariables.Any() || Datajobs.Any() || Datalinks.Any() || Connections.Any() || Tables.Any() ||
+                   ColumnValidations.Any() || CustomFunctions.Any() || FileFormats.Any() || RemoteAgents.Any();
         }
     }
 

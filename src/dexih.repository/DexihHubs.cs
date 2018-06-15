@@ -79,10 +79,6 @@ namespace dexih.repository
         public virtual ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
         public virtual ICollection<DexihRemoteAgent> DexihRemoteAgents { get; set; }
 
-        // used to provide the current user permissions, not mapped to db.
-        [NotMapped]
-        public DexihHubUser.EPermission HubPermission { get; set; }
-        
         /// <summary>
         /// Searches all connections and table for a columnKey.
         /// </summary>

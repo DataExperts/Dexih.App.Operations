@@ -35,52 +35,6 @@ namespace dexih.repository
 			return EmailConfirmed && IsInvited && IsEnabled;
 		}
 
-		public async Task<DexihHub[]> AuthorizedHubs(DexihRepositoryContext context, bool isAdmin = false)
-        {
-            if(!EmailConfirmed ) {
-                return new DexihHub[0];
-            }
-
-            if (isAdmin)
-            {
-                return await context.DexihHubs.Where(c => c.IsValid).ToArrayAsync();
-            }
-            else
-            {
-                var hubs = await context.DexihHubUser.Where(c => c.UserId == Id && c.IsValid).Select(c => c.HubKey).ToArrayAsync();
-                return await context.DexihHubs.Where(c => hubs.Contains(c.HubKey) && c.IsValid).ToArrayAsync();
-            }
-        }
-
-        public async Task<DexihHubUser.EPermission> ValidateHub(DexihRepositoryContext context, long hubKey, bool isAdmin = false)
-        {
-            if(!EmailConfirmed) {
-                throw new ApplicationUserException("The users email address has not been confirmed.");
-            }
-
-            var hub = await context.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey);
-
-            if (hub == null)
-            {
-                throw new ApplicationUserException("The hub with the key: " + hubKey + " could not be found.");
-            }
-
-            if (isAdmin)
-            {
-                return DexihHubUser.EPermission.Owner;
-            }
-
-            var hubUser = await context.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == Id);
-
-            if (hubUser.Permission == DexihHubUser.EPermission.Suspended || hubUser.Permission == DexihHubUser.EPermission.None)
-            {
-                throw new ApplicationUserException($"The users does not have access to the hub with key {hubKey}.");
-            }
-            else
-            {
-                return hubUser.Permission;
-            }
-        }
     }
 
 

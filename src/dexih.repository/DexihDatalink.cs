@@ -170,9 +170,11 @@ namespace dexih.repository
                 {
                     var joinTable = transform.JoinDatalinkTable;
 
-                    var concatTable = new DexihDatalinkTable();
-                    concatTable.Name = "Concatenated Table";
-                    concatTable.DexihDatalinkColumns = new List<DexihDatalinkColumn>();
+                    var concatTable = new DexihDatalinkTable
+                    {
+                        Name = "Concatenated Table",
+                        DexihDatalinkColumns = new List<DexihDatalinkColumn>()
+                    };
 
                     foreach (var table in inputTables)
                     {

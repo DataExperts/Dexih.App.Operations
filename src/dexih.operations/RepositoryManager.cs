@@ -12,6 +12,7 @@ using Dexih.Utils.CopyProperties;
 using System.Threading;
 using dexih.transforms;
 using dexih.transforms.Transforms;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace dexih.operations
 {
@@ -22,31 +23,68 @@ namespace dexih.operations
 	/// </summary>
 	public class RepositoryManager : IDisposable
 	{
+		#region Events
+		/// <summary>
+		/// Tracks changes within a hub
+		/// </summary>
+		/// <param name="changeItems"></param>
+			public delegate void HubChange(Import changeItems);
+			public event HubChange OnHubChange;
+
+		/// <summary>
+		/// Tracks new/deleted/modify hub properties.
+		/// </summary>
+		/// <param name="changeItems"></param>
+		public delegate void HubsChange(ImportObjects<DexihHub> changeItems);
+		public event HubsChange OnHusbChange;
+
+			public delegate void HubUsersChange(long hubKey);
+			public event HubUsersChange OnHubUsersChange;
+
+		#endregion
+		
 		private string SystemEncryptionKey { get; set; }
 		private ILogger Logger { get; set; }
 
 		public DexihRepositoryContext DbContext { get; set; }
+		public IMemoryCache MemoryCache { get; set; }
 
 
 		private Dictionary<string, DexihSetting> _namingStandards;
 		private long _internalConnectionKey = 0;
 
-		public RepositoryManager(string systemEncryptionKey, 
+		public RepositoryManager(
+			 string systemEncryptionKey, 
              DexihRepositoryContext dbContext,
+			 IMemoryCache memoryCache,
              ILoggerFactory loggerFactory
             )
 		{
 			SystemEncryptionKey = systemEncryptionKey;
 			DbContext = dbContext;
+			MemoryCache = memoryCache;
 			Logger = loggerFactory.CreateLogger("RepositoryManager");
+
+			if (memoryCache == null)
+			{
+				memoryCache = new MemoryCache(new MemoryCacheOptions());
+			}
+
 		}
 
 		public RepositoryManager(string systemEncryptionKey, 
-			DexihRepositoryContext dbContext
+			DexihRepositoryContext dbContext,
+			IMemoryCache memoryCache
 		)
 		{
 			SystemEncryptionKey = systemEncryptionKey;
 			DbContext = dbContext;
+			MemoryCache = memoryCache;
+
+			if (memoryCache == null)
+			{
+				memoryCache = new MemoryCache(new MemoryCacheOptions());
+			}
 		}
 		
 		public void Dispose()
@@ -59,23 +97,20 @@ namespace dexih.operations
 		/// Retrieves an array containing the hub and all depdendencies along with any dependent objects
 		/// </summary>
 		/// <param name="hubKey"></param>
-		/// <param name="includeDependencies"></param>
 		/// <returns></returns>
-		public async Task<DexihHub> GetHub(long hubKey, bool includeDependencies)
+		public async Task<DexihHub> GetHub(long hubKey)
 		{
-			var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey));
-			DexihHub hub;
-			if (includeDependencies)
+			var hubReturn = await MemoryCache.GetOrCreateAsync($"HUB-{hubKey}", async entry =>
 			{
-				hub = await cache.LoadHub(DbContext);
-			}
-			else
-			{
-				hub = await cache.InitHub(DbContext);
-			}
-			return hub;
-		}
+				entry.SlidingExpiration = TimeSpan.FromHours(1);
+				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey));
+				var hub = await cache.LoadHub(DbContext);
+				return hub;
+			});
 
+			return hubReturn;
+		}
+		
 		public async Task<IEnumerable<DexihHubVariable>> GetHubVariables(long hubKey)
 		{
 			var hubVariables = await DbContext.DexihHubVariable.Where(c => c.HubKey == hubKey && c.IsValid).ToArrayAsync();
@@ -103,17 +138,27 @@ namespace dexih.operations
 		/// <returns></returns>
 		public async Task<DexihHub[]> GetUserHubs(string userId, bool isAdmin)
 		{
-			if (isAdmin)
+			return await MemoryCache.GetOrCreateAsync($"USERHUBS-{userId}", async entry =>
 			{
-				var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents).Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
-                return hubs;
-			}
-			else
-			{
-				var hubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == userId && c.Permission <= DexihHubUser.EPermission.FullReader && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
-                var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents).Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid ).ToArrayAsync();
-				return hubs;
-			}
+				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
+				
+				if (isAdmin)
+				{
+					var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents)
+						.Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
+					return hubs;
+				}
+				else
+				{
+					var hubKeys = await DbContext.DexihHubUser
+						.Where(c => c.UserId == userId && c.Permission <= DexihHubUser.EPermission.FullReader &&
+						            c.IsValid)
+						.Select(c => c.HubKey).ToArrayAsync();
+					var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents)
+						.Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid).ToArrayAsync();
+					return hubs;
+				}
+			});
 		}
 		
 		/// <summary>
@@ -308,16 +353,89 @@ namespace dexih.operations
 
 			return sharedData;
 		}
-
-        public async Task SaveChangesAsync(long hubKey, CancellationToken cancellationToken = default(CancellationToken))
+		
+		/// <summary>
+		/// Saves changes in the dbContext, and raises event to report these back to the client.
+		/// </summary>
+		/// <param name="hubKey"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+        public async Task SaveHubChangesAsync(long hubKey, CancellationToken cancellationToken = default(CancellationToken))
         {
-            // clear out any entries we don't care about
+            
             var entities = DbContext.ChangeTracker.Entries().Where(x => (
-                x.Entity is DexihSetting
-                ) && (x.State == EntityState.Added || x.State == EntityState.Modified));
-            entities.Select(c => { c.State = EntityState.Unchanged; return c; }).ToList();
+	            x.State == EntityState.Added || 
+	            x.State == EntityState.Modified ||
+	            x.State == EntityState.Deleted));
+
+	        var import = new Import(hubKey);
+
+	        foreach (var entity in entities)
+	        {
+		        var item = entity.Entity;
+
+		        // remote unwanted entries.
+		        if (item is DexihSetting)
+		        {
+			        entity.State = EntityState.Unchanged;
+			        continue;
+		        }
+
+		        // other entries.  If the key value <=0 modify the state to added, otherwise modify existing entity.
+		        var properties = item.GetType().GetProperties();
+
+		        var importAction = EImportAction.Skip;
+		        
+		        switch (entity.State)
+		        {
+			        case EntityState.Added:
+				        importAction = EImportAction.New;
+				        break;
+			        case EntityState.Deleted:
+				        importAction = EImportAction.Delete;
+				        break;
+			        case EntityState.Modified:
+				        importAction = EImportAction.Replace;
+				        break;
+		        }
+		        		        
+		        foreach (var property in properties)
+		        {
+			        foreach (var attrib in property.GetCustomAttributes(true))
+			        {
+				        if (attrib is CopyCollectionKeyAttribute)
+				        {
+					        var value = (long) property.GetValue(item);
+					        entity.State = value <= 0 ? EntityState.Added : EntityState.Modified;
+				        }
+
+				        // if the isvalid = false, then set the import action to delete.
+				        if (attrib is CopyIsValidAttribute)
+				        {
+					        var value = (bool) property.GetValue(item);
+					        if (value == false)
+					        {
+						        importAction = EImportAction.Delete;
+					        }
+				        }
+			        }
+		        }
+
+		        // add the items to the change list, with will be broadcast back to the client.
+		        import.Add(item, importAction);
+	        }
 
             await DbContext.SaveHub(hubKey, true, cancellationToken);
+	        
+	        if (import.Any())
+	        {
+		        // TODO: Might be better for performance to merge changes into cache.
+		        MemoryCache.Remove($"HUB-{hubKey}");
+		        
+		        // raise event to send changes back to client.
+		        OnHubChange?.Invoke(import);
+	        }
+
         }
 
 		/// <summary>
@@ -327,22 +445,31 @@ namespace dexih.operations
 		/// <returns></returns>
 		public async Task<List<string>> GetHubUserIds(long hubKey)
 		{
-			try
+			return await MemoryCache.GetOrCreateAsync($"HUBUSERIDS-{hubKey}", async entry =>
 			{
-				var adminId = await DbContext.Roles.SingleAsync(c => c.Name == "ADMINISTRATOR");
-				var adminUsers = await DbContext.UserRoles.Where(c => c.RoleId == adminId.Id).Select(c => c.UserId).ToListAsync();
-				var hubUserIds = await DbContext.DexihHubUser.Where(c => !adminUsers.Contains(c.UserId) && c.HubKey == hubKey && c.IsValid).Select(c => c.UserId).ToListAsync();
-				hubUserIds.AddRange(adminUsers);
+				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 
-				var hubUserNames =
-					await DbContext.Users.Where(c => hubUserIds.Contains(c.Id)).Select(c => c.UserName).ToListAsync();
-				
-				return hubUserNames;
-			}
-			catch (Exception ex)
-			{
-                throw new RepositoryManagerException($"Error getting hub user ids.  {ex.Message}", ex);
-			}
+				try
+				{
+					var adminId = await DbContext.Roles.SingleAsync(c => c.Name == "ADMINISTRATOR");
+					var adminUsers = await DbContext.UserRoles.Where(c => c.RoleId == adminId.Id).Select(c => c.UserId)
+						.ToListAsync();
+					var hubUserIds = await DbContext.DexihHubUser
+						.Where(c => !adminUsers.Contains(c.UserId) && c.HubKey == hubKey && c.IsValid)
+						.Select(c => c.UserId).ToListAsync();
+					hubUserIds.AddRange(adminUsers);
+
+					var hubUserNames =
+						await DbContext.Users.Where(c => hubUserIds.Contains(c.Id)).Select(c => c.Id)
+							.ToListAsync();
+
+					return hubUserNames;
+				}
+				catch (Exception ex)
+				{
+					throw new RepositoryManagerException($"Error getting hub user ids.  {ex.Message}", ex);
+				}
+			});
 		}
 
         /// <summary>
@@ -354,27 +481,34 @@ namespace dexih.operations
         {
             try
             {
-                var hubUsers = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && c.IsValid).ToListAsync();
-                var users = await DbContext.Users.Where(c => hubUsers.Select(d => d.UserId).Contains(c.Id)).ToListAsync();
+	            var returnList = await MemoryCache.GetOrCreateAsync($"HUBUSERS-{hubKey}", async entry =>
+	            {
+		            entry.SlidingExpiration = TimeSpan.FromHours(1);
 
-                var hubUsersList = new List<HubUser>();
-                foreach(var hubUser in hubUsers)
-                {
-                    var user = users.SingleOrDefault(c => c.Id == hubUser.UserId);
-	                if (user != null)
-	                {
-		                hubUsersList.Add(new HubUser()
-		                {
-			                Email = user.Email,
-			                FirstName = user.FirstName,
-			                LastName = user.LastName,
-			                Id = hubUser.UserId,
-			                Permission = hubUser.Permission
-		                });
-	                }
-                }
+		            var hubUsers = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && c.IsValid).ToListAsync();
+		            var users = await DbContext.Users.Where(c => hubUsers.Select(d => d.UserId).Contains(c.Id)).ToListAsync();
 
-                return hubUsersList;
+		            var hubUsersList = new List<HubUser>();
+		            foreach(var hubUser in hubUsers)
+		            {
+			            var user = users.SingleOrDefault(c => c.Id == hubUser.UserId);
+			            if (user != null)
+			            {
+				            hubUsersList.Add(new HubUser()
+				            {
+					            Email = user.Email,
+					            FirstName = user.FirstName,
+					            LastName = user.LastName,
+					            Id = hubUser.UserId,
+					            Permission = hubUser.Permission
+				            });
+			            }
+		            }
+
+		            return hubUsersList;
+	            });
+
+	            return returnList;
             }
             catch (Exception ex)
             {
@@ -449,25 +583,10 @@ namespace dexih.operations
 					dbHub = hub;
 					DbContext.DexihHubs.Add(dbHub);
 					dbHub.IsValid = true;
-
-//					//create an internal connection which is used by datalinks to reference internal table structures.
-//					var internalConnection = new DexihConnection()
-//					{
-//						Name = "Internal Connection",
-//						DatabaseTypeKey = await DbContext.DexihDatabaseTypes.Select(c => c.DatabaseTypeKey).FirstAsync(), //just get any databasetype key as it is not relevant for internal connection
-//						Purpose = DexihConnection.EConnectionPurpose.Internal,
-//						UseWindowsAuth = false,
-//						UseConnectionString = false,
-//						EmbedTableKey = false,
-//						IsInternal = true,
-//						IsValid = true,
-//					};
-//					dbHub.DexihConnections.Add(internalConnection);
 				}
 
                 //save the hub to generate a hub key.
                 await DbContext.SaveChangesAsync();
-
 
                 return hub;
 			}
@@ -582,6 +701,59 @@ namespace dexih.operations
 
 		#endregion
 
+		#region Authorization Functions
+		
+		/// <summary>
+		/// Returns the permission level that the user has access to the hub.
+		/// </summary>
+		/// <param name="user"></param>
+		/// <param name="hubKey"></param>
+		/// <param name="isAdmin"></param>
+		/// <returns></returns>
+		/// <exception cref="ApplicationUserException"></exception>
+		public async Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey, bool isAdmin = false)
+		{
+			var validate = await MemoryCache.GetOrCreateAsync($"PERMISSION-USER-{user.Id}-HUB-{hubKey}", async entry =>
+			{
+				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
+
+				if (!user.EmailConfirmed)
+				{
+					throw new ApplicationUserException("The users email address has not been confirmed.");
+				}
+
+				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey);
+
+				if (hub == null)
+				{
+					throw new ApplicationUserException("The hub with the key: " + hubKey + " could not be found.");
+				}
+
+				if (isAdmin)
+				{
+					return DexihHubUser.EPermission.Owner;
+				}
+
+				var hubUser =
+					await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id);
+
+				if (hubUser.Permission == DexihHubUser.EPermission.Suspended ||
+				    hubUser.Permission == DexihHubUser.EPermission.None)
+				{
+					throw new ApplicationUserException($"The users does not have access to the hub with key {hubKey}.");
+				}
+				else
+				{
+					return hubUser.Permission;
+				}
+			});
+
+			return validate;
+		}
+		
+		#endregion
+		
+		
 		public string ApplyNamingStandard(string name, string param1)
 		{
 			if (_namingStandards.ContainsKey(name))
@@ -664,7 +836,7 @@ namespace dexih.operations
 				dbConnection.HubKey = hubKey;
 				dbConnection.IsValid = true;
 
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 				
 				var dbConnection2 = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == dbConnection.ConnectionKey);
 
@@ -700,7 +872,7 @@ namespace dexih.operations
                     }
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbConnections;
             }
@@ -850,7 +1022,7 @@ namespace dexih.operations
 					) && (x.State == EntityState.Added || x.State == EntityState.Modified));
 				entities.Select(c => { c.State = EntityState.Unchanged; return c; }).ToList();
 
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 				return savedTables.ToArray();
 			}
             catch (Exception ex)
@@ -885,7 +1057,7 @@ namespace dexih.operations
                     }
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbTables;
             }
@@ -910,7 +1082,7 @@ namespace dexih.operations
                     table.IsShared = isShared;
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbTables;
             }
@@ -979,85 +1151,6 @@ namespace dexih.operations
 
         #region Datalink Functions
 		
-        public async Task<DexihDatalink> GetDatalink(long hubKey, long datalinkKey)
-        {
-	        var datalinks = await GetDatalinks(hubKey, new[] {datalinkKey});
-
-	        if (datalinks.Any())
-	        {
-		        return datalinks[0];
-	        }
-
-	        throw new RepositoryManagerException($"The datalink the key {datalinkKey} could not be found.");
-        }
-		
-		public async Task<DexihDatalink[]> GetDatalinks(long hubKey, IEnumerable<long> datalinkKeys)
-		{
-            try
-            {
-	            var datalinks = await DbContext.DexihDatalinks
-		            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkKeys.Contains(c.DatalinkKey))
-		            .ToArrayAsync();
-
-	            var datalinkTableKeys = datalinks.Select(c => c.SourceDatalinkTableKey).ToList();
-
-	            await DbContext.DexihDatalinkProfiles
-		            // .Include(c => c.ProfileRule)
-		            .Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == hubKey && datalinkKeys.Contains(c.DatalinkKey))
-		            .LoadAsync();
-
-	            var transforms = await DbContext.DexihDatalinkTransforms
-		            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkKeys.Contains(c.DatalinkKey))
-		            .ToArrayAsync();
-
-	            var datalinkTransformKeys = transforms.Select(c => c.DatalinkTransformKey);
-
-	            var transformItems = await DbContext.DexihDatalinkTransformItems
-		            // .Include(c => c.StandardFunction)
-		            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkTransformKeys.Contains(c.DatalinkTransformKey))
-		            .OrderBy(c => c.Dt.Datalink.HubKey).ThenBy(c => c.Dt.DatalinkTransformKey)
-		            .ThenBy(c => c.DatalinkTransformItemKey)
-		            .ToArrayAsync();
-
-                var transformItemKeys = transformItems.Select(c => c.DatalinkTransformItemKey);
-
-	            var parameters = await DbContext.DexihFunctionParameters
-		            .Where(c => c.IsValid && c.HubKey == hubKey && transformItemKeys.Contains(c.DatalinkTransformItemKey))
-		            .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
-		            .ToArrayAsync();
-
-	            datalinkTableKeys.AddRange(transforms.Where(c => c.JoinDatalinkTableKey != null).Select(c => c.JoinDatalinkTableKey.Value));
-
-	            if (datalinkTableKeys.Any())
-	            {
-		            await DbContext.DexihDatalinkTables
-			            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkTableKeys.Contains(c.DatalinkTableKey))
-			            .LoadAsync();
-
-		            await DbContext.DexihDatalinkColumns
-			            .Where(c => c.IsValid && c.HubKey == hubKey && c.DatalinkTableKey != null && datalinkTableKeys.Contains((long)c.DatalinkTableKey))
-			            .LoadAsync();
-	            }
-
-	            var datalinkColumnKeys = transformItems.Where(c => c.SourceDatalinkColumnKey != null).Select(c => c.SourceDatalinkColumnKey).ToList();
-	            datalinkColumnKeys.AddRange(transformItems.Where(c => c.TargetDatalinkColumnKey != null).Select(c => c.TargetDatalinkColumnKey));
-	            datalinkColumnKeys.AddRange(parameters.Where(c => c.DatalinkColumnKey != null).Select(c => c.DatalinkColumnKey));
-
-	            if (datalinkColumnKeys.Any())
-	            {
-		            await DbContext.DexihDatalinkColumns
-			            .Where(c => c.IsValid && c.HubKey == hubKey && datalinkColumnKeys.Contains(c.DatalinkColumnKey))
-			            .LoadAsync();
-	            }
-
-	            return datalinks;
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryManagerException($"Get datalinks with keys {string.Join(", ", datalinkKeys)} failed.  {ex.Message}", ex);
-            }
-
-        }
 
         /// <summary>
         /// This looks at the table attributes and attempts the best strategy.
@@ -1124,7 +1217,8 @@ namespace dexih.operations
                     }
                     else 
                     {
-                        var existingDatalink = await GetDatalink(hubKey, datalink.DatalinkKey);
+	                    var cacheManager = new CacheManager(hubKey, "");
+                        var existingDatalink = await cacheManager.GetDatalink(datalink.DatalinkKey, DbContext);
 
                         // get columns from the repository instance, and merge the tracked instances into the new one.
                         var existingColumns = existingDatalink.GetAllDatalinkColumns();
@@ -1156,7 +1250,7 @@ namespace dexih.operations
                    //.Select(x => x)
                    //.ToList();
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
                 //await DbContext.DexihUpdateStrategies.LoadAsync();
 				 return savedDatalinks.ToArray();
 			}
@@ -1170,7 +1264,8 @@ namespace dexih.operations
 		{
 			try
 			{
-				var dbDatalinks = await GetDatalinks(hubKey, datalinkKeys);
+				var cache = new CacheManager(hubKey, "");
+				var dbDatalinks = await cache.GetDatalinks(datalinkKeys, DbContext);
 
 				foreach (var dbDatalink in dbDatalinks)
 				{
@@ -1209,7 +1304,7 @@ namespace dexih.operations
 					}).ToList();
 				}
 
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 
 				return dbDatalinks;
 			}
@@ -1223,14 +1318,15 @@ namespace dexih.operations
         {
             try
             {
-	            var dbDatalinks = await GetDatalinks(hubKey, datalinkKeys); 
+	            var cache = new CacheManager(hubKey, "");
+	            var dbDatalinks = await cache.GetDatalinks(datalinkKeys, DbContext); 
 	                
                 foreach (var dbDatalink in dbDatalinks)
                 {
                     dbDatalink.IsShared = isShared;
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbDatalinks;
             }
@@ -1519,7 +1615,7 @@ namespace dexih.operations
 					}
 				}
 
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 				return savedDatajobs.ToArray();
 			}
             catch (Exception ex)
@@ -1559,7 +1655,7 @@ namespace dexih.operations
 					}
 				}
 
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 				return true;
 			}
             catch (Exception ex)
@@ -1597,6 +1693,7 @@ namespace dexih.operations
                 {
 	                remoteAgent.LastLoginDate = DateTime.Now;
 	                remoteAgent.IpAddresses = new [] { iPAddress };
+	                // await SaveHubChangesAsync(hubKey);
 	                await DbContext.SaveChangesAsync();
 	                
                     return remoteAgent;
@@ -1655,7 +1752,7 @@ namespace dexih.operations
 
                 dbRemoteAgent.IsValid = true;
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbRemoteAgent;
             }
@@ -1674,7 +1771,7 @@ namespace dexih.operations
                     .SingleAsync(c => c.HubKey == hubKey && c.RemoteAgentKey == remoteAgentKey);
 
                 dbItem.IsValid = false;
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return true;
             }
@@ -1889,7 +1986,7 @@ namespace dexih.operations
                     }
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbValidations;
             }
@@ -1937,7 +2034,7 @@ namespace dexih.operations
 				dbColumnValidation.HubKey = hubKey;
 				dbColumnValidation.IsValid = true;
 
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 
 				return dbColumnValidation;
 			}
@@ -1960,7 +2057,7 @@ namespace dexih.operations
 	                function.IsValid = false;
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbFunctions;
             }
@@ -2014,7 +2111,7 @@ namespace dexih.operations
 				.Select(x => x)
 				.ToList();
 				
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 
 				return dbFunction;
 			}
@@ -2037,7 +2134,7 @@ namespace dexih.operations
                     fileformat.IsValid = false;
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbFileFormats;
             }
@@ -2084,7 +2181,7 @@ namespace dexih.operations
 
 				dbFileFormat.IsValid = true;
 
-				await SaveChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey);
 
 				return dbFileFormat;
 			}
@@ -2107,7 +2204,7 @@ namespace dexih.operations
                     hubVariable.IsValid = false;
                 }
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbHubVariables;
             }
@@ -2154,7 +2251,7 @@ namespace dexih.operations
 
                 dbHubVariable.IsValid = true;
 
-                await SaveChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey);
 
                 return dbHubVariable;
             }
@@ -3059,7 +3156,7 @@ namespace dexih.operations
 				}
 			}
 
-			await SaveChangesAsync(import.HubKey, CancellationToken.None);
+			await SaveHubChangesAsync(import.HubKey, CancellationToken.None);
 
 		}
 

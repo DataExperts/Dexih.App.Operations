@@ -19,10 +19,10 @@ namespace dexih.operations
         public string GoogleClientId { get; set; }
         public string MicrosoftClientId { get; set; }
 
-		public CacheManager()
-		{
-			
-		}
+//		public CacheManager()
+//		{
+//			
+//		}
 
         public CacheManager(long hubKey, string cacheEncryptionKey)
         {
@@ -412,8 +412,7 @@ namespace dexih.operations
 
         public async Task AddDatalinks(IEnumerable<long> datalinkKeys, DexihRepositoryContext dbContext)
         {
-            var repoManager = new RepositoryManager(CacheEncryptionKey, dbContext);
-            var datalinks = await repoManager.GetDatalinks(HubKey, datalinkKeys);
+            var datalinks = await GetDatalinks(datalinkKeys, dbContext);
             
             foreach (var datalink in datalinks)
             {
@@ -500,6 +499,86 @@ namespace dexih.operations
                     DexihHub.DexihCustomFunctions.Add(customFunction);
                 }
             }
+        }
+        
+		public async Task<DexihDatalink> GetDatalink(long datalinkKey, DexihRepositoryContext dbContext)
+        {
+	        var datalinks = await GetDatalinks(new[] {datalinkKey}, dbContext);
+
+	        if (datalinks.Any())
+	        {
+		        return datalinks[0];
+	        }
+
+	        throw new RepositoryManagerException($"The datalink the key {datalinkKey} could not be found.");
+        }
+		
+		public async Task<DexihDatalink[]> GetDatalinks(IEnumerable<long> datalinkKeys, DexihRepositoryContext dbContext)
+		{
+            try
+            {
+	            var datalinks = await dbContext.DexihDatalinks
+		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .ToArrayAsync();
+
+	            var datalinkTableKeys = datalinks.Select(c => c.SourceDatalinkTableKey).ToList();
+
+	            await dbContext.DexihDatalinkProfiles
+		            // .Include(c => c.ProfileRule)
+		            .Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .LoadAsync();
+
+	            var transforms = await dbContext.DexihDatalinkTransforms
+		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .ToArrayAsync();
+
+	            var datalinkTransformKeys = transforms.Select(c => c.DatalinkTransformKey);
+
+	            var transformItems = await dbContext.DexihDatalinkTransformItems
+		            // .Include(c => c.StandardFunction)
+		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkTransformKeys.Contains(c.DatalinkTransformKey))
+		            .OrderBy(c => c.Dt.Datalink.HubKey).ThenBy(c => c.Dt.DatalinkTransformKey)
+		            .ThenBy(c => c.DatalinkTransformItemKey)
+		            .ToArrayAsync();
+
+                var transformItemKeys = transformItems.Select(c => c.DatalinkTransformItemKey);
+
+	            var parameters = await dbContext.DexihFunctionParameters
+		            .Where(c => c.IsValid && c.HubKey == HubKey && transformItemKeys.Contains(c.DatalinkTransformItemKey))
+		            .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
+		            .ToArrayAsync();
+
+	            datalinkTableKeys.AddRange(transforms.Where(c => c.JoinDatalinkTableKey != null).Select(c => c.JoinDatalinkTableKey.Value));
+
+	            if (datalinkTableKeys.Any())
+	            {
+		            await dbContext.DexihDatalinkTables
+			            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkTableKeys.Contains(c.DatalinkTableKey))
+			            .LoadAsync();
+
+		            await dbContext.DexihDatalinkColumns
+			            .Where(c => c.IsValid && c.HubKey == HubKey && c.DatalinkTableKey != null && datalinkTableKeys.Contains((long)c.DatalinkTableKey))
+			            .LoadAsync();
+	            }
+
+	            var datalinkColumnKeys = transformItems.Where(c => c.SourceDatalinkColumnKey != null).Select(c => c.SourceDatalinkColumnKey).ToList();
+	            datalinkColumnKeys.AddRange(transformItems.Where(c => c.TargetDatalinkColumnKey != null).Select(c => c.TargetDatalinkColumnKey));
+	            datalinkColumnKeys.AddRange(parameters.Where(c => c.DatalinkColumnKey != null).Select(c => c.DatalinkColumnKey));
+
+	            if (datalinkColumnKeys.Any())
+	            {
+		            await dbContext.DexihDatalinkColumns
+			            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkColumnKeys.Contains(c.DatalinkColumnKey))
+			            .LoadAsync();
+	            }
+
+	            return datalinks;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Get datalinks with keys {string.Join(", ", datalinkKeys)} failed.  {ex.Message}", ex);
+            }
+
         }
     }
 }

@@ -86,9 +86,7 @@ namespace dexih.repository
 				{
 					((DexihBaseEntity)entity.Entity).CreateDate = DateTime.UtcNow;
 				}
-
 				((DexihBaseEntity)entity.Entity).UpdateDate = DateTime.UtcNow;
-
             }
 		}
 
@@ -676,41 +674,18 @@ namespace dexih.repository
                 entity.Property(e => e.FunctionParameterKey).HasColumnName("function_parameter_key");
 
                 entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
-
-				entity.Property(e => e.CreateDate)
-					  .HasColumnName("create_date");
-                    // .HasColumnType("datetime");
-
                 entity.Property(e => e.DatalinkTransformItemKey).HasColumnName("datalink_transform_item_key");
-
-                entity.Property(e => e.DataTypeString)
-                    .IsRequired()
-                    .HasColumnName("datatype")
-                    .HasColumnType("varchar(20)");
-
-                entity.Property(e => e.DirectionString)
-                    .IsRequired()
-                    .HasColumnName("direction")
-                    .HasColumnType("varchar(10)");
-
+                entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(20)");
+                entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(10)");
+                entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasColumnType("varchar(50)");
+                entity.Property(e => e.Value).HasColumnName("value").HasColumnType("varchar(1024)");
+                entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.IsArray).HasColumnName("is_array");
 
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
-                entity.Property(e => e.ParameterName)
-                    .IsRequired()
-                    .HasColumnName("parameter_name")
-                    .HasColumnType("varchar(50)");
-
-                entity.Property(e => e.Position).HasColumnName("position");
-
-				entity.Property(e => e.UpdateDate)
-					  .HasColumnName("update_date");
-                    // .HasColumnType("datetime");
-
-                entity.Property(e => e.Value)
-                    .HasColumnName("value")
-                    .HasColumnType("varchar(1024)");
 
                 entity.HasOne(d => d.DtItem)
                     .WithMany(p => p.DexihFunctionParameters)
@@ -740,7 +715,6 @@ namespace dexih.repository
 
                 entity.Property(e => e.AllowExternalConnect).HasColumnName("allow_external_connect");
 
-
                 entity.Property(e => e.IpAddressesString).HasColumnName("ip_addresses").HasColumnType("varchar(8000)");
                 entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasColumnType("varchar(50)");
                 entity.Property(e => e.IsAuthorized).HasColumnName("is_authorized");
@@ -763,28 +737,17 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihHubUser>(entity =>
             {
-                entity.HasKey(e => new { e.UserId, e.HubKey })
-                    .HasName("PK_UserHub<string>");
+                entity.HasKey(e => new { e.UserId, e.HubKey }).HasName("PK_UserHub");
 
                 entity.ToTable("dexih_hub_user");
 
                 entity.Property(e => e.UserId).HasMaxLength(450);
-
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.PermissionString).IsRequired().HasMaxLength(50);
 
-				entity.Property(e => e.CreateDate)
-					  .HasColumnName("create_date");
-                    // .HasColumnType("datetime");
-
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
-                entity.Property(e => e.PermissionString)
-                    .IsRequired()
-                    .HasMaxLength(50);
-
-				entity.Property(e => e.UpdateDate)
-					  .HasColumnName("update_date");
-                    // .HasColumnType("datetime");
 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihHubUsers)
@@ -871,44 +834,24 @@ namespace dexih.repository
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
 
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(250)");
-
                 entity.Property(e => e.ColumnValidationKey).HasColumnName("column_validation_key");
-
-
                 entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(50)");
-
                 entity.Property(e => e.DeltaTypeString).IsRequired().HasColumnName("delta_type").HasColumnType("varchar(50)");
-
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
-
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
-
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
-
                 entity.Property(e => e.IsUnique).HasColumnName("is_unique");
 
-                
-
                 entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasColumnType("varchar(250)");
-
                 entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasColumnType("varchar(1024)");
-
                 entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
-
                 entity.Property(e => e.MaxLength).HasColumnName("max_length");
-
                 entity.Property(e => e.Position).HasColumnName("position");
-
                 entity.Property(e => e.Precision).HasColumnName("precision");
-
                 entity.Property(e => e.Scale).HasColumnName("scale");
-
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
-
                 entity.Property(e => e.SecurityFlagString).HasColumnName("security_flag").HasColumnType("varchar(50)");
-
                 entity.Property(e => e.TableKey).HasColumnName("table_key");
-
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");

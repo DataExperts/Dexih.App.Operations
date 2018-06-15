@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Converters;
 using dexih.functions;
-using static dexih.functions.FunctionReference;
 using Dexih.Utils.CopyProperties;
 using static Dexih.Utils.DataType.DataType;
 using dexih.functions.Query;
@@ -16,7 +15,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections;
 using System.Diagnostics;
-using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
 using static dexih.functions.Query.SelectColumn;
 

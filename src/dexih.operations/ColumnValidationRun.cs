@@ -8,7 +8,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions.BuiltIn;
-using static dexih.functions.FunctionReference;
 using static dexih.repository.DexihColumnValidation;
 using static Dexih.Utils.DataType.DataType;
 

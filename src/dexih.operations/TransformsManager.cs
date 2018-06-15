@@ -345,9 +345,12 @@ namespace dexih.operations
 							foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
 							{
 								var columnValidation = hub.DexihColumnValidations.SingleOrDefault(c => c.ColumnValidationKey == column.ColumnValidationKey);
-                                var validation = new ColumnValidationRun(_transformSettings, columnValidation, hub);
-                                validation.DefaultValue = column.DefaultValue;
-                                var function = validation.GetValidationFunction(column.Name);
+							    var validation =
+							        new ColumnValidationRun(_transformSettings, columnValidation, hub)
+							        {
+							            DefaultValue = column.DefaultValue
+							        };
+							    var function = validation.GetValidationFunction(column.Name);
                                 transform.Functions.Add(function);
 							}
 						}

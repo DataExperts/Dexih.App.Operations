@@ -40,7 +40,7 @@ namespace dexih.repository
 
             for (var pos = 0; pos < value.Length; pos++)
             {
-                char character = value[pos];
+                var character = value[pos];
 
                 if (ignoreNext)
                 {

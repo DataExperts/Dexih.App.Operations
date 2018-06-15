@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using dexih.functions;
 using dexih.transforms;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;

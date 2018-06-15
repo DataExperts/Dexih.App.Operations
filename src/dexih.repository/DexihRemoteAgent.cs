@@ -4,8 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using dexih.transforms;
 using Dexih.Utils.CopyProperties;
-using Dexih.Utils.MessageHelpers;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace dexih.repository
 {

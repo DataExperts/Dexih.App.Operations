@@ -5,7 +5,6 @@ using System.Linq;
 using dexih.functions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using static dexih.functions.FunctionReference;
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 

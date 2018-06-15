@@ -1,9 +1,6 @@
-﻿using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+﻿using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using Dexih.Utils.CopyProperties;
-using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
