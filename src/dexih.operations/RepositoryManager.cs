@@ -23,32 +23,13 @@ namespace dexih.operations
 	/// </summary>
 	public class RepositoryManager : IDisposable
 	{
-		#region Events
-		/// <summary>
-		/// Tracks changes within a hub
-		/// </summary>
-		/// <param name="changeItems"></param>
-			public delegate void HubChange(Import changeItems);
-			public event HubChange OnHubChange;
-
-		/// <summary>
-		/// Tracks new/deleted/modify hub properties.
-		/// </summary>
-		/// <param name="changeItems"></param>
-		public delegate void HubsChange(ImportObjects<DexihHub> changeItems);
-		public event HubsChange OnHusbChange;
-
-			public delegate void HubUsersChange(long hubKey);
-			public event HubUsersChange OnHubUsersChange;
-
-		#endregion
-		
 		private string SystemEncryptionKey { get; set; }
 		private ILogger Logger { get; set; }
 
 		public DexihRepositoryContext DbContext { get; set; }
 		public IMemoryCache MemoryCache { get; set; }
 
+		public Func<Import, Task> HubChange;
 
 		private Dictionary<string, DexihSetting> _namingStandards;
 		private long _internalConnectionKey = 0;
@@ -57,13 +38,15 @@ namespace dexih.operations
 			 string systemEncryptionKey, 
              DexihRepositoryContext dbContext,
 			 IMemoryCache memoryCache,
-             ILoggerFactory loggerFactory
+             ILoggerFactory loggerFactory,
+			 Func<Import, Task> hubChange
             )
 		{
 			SystemEncryptionKey = systemEncryptionKey;
 			DbContext = dbContext;
 			MemoryCache = memoryCache;
 			Logger = loggerFactory.CreateLogger("RepositoryManager");
+			HubChange = hubChange;
 
 			if (memoryCache == null)
 			{
@@ -144,17 +127,22 @@ namespace dexih.operations
 				
 				if (isAdmin)
 				{
-					var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents)
-						.Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
+					var hubs = await DbContext.DexihHubs
+						.Include(c => c.DexihHubUsers)
+						.Include(c => c.DexihRemoteAgents)
+						.Where(c => !c.IsInternal && c.IsValid)
+						.ToArrayAsync();
 					return hubs;
 				}
 				else
 				{
 					var hubKeys = await DbContext.DexihHubUser
-						.Where(c => c.UserId == userId && c.Permission <= DexihHubUser.EPermission.FullReader &&
-						            c.IsValid)
+						.Where(c => c.UserId == userId && c.Permission <= DexihHubUser.EPermission.FullReader && c.IsValid)
 						.Select(c => c.HubKey).ToArrayAsync();
-					var hubs = await DbContext.DexihHubs.Include(c => c.DexihHubUsers).Include(c => c.DexihRemoteAgents)
+					
+					var hubs = await DbContext.DexihHubs
+						.Include(c => c.DexihHubUsers)
+						.Include(c => c.DexihRemoteAgents)
 						.Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid).ToArrayAsync();
 					return hubs;
 				}
@@ -433,7 +421,10 @@ namespace dexih.operations
 		        MemoryCache.Remove($"HUB-{hubKey}");
 		        
 		        // raise event to send changes back to client.
-		        OnHubChange?.Invoke(import);
+		        if (HubChange != null)
+		        {
+			        await HubChange.Invoke(import);
+		        }
 	        }
 
         }
@@ -443,7 +434,7 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public async Task<List<string>> GetHubUserIds(long hubKey)
+		public async Task<string[]> GetHubUserIds(long hubKey)
 		{
 			return await MemoryCache.GetOrCreateAsync($"HUBUSERIDS-{hubKey}", async entry =>
 			{
@@ -451,17 +442,23 @@ namespace dexih.operations
 
 				try
 				{
-					var adminId = await DbContext.Roles.SingleAsync(c => c.Name == "ADMINISTRATOR");
-					var adminUsers = await DbContext.UserRoles.Where(c => c.RoleId == adminId.Id).Select(c => c.UserId)
-						.ToListAsync();
+					var adminId = await DbContext.Roles
+						.SingleAsync(c => c.Name == "ADMINISTRATOR");
+					
+					var adminUsers = await DbContext.UserRoles
+						.Where(c => c.RoleId == adminId.Id)
+						.Select(c => c.UserId)
+						.ToArrayAsync();
+					
 					var hubUserIds = await DbContext.DexihHubUser
 						.Where(c => !adminUsers.Contains(c.UserId) && c.HubKey == hubKey && c.IsValid)
 						.Select(c => c.UserId).ToListAsync();
+					
 					hubUserIds.AddRange(adminUsers);
 
-					var hubUserNames =
-						await DbContext.Users.Where(c => hubUserIds.Contains(c.Id)).Select(c => c.Id)
-							.ToListAsync();
+					var hubUserNames = await DbContext.Users
+						.Where(c => hubUserIds.Contains(c.Id))
+						.Select(c => c.Id).ToArrayAsync();
 
 					return hubUserNames;
 				}

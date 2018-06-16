@@ -156,6 +156,7 @@ namespace dexih.operations
 			    DexihHub.DexihRemoteAgents = await dbContext.DexihRemoteAgents.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 
 				return DexihHub;
+				
 			} catch(Exception ex)
 			{
                 throw new CacheManagerException($"An error occurred trying to load the hub.  {ex.Message}", ex);

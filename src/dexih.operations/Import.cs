@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using dexih.repository;
 using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;
@@ -47,40 +48,47 @@ namespace dexih.operations
         /// <param name="operation"></param>
         public bool Add(object property, EImportAction operation)
         {
-            switch (property)
+            try
             {
-                case DexihHubVariable a:
-                    HubVariables.Add(a, operation);
-                    break;
-                case DexihDatajob a:
-                    Datajobs.Add(a, operation);
-                    break;
-                case DexihDatalink a:
-                    Datalinks.Add(a, operation);
-                    break;
-                case DexihConnection a:
-                    Connections.Add(a, operation);
-                    break;
-                case DexihTable a:
-                    Tables.Add(a, operation);
-                    break;
-                case DexihColumnValidation a:
-                    ColumnValidations.Add(a, operation);
-                    break;
-                case DexihCustomFunction a:
-                    CustomFunctions.Add(a, operation);
-                    break;
-                case DexihFileFormat a:
-                    FileFormats.Add(a, operation);
-                    break;
-                case DexihRemoteAgent a:
-                    RemoteAgents.Add(a, operation);
-                    break;
-                default:
-                    return false;
-            }
 
-            return true;
+                switch (property)
+                {
+                    case DexihHubVariable a:
+                        HubVariables.Add(a, operation);
+                        break;
+                    case DexihDatajob a:
+                        Datajobs.Add(a, operation);
+                        break;
+                    case DexihDatalink a:
+                        Datalinks.Add(a, operation);
+                        break;
+                    case DexihConnection a:
+                        Connections.Add(a, operation);
+                        break;
+                    case DexihTable a:
+                        Tables.Add(a, operation);
+                        break;
+                    case DexihColumnValidation a:
+                        ColumnValidations.Add(a, operation);
+                        break;
+                    case DexihCustomFunction a:
+                        CustomFunctions.Add(a, operation);
+                        break;
+                    case DexihFileFormat a:
+                        FileFormats.Add(a, operation);
+                        break;
+                    case DexihRemoteAgent a:
+                        RemoteAgents.Add(a, operation);
+                        break;
+                    default:
+                        return false;
+                }
+
+                return true;
+            } catch (Exception ex)
+            {
+                throw new AggregateException($"Failed to add item.  {ex.Message}", ex);
+            }
         }
 
         public bool Any()
