@@ -27,6 +27,7 @@ namespace dexih.repository
 
         public virtual ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
 
+        [JsonIgnore, CopyIgnore]
         public virtual ICollection<DexihDatalinkDependency> DexihDatalinkDependentSteps { get; set; }
 
         [JsonIgnore, CopyIgnore]
