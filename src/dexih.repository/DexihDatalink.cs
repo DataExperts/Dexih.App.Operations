@@ -287,6 +287,14 @@ namespace dexih.repository
                         {
                             columns[param.DatalinkColumn.DatalinkColumnKey] = param.DatalinkColumn;
                         }
+
+                        foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null))
+                        {
+                            if (!columns.ContainsKey(paramArray.DatalinkColumn.DatalinkColumnKey))
+                            {
+                                columns[paramArray.DatalinkColumn.DatalinkColumnKey] = paramArray.DatalinkColumn;
+                            }
+                        }
                     }
                 }
             }
@@ -358,10 +366,21 @@ namespace dexih.repository
                         item.TargetDatalinkColumn = columns[item.TargetDatalinkColumn.DatalinkColumnKey];
                     }
 
-					foreach (var param in item.DexihFunctionParameters.Where(c => c.DatalinkColumn != null && columns.ContainsKey(c.DatalinkColumn.DatalinkColumnKey)))
+					foreach (var param in item.DexihFunctionParameters)
                     {
-                        param.DatalinkColumnKey = param.DatalinkColumn.DatalinkColumnKey > 0 ? param.DatalinkColumn.DatalinkColumnKey : 0;
-						param.DatalinkColumn = columns[param.DatalinkColumn.DatalinkColumnKey];
+                        if (param.DatalinkColumn != null && columns.ContainsKey(param.DatalinkColumn.DatalinkColumnKey))
+                        {
+                            param.DatalinkColumnKey = param.DatalinkColumn.DatalinkColumnKey > 0
+                                ? param.DatalinkColumn.DatalinkColumnKey
+                                : 0;
+                            param.DatalinkColumn = columns[param.DatalinkColumn.DatalinkColumnKey];
+                        }
+
+                        foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null && columns.ContainsKey(c.DatalinkColumn.DatalinkColumnKey)))
+                        {
+                            paramArray.DatalinkColumnKey = paramArray.DatalinkColumn.DatalinkColumnKey > 0 ? paramArray.DatalinkColumn.DatalinkColumnKey : 0;
+                            paramArray.DatalinkColumn = columns[paramArray.DatalinkColumn.DatalinkColumnKey];
+                        }
                     }
                 }
             }

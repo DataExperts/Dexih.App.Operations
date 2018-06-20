@@ -637,6 +637,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
                 
                 entity.Property(e => e.MatchHeaderRecord).HasColumnName("match_header_record");
+                entity.Property(e => e.SkipHeaderRows).HasColumnName("skip_header_rows");
                 entity.Property(e => e.AllowComments).HasColumnName("allow_comments");
                 entity.Property(e => e.BufferSize).HasColumnName("buffer_size");
                 entity.Property(e => e.Comment).HasColumnName("comment").HasColumnType("char(1)");
@@ -653,6 +654,7 @@ namespace dexih.repository
                 entity.Property(e => e.TrimFields).HasColumnName("trim_fields");
                 entity.Property(e => e.TrimHeaders).HasColumnName("trim_headers");
                 entity.Property(e => e.WillThrowOnMissingField).HasColumnName("will_throw_on_missing_field");
+                entity.Property(e => e.SetWhiteSpaceCellsToNull).HasColumnName("set_white_space_cells_to_null");
 
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
@@ -660,7 +662,7 @@ namespace dexih.repository
 
 				entity.HasOne(d => d.Hub)
 					  .WithMany(p => p.DexihFileFormats)
-                    	.HasForeignKey(d => d.HubKey);
+                    .HasForeignKey(d => d.HubKey);
             });
 
             modelBuilder.Entity<DexihFunctionParameter>(entity =>
@@ -686,7 +688,6 @@ namespace dexih.repository
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
-
                 entity.HasOne(d => d.DtItem)
                     .WithMany(p => p.DexihFunctionParameters)
                     .HasForeignKey(d => d.DatalinkTransformItemKey)
@@ -697,7 +698,34 @@ namespace dexih.repository
                     .WithMany(p => p.DexihFunctionParameterColumn)
                     .HasForeignKey(d => d.DatalinkColumnKey)
                     .HasConstraintName("FK_dexih_function_parameters_dexih_table_columns");
+            });
+            
+            modelBuilder.Entity<DexihFunctionArrayParameter>(entity =>
+            {
+                entity.HasKey(e => e.FunctionArrayParameterKey).HasName("PK_dexih_function_array_param_key");
 
+                entity.ToTable("dexih_function_array_parameters");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.FunctionArrayParameterKey).HasColumnName("function_parameter_array_key");
+                entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
+                entity.Property(e => e.FunctionParameterKey).HasColumnName("function_parameter_key");
+                entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasColumnType("varchar(50)");
+                entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(20)");
+                entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(10)");
+                entity.Property(e => e.Position).HasColumnName("position");
+                entity.Property(e => e.IsArray).HasColumnName("is_array");
+
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.FunctionParameter)
+                    .WithMany(p => p.ArrayParameters)
+                    .HasForeignKey(d => d.FunctionParameterKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_function_array_parameter");
+                
 
             });
 
@@ -976,6 +1004,7 @@ namespace dexih.repository
         public virtual DbSet<DexihDatalink> DexihDatalinks { get; set; }
         public virtual DbSet<DexihFileFormat> DexihFileFormat { get; set; }
         public virtual DbSet<DexihFunctionParameter> DexihFunctionParameters { get; set; }
+	    public virtual DbSet<DexihFunctionArrayParameter> DexihFunctionArrayParameters { get; set; }
         public virtual DbSet<DexihRemoteAgent> DexihRemoteAgents { get; set; }
         public virtual DbSet<DexihSetting> DexihSettings { get; set; }
         public virtual DbSet<DexihHubUser> DexihHubUser { get; set; }

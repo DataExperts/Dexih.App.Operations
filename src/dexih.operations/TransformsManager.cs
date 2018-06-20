@@ -196,7 +196,7 @@ namespace dexih.operations
         }
 
 
-		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable)
+		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, bool previewMode)
 		{
             try
             {
@@ -208,7 +208,7 @@ namespace dexih.operations
                         {
                             throw new TransformManagerException($"The source datalink with the key {datalinkTable.SourceDatalinkKey.Value} was not found");
                         }
-                        var result = CreateRunPlan(hub, datalink, null, null, false);
+                        var result = CreateRunPlan(hub, datalink, null, null, false, previewMode: previewMode);
                         result.sourceTransform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
                         return result;
 
@@ -238,7 +238,7 @@ namespace dexih.operations
                             var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
                             var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
                             var sourceTable = sourceDbTable.GetTable(sourceConnection, _transformSettings);
-                            var transform = sourceConnection.GetTransformReader(sourceTable);
+                            var transform = sourceConnection.GetTransformReader(sourceTable, previewMode);
                             transform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
                             return (transform, sourceTable);
                         }
@@ -271,7 +271,7 @@ namespace dexih.operations
             }
         }
 
-        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null) //Last datatransform key is used to preview the output of a specific transform in the series.
+        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null, bool previewMode = false) //Last datatransform key is used to preview the output of a specific transform in the series.
         {
             try
             {
@@ -279,7 +279,7 @@ namespace dexih.operations
 
                 var timer = Stopwatch.StartNew();
                 
-				var primaryTransformResult = GetSourceTransform(hub, datalink.SourceDatalinkTable);
+				var primaryTransformResult = GetSourceTransform(hub, datalink.SourceDatalinkTable, previewMode);
 				var primaryTransform = primaryTransformResult.sourceTransform;
 				var sourceTable = primaryTransformResult.sourceTable;
 				foreach(var column in primaryTransform.CacheTable.Columns)
@@ -363,7 +363,7 @@ namespace dexih.operations
 					Transform referenceTransform = null;
 					if(datalinkTransform.JoinDatalinkTable != null) 
 					{
-						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable);
+						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, previewMode);
 						referenceTransform = joinTransformResult.sourceTransform;
 					}
                     

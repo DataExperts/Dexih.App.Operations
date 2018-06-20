@@ -176,6 +176,33 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
+		private Parameter ConvertParameter(DexihFunctionParameterBase parameter, bool isArray)
+		{
+			var newParameter = new Parameter()
+			{
+				Column = parameter.DatalinkColumn?.GetTableColumn(),
+				DataType = parameter.DataType,
+				IsColumn = parameter.DatalinkColumn != null,
+				Name = parameter.ParameterName,
+				IsArray = isArray
+			};
+			
+			try
+			{
+				newParameter.SetValue(parameter.Value);
+			}
+			catch (Exception ex)
+			{
+#if DEBUG
+				throw new RepositoryException($"Failed to set parameter {parameter.ParameterName} with value {parameter.Value}.  {ex.Message}", ex);
+#else
+						throw new RepositoryException($"Failed to set parameter {parameter.ParameterName}.  {ex.Message}", ex);
+#endif
+			}
+
+			return newParameter;
+		}
+		
         /// <summary>
         /// Creates a reference to a compiled version of the mapping function.
         /// </summary>
@@ -192,38 +219,38 @@ namespace dexih.repository
 					throw new RepositoryException("The datalink transform item is not a custom function");
 				}
 
+				ICollection<Parameter> arrayParameters = null;
+
 				//create the input & output parameters
 				var inputs = new List<Parameter>();
 				var outputs = new List<Parameter>();
 
 				foreach (var parameter in DexihFunctionParameters)
 				{
-					var newParameter = new Parameter()
+					if (parameter.IsArray)
 					{
-						Column = parameter.DatalinkColumn?.GetTableColumn(),
-						DataType = parameter.DataType,
-						IsArray = parameter.IsArray,
-						IsColumn = parameter.DatalinkColumn != null,
-						Name = parameter.ParameterName,
-					};
+						arrayParameters = new List<Parameter>();
+						foreach (var arrayParameter in parameter.ArrayParameters)
+						{
+							var newParameter = ConvertParameter(arrayParameter, true);
+							arrayParameters.Add(newParameter);
+							if (parameter.Direction == DexihParameterBase.EParameterDirection.Input)
+								inputs.Add(newParameter);
+							else
+								outputs.Add(newParameter);
 
-					try
-					{
-						newParameter.SetValue(parameter.Value);
+						}
 					}
-					catch (Exception ex)
+					else
 					{
-#if DEBUG
-						throw new RepositoryException($"Failed to set parameter {parameter.ParameterName} with value {parameter.Value}.  {ex.Message}", ex);
-#else
-						throw new RepositoryException($"Failed to set parameter {parameter.ParameterName}.  {ex.Message}", ex);
-#endif
+						var newParameter = ConvertParameter(parameter, false);
+
+						if (parameter.Direction == DexihParameterBase.EParameterDirection.Input)
+							inputs.Add(newParameter);
+						else
+							outputs.Add(newParameter);
 					}
 
-                    if (parameter.Direction == DexihParameterBase.EParameterDirection.Input)
-                        inputs.Add(newParameter);
-                    else
-                        outputs.Add(newParameter);
                 }
 
                 var inputsArray = inputs.ToArray();
@@ -234,7 +261,7 @@ namespace dexih.repository
 				if (!string.IsNullOrEmpty(FunctionClassName))
 				{
 					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction();
-                }
+				}
                 else
 				{
 					var generatedClass = CreateFunctionCode(inputsArray, outputsArray, hub, createConsoleSample);
@@ -293,6 +320,15 @@ namespace dexih.repository
                     }
 
                 }
+
+				// if the function has an arrayparamters property then set it.  This give the function access to the 
+				// columns that are used, and is specifically used by the column_to_rows function.
+				var arrayParameterProperty = function.ObjectReference.GetType().GetProperties().SingleOrDefault(c => c.Name == "ArrayParameters");
+				if (arrayParameterProperty != null && arrayParameters != null)
+				{
+					arrayParameterProperty.SetValue(function.ObjectReference, arrayParameters.ToArray());
+				}
+
 
                 function.Inputs = inputsArray;
                 function.Outputs = outputsArray;

@@ -20,6 +20,7 @@ namespace dexih.repository
         public bool IsDefault { get; set; }
 
         public bool MatchHeaderRecord { get; set; } = true;
+        public int SkipHeaderRows { get; set; } = 0;
 
         public bool AllowComments { get; set; } = false;
         public int BufferSize { get; set; } = 2048;
@@ -59,6 +60,7 @@ namespace dexih.repository
         public bool TrimFields { get; set; } = false;
         public bool TrimHeaders { get; set; } = false;
         public bool WillThrowOnMissingField { get; set; } = true;
+        public bool SetWhiteSpaceCellsToNull { get; set; } = true;
 
         [JsonIgnore, CopyIgnore]
         public virtual ICollection<DexihTable> DexihTables { get; set; }

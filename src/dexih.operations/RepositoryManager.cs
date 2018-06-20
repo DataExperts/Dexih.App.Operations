@@ -29,9 +29,8 @@ namespace dexih.operations
 		public DexihRepositoryContext DbContext { get; set; }
 		public IMemoryCache MemoryCache { get; set; }
 
-		public Func<Import, Task> HubChange;
+		public readonly Func<Import, Task> HubChange;
 
-		private Dictionary<string, DexihSetting> _namingStandards;
 		private long _internalConnectionKey = 0;
 
 		public RepositoryManager(
@@ -417,7 +416,7 @@ namespace dexih.operations
 	        
 	        if (import.Any())
 	        {
-		        // TODO: Might be better for performance to merge changes into cache.
+		        // TODO: Better for performance to merge changes into cache, but leaving for now as do not want to risk out of sync scenarios
 		        MemoryCache.Remove($"HUB-{hubKey}");
 		        
 		        // raise event to send changes back to client.
@@ -751,34 +750,34 @@ namespace dexih.operations
 		#endregion
 		
 		
-		public string ApplyNamingStandard(string name, string param1)
-		{
-			if (_namingStandards.ContainsKey(name))
-			{
-				var setting = _namingStandards[name];
-				return setting.Value.Replace("{0}", param1);
-			}
-			else
-			{
-				throw new RepositoryManagerException($"The naming standard for the name \"{name}\" with parameter \"{param1}\" could not be found.");
-			}
-		}
-
-		/// <summary>
-		/// Cache the naming standards records.
-		/// </summary>
-		/// <returns></returns>
-		private async Task LoadNamingStandards()
-		{
-			try
-			{
-				_namingStandards = await DbContext.DexihSettings.Where(c => c.Category == "Naming").ToDictionaryAsync(n => n.Name);
-			}
-            catch (Exception ex)
-            {
-                throw new RepositoryManagerException($"Loading naming standards failed.  {ex.Message}", ex);
-            }
-        }
+//		public string ApplyNamingStandard(string name, string param1)
+//		{
+//			if (_namingStandards.ContainsKey(name))
+//			{
+//				var setting = _namingStandards[name];
+//				return setting.Value.Replace("{0}", param1);
+//			}
+//			else
+//			{
+//				throw new RepositoryManagerException($"The naming standard for the name \"{name}\" with parameter \"{param1}\" could not be found.");
+//			}
+//		}
+//
+//		/// <summary>
+//		/// Cache the naming standards records.
+//		/// </summary>
+//		/// <returns></returns>
+//		private async Task LoadNamingStandards()
+//		{
+//			try
+//			{
+//				_namingStandards = await DbContext.DexihSettings.Where(c => c.Category == "Naming").ToDictionaryAsync(n => n.Name);
+//			}
+//            catch (Exception ex)
+//            {
+//                throw new RepositoryManagerException($"Loading naming standards failed.  {ex.Message}", ex);
+//            }
+//        }
 
         #region Connection Functions
         public async Task<DexihConnection> SaveConnection(long hubKey, DexihConnection connection)
@@ -835,9 +834,9 @@ namespace dexih.operations
 
 				await SaveHubChangesAsync(hubKey);
 				
-				var dbConnection2 = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == dbConnection.ConnectionKey);
+				// var dbConnection2 = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == dbConnection.ConnectionKey);
 
-				return dbConnection2;
+				return dbConnection;
 			}
             catch (Exception ex)
             {
@@ -1002,6 +1001,7 @@ namespace dexih.operations
 							}
 
 							table.CopyProperties(dbTable, false);
+							dbTable.UpdateDate = DateTime.Now; // chnage update date to force table to become modified entity.
 							savedTables.Add(dbTable);
 						}
 					}
@@ -1236,6 +1236,7 @@ namespace dexih.operations
 
                         datalink.CopyProperties(existingDatalink);
                         existingDatalink.ResetDatalinkColumns();
+	                    existingDatalink.UpdateDate = DateTime.Now;
                         savedDatalinks.Add(existingDatalink);
                     } 
                 }
@@ -1276,6 +1277,11 @@ namespace dexih.operations
 							i.DexihFunctionParameters.Select(p =>
 							{
 								p.IsValid = false;
+								p.ArrayParameters.Select(ap =>
+								{
+									ap.IsValid = false;
+									return ap;
+								}).ToList();
 								return p;
 							}).ToList();
 							return i;
@@ -1342,13 +1348,14 @@ namespace dexih.operations
 	        string targetTableName, 
 	        long? auditConnectionKey, 
 	        bool addSourceColumns,
-	        EDeltaType[] auditColumns)
+	        EDeltaType[] auditColumns,
+	        NamingStandards namingStandards)
 		{
 			try
 			{
-				if (_namingStandards == null)
+				if (namingStandards == null)
 				{
-					await LoadNamingStandards();
+					namingStandards = new NamingStandards();
 				}
 
 				var newDatalinks = new List<DexihDatalink>();
@@ -1391,7 +1398,7 @@ namespace dexih.operations
 					if (string.IsNullOrEmpty(newDatalinkName))
 					{
 						var count = 0;
-						var baseName = ApplyNamingStandard(datalinkType + ".Datalink.Name", sourceTable.Name);
+						var baseName = namingStandards.ApplyNamingStandard(datalinkType + ".Datalink.Name", sourceTable.Name);
 						string[] newName = {baseName};
 						while (await DbContext.DexihDatalinks.AnyAsync(c => c.HubKey == hubKey && c.Name == newName[0] && c.IsValid))
 						{
@@ -1444,7 +1451,7 @@ namespace dexih.operations
 	                    }
 	                    else
 	                    {
-		                    targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns);
+		                    targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns, namingStandards);
 		                    datalink.TargetTable = targetTable;
 		                    datalink.VirtualTargetTable = false;
 	                    }
@@ -1493,7 +1500,7 @@ namespace dexih.operations
 
 					datalink.DexihDatalinkTransforms.Add(datalinkTransform);
 
-                    datalink.ProfileTableName = ApplyNamingStandard("Table.ProfileName", targetTableName);
+                    datalink.ProfileTableName = namingStandards.ApplyNamingStandard("Table.ProfileName", targetTableName);
 
                     newDatalinks.Add(datalink);
 				}
@@ -1607,6 +1614,7 @@ namespace dexih.operations
 						else 
 						{
 							datajob.CopyProperties(originalDatajob);
+							originalDatajob.UpdateDate = DateTime.Now;
 							savedDatajobs.Add(originalDatajob);
 						}
 					}
@@ -1813,17 +1821,17 @@ namespace dexih.operations
 	        string tableName, 
 	        DexihConnection targetConnection,
 	        bool addSourceColumns,
-	        EDeltaType[] auditColumns)
+	        EDeltaType[] auditColumns,
+	        NamingStandards namingStandards)
 		{
             try
             {
                 DexihTable table = null;
 
-                if (_namingStandards == null)
+                if (namingStandards == null)
                 {
-                    await LoadNamingStandards();
+                    namingStandards = new NamingStandards();
                 }
-
             
 	            var position = 1;
 
@@ -1846,14 +1854,14 @@ namespace dexih.operations
 						Name = tableName,
                         BaseTableName = tableName,
                         LogicalName = tableName,
-                        Description = ApplyNamingStandard(datalinkType + ".Table.Description", tableName),
+                        Description = namingStandards.ApplyNamingStandard(datalinkType + ".Table.Description", tableName),
                         RejectedTableName = "",
                     };
                 }
                 else
                 {
 					var count = 0;
-					var baseName = ApplyNamingStandard(datalinkType + ".Table.Name", sourceTable.BaseTableName);
+					var baseName = namingStandards.ApplyNamingStandard(datalinkType + ".Table.Name", sourceTable.BaseTableName);
 					var newName = baseName;
 					while (await DbContext.DexihTables.AnyAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnection.ConnectionKey && c.Name == newName && c.IsValid))
 					{
@@ -1872,8 +1880,8 @@ namespace dexih.operations
                         Name = newName,
                         BaseTableName = sourceTable.Name,
                         LogicalName = sourceTable.LogicalName,
-                        Description = ApplyNamingStandard(datalinkType + ".Table.Description", sourceTable.BaseTableName),
-                        RejectedTableName = ApplyNamingStandard("Table.RejectName", sourceTable.BaseTableName),
+                        Description = namingStandards.ApplyNamingStandard(datalinkType + ".Table.Description", sourceTable.BaseTableName),
+                        RejectedTableName = namingStandards.ApplyNamingStandard("Table.RejectName", sourceTable.BaseTableName),
                     };
 	                
 	                //columns in the source table are added to the target table
@@ -1896,7 +1904,7 @@ namespace dexih.operations
 	                // if there is a surrogate key in the source table, then map it to a column to maintain lineage.
 	                if (sourceTable.DexihTableColumns.Count(c => c.DeltaType == TableColumn.EDeltaType.SurrogateKey) > 0)
 	                {
-		                table.DexihTableColumns.Add(NewDefaultTableColumn("SourceSurrogateKey", table.Name, ETypeCode.Int64, EDeltaType.SourceSurrogateKey, position++));
+		                table.DexihTableColumns.Add(NewDefaultTableColumn("SourceSurrogateKey", namingStandards, table.Name, ETypeCode.Int64, EDeltaType.SourceSurrogateKey, position++));
 	                }
                 }
 
@@ -1908,7 +1916,7 @@ namespace dexih.operations
 		            {
 			            var dataType = TableColumn.GetDeltaDataType(auditColumn);
 			            var newColumn =
-				            NewDefaultTableColumn(auditColumn.ToString(), table.Name, dataType, auditColumn, position++);
+				            NewDefaultTableColumn(auditColumn.ToString(), namingStandards, table.Name, dataType, auditColumn, position++);
 
 			            // ensure the name is unique.
 			            string[] baseName = {newColumn.Name};
@@ -1934,22 +1942,17 @@ namespace dexih.operations
         }
 
 
-        private DexihTableColumn NewDefaultTableColumn(string namingStandard, string tableName, ETypeCode dataType, EDeltaType deltaType, int position)
+        private DexihTableColumn NewDefaultTableColumn(string namingStandard, NamingStandards namingStandards, string tableName, ETypeCode dataType, EDeltaType deltaType, int position)
 		{
             try
             {
-                if (_namingStandards == null)
-                {
-                    throw new Exception("The naming standards have not been loaded.");
-                }
-
                 var col = new DexihTableColumn()
                 {
-                    Name = ApplyNamingStandard(namingStandard + ".Column.Name", tableName),
+                    Name = namingStandards.ApplyNamingStandard(namingStandard + ".Column.Name", tableName),
                     DataType = dataType,
                     AllowDbNull = false,
-                    LogicalName = ApplyNamingStandard(namingStandard + ".Column.Logical", tableName),
-                    Description = ApplyNamingStandard(namingStandard + ".Column.Description", tableName),
+                    LogicalName = namingStandards.ApplyNamingStandard(namingStandard + ".Column.Logical", tableName),
+                    Description = namingStandards.ApplyNamingStandard(namingStandard + ".Column.Description", tableName),
                     IsUnique = false,
                     DeltaType = deltaType,
                     Position = position,

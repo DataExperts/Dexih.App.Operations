@@ -58,7 +58,7 @@ namespace dexih.operations
                     {
                         var dbDatalink = cache.DexihHub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == downloadObject.ObjectKey);
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(cache.DexihHub, dbDatalink, null, null, false);
+                        var runPlan = transformManager.CreateRunPlan(cache.DexihHub, dbDatalink, null, null, false, previewMode: true);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)

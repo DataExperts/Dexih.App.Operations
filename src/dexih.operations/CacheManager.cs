@@ -19,10 +19,10 @@ namespace dexih.operations
         public string GoogleClientId { get; set; }
         public string MicrosoftClientId { get; set; }
 
-//		public CacheManager()
-//		{
-//			
-//		}
+		public CacheManager()
+		{
+			
+		}
 
         public CacheManager(long hubKey, string cacheEncryptionKey)
         {
@@ -125,6 +125,11 @@ namespace dexih.operations
                     .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
 					.LoadAsync();
 
+				await dbContext.DexihFunctionArrayParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.OrderBy(c => c.FunctionParameter.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.FunctionParameter.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.FunctionParameter.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
+					.LoadAsync();
+
 				await dbContext.DexihDatalinkProfiles
 					.Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey)
 					.LoadAsync();
@@ -220,6 +225,11 @@ namespace dexih.operations
 				await dbContext.DexihFunctionParameters
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
+					.LoadAsync();
+
+				await dbContext.DexihFunctionArrayParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.OrderBy(c => c.FunctionParameter.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.FunctionParameter.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.FunctionParameter.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
 					.LoadAsync();
 
 				await dbContext.DexihDatalinkProfiles
@@ -549,6 +559,12 @@ namespace dexih.operations
 		            .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
 		            .ToArrayAsync();
 
+	            var parameterKeys = parameters.Select(c => c.FunctionParameterKey);
+	            var parameterArrays = await dbContext.DexihFunctionArrayParameters
+		            .Where(c => c.IsValid && c.HubKey == HubKey && parameterKeys.Contains(c.FunctionParameterKey))
+		            .OrderBy(c => c.FunctionParameter.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.FunctionParameter.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.FunctionParameter.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
+		            .ToArrayAsync();
+
 	            datalinkTableKeys.AddRange(transforms.Where(c => c.JoinDatalinkTableKey != null).Select(c => c.JoinDatalinkTableKey.Value));
 
 	            if (datalinkTableKeys.Any())
@@ -565,6 +581,7 @@ namespace dexih.operations
 	            var datalinkColumnKeys = transformItems.Where(c => c.SourceDatalinkColumnKey != null).Select(c => c.SourceDatalinkColumnKey).ToList();
 	            datalinkColumnKeys.AddRange(transformItems.Where(c => c.TargetDatalinkColumnKey != null).Select(c => c.TargetDatalinkColumnKey));
 	            datalinkColumnKeys.AddRange(parameters.Where(c => c.DatalinkColumnKey != null).Select(c => c.DatalinkColumnKey));
+	            datalinkColumnKeys.AddRange(parameterArrays.Where(c => c.DatalinkColumnKey != null).Select(c => c.DatalinkColumnKey));
 
 	            if (datalinkColumnKeys.Any())
 	            {
