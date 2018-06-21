@@ -291,7 +291,8 @@ namespace dexih.operations
                 var incrementalCol = sourceTable?.GetIncrementalUpdateColumn();
                 var updateStrategy = datalink.UpdateStrategy;
 
-                if (truncateTargetTable == false && 
+                if (maxDatalinkTransformKey == null && 
+                    truncateTargetTable == false && 
                     updateStrategy != TransformDelta.EUpdateStrategy.Reload && 
                     incrementalCol != null && 
                     (updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDelete || updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve) && 
@@ -312,6 +313,7 @@ namespace dexih.operations
 
                 _logger?.LogTrace($"CreateRunPlan {datalink.Name}.  Added incremental filter.  Elapsed: {timer.Elapsed}");
 
+                
                 //loop through the transforms to create the chain.
                 foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
                 {
