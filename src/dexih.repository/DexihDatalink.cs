@@ -281,9 +281,9 @@ namespace dexih.repository
                         columns[item.TargetDatalinkColumn.DatalinkColumnKey] = item.TargetDatalinkColumn;
                     }
 
-                    foreach (var param in item.DexihFunctionParameters.Where(c => c.DatalinkColumn != null))
+                    foreach (var param in item.DexihFunctionParameters)
                     {
-                        if (!columns.ContainsKey(param.DatalinkColumn.DatalinkColumnKey))
+                        if (param.DatalinkColumn != null && !columns.ContainsKey(param.DatalinkColumn.DatalinkColumnKey))
                         {
                             columns[param.DatalinkColumn.DatalinkColumnKey] = param.DatalinkColumn;
                         }
