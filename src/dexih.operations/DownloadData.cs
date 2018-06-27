@@ -42,11 +42,24 @@ namespace dexih.operations
                             if (dbTable != null)
                             {
                                 var connection = dbConnection.GetConnection(_transformSettings);
-                                var table = dbTable.GetTable(connection, _transformSettings);
-                                name = table.Name + ".csv";
+                                var table = dbTable.GetTable(connection, downloadObject.InputColumns, _transformSettings);
+                                name = table.Name;
 
+                                if (downloadObject.InputColumns != null)
+                                {
+                                    foreach (var inputColumn in downloadObject.InputColumns)
+                                    {
+                                        var column = table.Columns.SingleOrDefault(c => c.Name == inputColumn.Name);
+                                        if (column != null)
+                                        {
+                                            column.DefaultValue = inputColumn.DefaultValue;
+                                        }
+                                    }
+                                }
+                                
                                 transform = connection.GetTransformReader(table, true);
-                                var openResult = await transform.Open(0, downloadObject.Query, cancellationToken);
+                                transform = new TransformQuery(transform, downloadObject.Query);
+                                var openResult = await transform.Open(0, null, cancellationToken);
                                 if (!openResult)
                                 {
                                     throw new DownloadDataException($"The connection {connection.Name} with table {table.Name} failed to open for reading.");
@@ -57,8 +70,14 @@ namespace dexih.operations
                     else
                     {
                         var dbDatalink = cache.DexihHub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == downloadObject.ObjectKey);
+
+                        if (dbDatalink == null)
+                        {
+                            throw new DownloadDataException($"The datalink with key {downloadObject.ObjectKey} could not be found in the cache.");
+                        }
+                        
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(cache.DexihHub, dbDatalink, null, null, false, previewMode: true);
+                        var runPlan = transformManager.CreateRunPlan(cache.DexihHub, dbDatalink, downloadObject.InputColumns, null, null, false, previewMode: true);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)
@@ -69,7 +88,7 @@ namespace dexih.operations
                         transform.SetCacheMethod(transforms.Transform.ECacheMethod.OnDemandCache);
                         transform.SetEncryptionMethod(EEncryptionMethod.MaskSecureFields, "");
 
-                        name = dbDatalink.Name + ".csv";
+                        name = dbDatalink.Name;
                     }
 
                     Stream fileStream = null;
@@ -77,6 +96,7 @@ namespace dexih.operations
                     switch (downloadFormat)
                     {
                         case EDownloadFormat.Csv:
+                            name = name + ".csv";
                             fileStream = new TransformCsvStream(transform);
                             if (!zipFiles)
                             {
@@ -84,6 +104,7 @@ namespace dexih.operations
                             }
                             break;
                         case EDownloadFormat.Json:
+                            name = name + ".json";
                             fileStream = new TransformJsonStream(name, transform);
                             if (!zipFiles)
                             {
@@ -95,13 +116,10 @@ namespace dexih.operations
                             throw new Exception("The file format " + downloadFormat.ToString() + " is not currently supported for downloading data.");
                     }
 
-                    if (zipFiles)
+                    var entry = archive.CreateEntry(name);
+                    using (var entryStream = entry.Open())
                     {
-                        var entry = archive.CreateEntry(name);
-                        using (var entryStream = entry.Open())
-                        {
-                            fileStream.CopyTo(entryStream);
-                        }
+                        fileStream.CopyTo(entryStream);
                     }
                 }
 
@@ -125,6 +143,7 @@ namespace dexih.operations
             public SharedData.EObjectType ObjectType { get; set; }
             public long ObjectKey { get; set; }
             public SelectQuery Query { get; set; }
+            public DexihColumnBase[] InputColumns { get; set; }
         }
 
         public enum EDownloadFormat

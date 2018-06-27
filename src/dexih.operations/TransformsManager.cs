@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.Query;
+using dexih.transforms.Exceptions;
 using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
 using static dexih.repository.DexihDatalinkTable;
@@ -196,61 +197,69 @@ namespace dexih.operations
         }
 
 
-		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, bool previewMode)
+		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, IEnumerable<DexihColumnBase> inputColumns, bool previewMode)
 		{
             try
             {
+                (Transform sourceTransform, Table sourceTable) returnValue;
+                
                 switch (datalinkTable.SourceType)
                 {
                     case ESourceType.Datalink:
                         var datalink = hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == datalinkTable.SourceDatalinkKey);
                         if (datalink == null)
                         {
-                            throw new TransformManagerException($"The source datalink with the key {datalinkTable.SourceDatalinkKey.Value} was not found");
+                            throw new TransformManagerException($"The source datalink with the key {datalinkTable.SourceDatalinkKey} was not found");
                         }
-                        var result = CreateRunPlan(hub, datalink, null, null, false, previewMode: previewMode);
-                        result.sourceTransform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
-                        return result;
-
+                        returnValue = CreateRunPlan(hub, datalink, null, null, false, previewMode: previewMode);
+                        returnValue.sourceTransform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
+                        break;
                     case ESourceType.Table:
                         if (datalinkTable.SourceTableKey == null)
                         {
                             throw new TransformManagerException($"The source table key was null.");
                         }
+                        
                         var sourceDbTable = hub.GetTableFromKey(datalinkTable.SourceTableKey.Value);
                         if (sourceDbTable == null)
                         {
                             throw new TransformManagerException($"The source table with the key {datalinkTable.SourceTableKey.Value} could not be found.");
                         }
                         
-                        
-                        
                         if (sourceDbTable.IsInternal)
                         {
-                            var sourceTable = datalinkTable.GetTable();
+                            var sourceTable = datalinkTable.GetTable(null, inputColumns);
                             var rowCreator = new ReaderRowCreator();
                             rowCreator.InitializeRowCreator(0, 0, 1);
                             rowCreator.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
-                            return (rowCreator, sourceTable);
+                            returnValue = (rowCreator, sourceTable);
                         }
                         else
                         {
                             var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
+
+                            if (sourceDbConnection == null)
+                            {
+                                throw new TransformException($"The connection with key {sourceDbTable.ConnectionKey} could not be found.");
+                            }
+
                             var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
-                            var sourceTable = sourceDbTable.GetTable(sourceConnection, _transformSettings);
+                            var sourceTable = sourceDbTable.GetTable(sourceConnection, inputColumns, _transformSettings);
                             var transform = sourceConnection.GetTransformReader(sourceTable, previewMode);
                             transform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
-                            return (transform, sourceTable);
+                            returnValue =  (transform, sourceTable);
                         }
 
+                        break;
                     case ESourceType.Rows:
                         var rowCreator2 = new ReaderRowCreator();
                         rowCreator2.InitializeRowCreator(datalinkTable.RowsStartAt??1, datalinkTable.RowsEndAt??1, datalinkTable.RowsIncrement??1);
                         rowCreator2.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
                         var table = rowCreator2.GetTable();
-                        return (rowCreator2, table);
+                        returnValue =  (rowCreator2, table);
+                        break;
                     case ESourceType.Function:
-                        var functionTable = datalinkTable.GetTable();
+                        var functionTable = datalinkTable.GetTable(null, inputColumns);
                         var data = new object[functionTable.Columns.Count];
                         for(var i = 0; i< functionTable.Columns.Count; i++)
                         {
@@ -259,11 +268,38 @@ namespace dexih.operations
                         functionTable.Data.Add(data);
                         var defaultRow = new ReaderDynamic(functionTable);
                         defaultRow.Reset();
-                        return (defaultRow, functionTable);
+                        returnValue = (defaultRow, functionTable);
+                        break;
 
                     default:
                         throw new TransformManagerException($"Error getting the source transform.");
+                    
                 }
+                
+                // compare the table in the transform to the source datalink columns.  If any are misisng, add a mapping 
+                // transform to include them.
+                var transformColumns = returnValue.sourceTransform.CacheTable.Columns;
+                var datalinkColumns = datalinkTable.DexihDatalinkColumns;
+
+                var mappings = new List<ColumnPair>();
+                
+                foreach (var column in datalinkColumns)
+                {
+                    var transformColumn = transformColumns.SingleOrDefault(c => c.Name == column.Name);
+                    if (transformColumn == null)
+                    {
+                        var newColumn = column.GetTableColumn(inputColumns);
+                        mappings.Add(new ColumnPair() { TargetColumn = newColumn});
+                    }
+                }
+
+                if (mappings.Count > 0)
+                {
+                    var transforMapping = new TransformMapping(returnValue.sourceTransform, true, mappings, null);
+                    returnValue.sourceTransform = transforMapping;
+                }
+
+                return returnValue;
             }
             catch (Exception ex)
             {
@@ -271,7 +307,12 @@ namespace dexih.operations
             }
         }
 
-        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null, bool previewMode = false) //Last datatransform key is used to preview the output of a specific transform in the series.
+        private void MergeInputColumn(TableColumn column, DexihColumnBase[] intputColumns)
+        {
+            
+        }
+
+        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, IEnumerable<DexihColumnBase> inputColumns, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null, bool previewMode = false) //Last datatransform key is used to preview the output of a specific transform in the series.
         {
             try
             {
@@ -279,7 +320,7 @@ namespace dexih.operations
 
                 var timer = Stopwatch.StartNew();
                 
-				var primaryTransformResult = GetSourceTransform(hub, datalink.SourceDatalinkTable, previewMode);
+				var primaryTransformResult = GetSourceTransform(hub, datalink.SourceDatalinkTable, inputColumns, previewMode);
 				var primaryTransform = primaryTransformResult.sourceTransform;
 				var sourceTable = primaryTransformResult.sourceTable;
 				foreach(var column in primaryTransform.CacheTable.Columns)
@@ -365,7 +406,7 @@ namespace dexih.operations
 					Transform referenceTransform = null;
 					if(datalinkTransform.JoinDatalinkTable != null) 
 					{
-						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, previewMode);
+						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, null, previewMode);
 						referenceTransform = joinTransformResult.sourceTransform;
 					}
                     
@@ -420,38 +461,38 @@ namespace dexih.operations
 
         
 
-        /// <summary>
-        /// Gets a preview of the table.
-        /// </summary>
-        /// <param name="dbTable"></param>
-        /// <param name="hub"></param>
-        /// <param name="query"></param>
-        /// <param name="rejectedTable"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<Table> GetPreview(DexihTable dbTable, DexihHub hub, SelectQuery query, bool rejectedTable, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var dbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == dbTable.ConnectionKey && c.IsValid);
-                if (dbConnection == null)
-                {
-                    throw new TransformManagerException($"The connection with the key {dbTable.ConnectionKey} was not found.");
-                }
-                
-
-                var connection = dbConnection.GetConnection(_transformSettings);
-                var table = rejectedTable ? dbTable.GetRejectedTable(connection, _transformSettings) : dbTable.GetTable(connection, _transformSettings);
-
-                var previewResult = await connection.GetPreview(table, query, cancellationToken);
-
-                return previewResult;
-            }
-            catch (Exception ex)
-            {
-                throw new TransformManagerException($"Get input transform failed.  {ex.Message}", ex);
-            }
-        }
+//        /// <summary>
+//        /// Gets a preview of the table.
+//        /// </summary>
+//        /// <param name="dbTable"></param>
+//        /// <param name="hub"></param>
+//        /// <param name="query"></param>
+//        /// <param name="rejectedTable"></param>
+//        /// <param name="cancellationToken"></param>
+//        /// <returns></returns>
+//        public async Task<Table> GetPreview(DexihTable dbTable, DexihHub hub, SelectQuery query, bool rejectedTable, CancellationToken cancellationToken)
+//        {
+//            try
+//            {
+//                var dbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == dbTable.ConnectionKey && c.IsValid);
+//                if (dbConnection == null)
+//                {
+//                    throw new TransformManagerException($"The connection with the key {dbTable.ConnectionKey} was not found.");
+//                }
+//                
+//
+//                var connection = dbConnection.GetConnection(_transformSettings);
+//                var table = rejectedTable ? dbTable.GetRejectedTable(connection, _transformSettings) : dbTable.GetTable(connection, _transformSettings);
+//
+//                var previewResult = await connection.GetPreview(table, query, cancellationToken);
+//
+//                return previewResult;
+//            }
+//            catch (Exception ex)
+//            {
+//                throw new TransformManagerException($"Get input transform failed.  {ex.Message}", ex);
+//            }
+//        }
         
 
     }

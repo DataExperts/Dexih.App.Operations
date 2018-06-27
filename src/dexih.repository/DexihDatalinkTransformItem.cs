@@ -180,7 +180,7 @@ namespace dexih.repository
 		{
 			var newParameter = new Parameter()
 			{
-				Column = parameter.DatalinkColumn?.GetTableColumn(),
+				Column = parameter.DatalinkColumn?.GetTableColumn(null),
 				DataType = parameter.DataType,
 				IsColumn = parameter.DatalinkColumn != null,
 				Name = parameter.ParameterName,
@@ -334,7 +334,7 @@ namespace dexih.repository
                 function.Outputs = outputsArray;
 				if (TargetDatalinkColumn != null)
 				{
-					function.TargetColumn = TargetDatalinkColumn.GetTableColumn();
+					function.TargetColumn = TargetDatalinkColumn.GetTableColumn(null);
 				}
                 function.OnError = OnError;
                 function.OnNull = OnNull;
@@ -441,7 +441,7 @@ $FunctionCode
             {
                 var testFunction = new StringBuilder();
                 var returnName = "returnValue";
-	            var returnColumn = TargetDatalinkColumn?.GetTableColumn();
+	            var returnColumn = TargetDatalinkColumn?.GetTableColumn(null);
 	            if (returnColumn != null && !string.IsNullOrEmpty(returnColumn.Name))
 	            {
 		            returnName = returnColumn.Name;

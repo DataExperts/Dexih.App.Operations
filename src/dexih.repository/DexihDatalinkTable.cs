@@ -73,7 +73,7 @@ namespace dexih.repository
         /// Converts the datalinkTable to a base "Table" class.
         /// </summary>
         /// <returns></returns>
-		public Table GetTable(Table sourceTable = null)
+		public Table GetTable(Table sourceTable, IEnumerable<DexihColumnBase> inputColumns)
         {
 			Table table;
 
@@ -89,7 +89,7 @@ namespace dexih.repository
 
             foreach (var dbColumn in DexihDatalinkColumns.Where(c => c.IsValid).OrderBy(c => c.Position))
             {
-				table.Columns.Add(dbColumn.GetTableColumn());
+				table.Columns.Add(dbColumn.GetTableColumn(inputColumns));
             }
 
             return table;

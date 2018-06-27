@@ -151,10 +151,10 @@ namespace dexih.repository
                 {
                     logger?.LogTrace($"GetTransform {Name}, get item.  Elapsed: {timer.Elapsed}");
 
-                    var sourceColumn = item.SourceDatalinkColumn?.GetTableColumn();
-					var targetColumn = item.TargetDatalinkColumn?.GetTableColumn();
-					var joinColumn = item.JoinDatalinkColumn?.GetTableColumn();
-                    var filterColumn = item.FilterDatalinkColumn?.GetTableColumn();
+                    var sourceColumn = item.SourceDatalinkColumn?.GetTableColumn(null);
+					var targetColumn = item.TargetDatalinkColumn?.GetTableColumn(null);
+					var joinColumn = item.JoinDatalinkColumn?.GetTableColumn(null);
+                    var filterColumn = item.FilterDatalinkColumn?.GetTableColumn(null);
 
                     switch (item.TransformItemType)
                     {
@@ -222,7 +222,7 @@ namespace dexih.repository
                 transform.PassThroughColumns = PassThroughColumns;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;
 
-                var joinSortColumn = JoinSortDatalinkColumn?.GetTableColumn();
+                var joinSortColumn = JoinSortDatalinkColumn?.GetTableColumn(null);
                 transform.JoinSortField = joinSortColumn;
 
                 logger?.LogTrace($"GetTransform {Name}, finished.  Elapsed: {timer.Elapsed}");

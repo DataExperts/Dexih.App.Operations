@@ -3,6 +3,7 @@ using dexih.functions.Query;
 using dexih.repository;
 using dexih.transforms;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -39,6 +40,7 @@ namespace dexih.operations
         private readonly DexihHub _hub;
         private readonly SelectQuery _selectQuery;
 		private readonly TransformSettings _transformSettings;
+        private readonly IEnumerable<DexihColumnBase> _inputColumns;
 
         private readonly bool _truncateTarget;
         private readonly bool _resetIncremental;
@@ -47,7 +49,7 @@ namespace dexih.operations
         private readonly ILogger _logger;
 
 
-        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery)
+        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery, IEnumerable<DexihColumnBase> inputColumns)
         {
             _transformSettings = transformSettings;
             _logger = logger;
@@ -57,6 +59,7 @@ namespace dexih.operations
             _truncateTarget = truncateTarget;
             _resetIncremental = resetIncremental;
             _resetIncrementalValue = resetIncrementalValue;
+            _inputColumns = inputColumns;
 
             ReferenceKey = referenceKey;
 
@@ -110,6 +113,11 @@ namespace dexih.operations
                 {
 
                     var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == Datalink.AuditConnectionKey);
+
+                    if (dbAuditConnection == null)
+                    {
+                        throw new DatalinkRunException($"Audit connection with key {Datalink.AuditConnectionKey} was not found.");
+                    }
                     auditConnection = dbAuditConnection.GetConnection(_transformSettings);
                 }
                 else
@@ -151,7 +159,7 @@ namespace dexih.operations
                         break;
                     case ESourceType.Rows:
                         sourceKey = 0;
-                        sourceName = "No Source";
+                        sourceName = "Rows";
                         break;
                     case ESourceType.Function:
                         if (Datalink.SourceDatalinkTable.SourceTableKey == null)
@@ -184,7 +192,7 @@ namespace dexih.operations
 
                 _logger.LogTrace($"Initialize datalink {Datalink.Name} audit table initialized.  Elapsed: {timer.Elapsed}.");
 
-                var dbConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == _targetTable.ConnectionKey);
+                var dbConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == _targetTable.ConnectionKey);
                 TargetConnection = dbConnection.GetConnection(_transformSettings);
 
                 _logger.LogTrace($"Initialize datalink {Datalink.Name} completed.  Elapsed: {timer.Elapsed}.");
@@ -202,6 +210,7 @@ namespace dexih.operations
         /// <summary>
         /// Creates a plan, and compiles any scripts, in readiness to Run.
         /// </summary>
+        /// <param name="inputColumns"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         public void Build(CancellationToken cancellationToken)
@@ -210,7 +219,7 @@ namespace dexih.operations
             {
                 var transformManager = new TransformsManager(_transformSettings, _logger);
                 //Get the last Transform that will load the target table.
-                Reader = transformManager.CreateRunPlan(_hub, Datalink, null, WriterResult.LastMaxIncrementalValue, WriterResult.TruncateTarget, _selectQuery);
+                Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, null, WriterResult.LastMaxIncrementalValue, WriterResult.TruncateTarget, _selectQuery);
             }
             catch (Exception ex)
             {
@@ -244,7 +253,7 @@ namespace dexih.operations
                     throw new DatalinkRunException($"Failed to set run status.");
                 }
 
-                var targetTable = _targetTable.GetTable(TargetConnection, _transformSettings);
+                var targetTable = _targetTable.GetTable(TargetConnection, null, _transformSettings);
                 var rejectTable = targetTable.GetRejectedTable(_targetTable.RejectedTableName);
                 var profileTable = Reader.sourceTransform.GetProfileTable(Datalink.ProfileTableName);
 

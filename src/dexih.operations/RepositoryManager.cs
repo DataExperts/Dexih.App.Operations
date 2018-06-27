@@ -266,79 +266,65 @@ namespace dexih.operations
 
 			var sharedData = new List<SharedData>();
 			var counter = 0;
+			var search = searchString?.ToLower();
+			var noSearch = string.IsNullOrEmpty(search);
 
-			IQueryable<DexihTable> tables;
-
-			if (string.IsNullOrEmpty(searchString))
+			// load shared objects for each available hub
+			foreach (var hubKey in hubKeys)
 			{
-				tables = DbContext.DexihTables.Where(c =>
-					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid && !c.IsInternal);
-			}
-			else
-			{
-				var search = searchString.ToLower();
-				tables = DbContext.DexihTables.Where(c =>
-					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid && !c.IsInternal &&
-					(c.Name.ToLower().Contains(search) || c.LogicalName.ToLower().Contains(search)));
-			}
-
-			foreach (var table in tables)
-			{
-				var hub = availableHubs.Single(c => c.HubKey == table.HubKey);
-				sharedData.Add(new SharedData()
+				var hub = await GetHub(hubKey);
+				foreach (var connection in hub.DexihConnections)
 				{
-					HubKey = hub.HubKey,
-					HubName = hub.Name,
-					ObjectKey = table.TableKey,
-					ObjectType = SharedData.EObjectType.Table,
-					Name =  table.Name,
-					LogicalName =  table.LogicalName,
-					Description =  table.Description,
-					UpdateDate =  table.UpdateDate
-				});
+					foreach (var table in connection.DexihTables.Where(c => c.IsShared && ( noSearch || c.Name.ToLower().Contains(search))))
+					{
+						sharedData.Add(new SharedData()
+						{
+							HubKey = hub.HubKey,
+							HubName = hub.Name,
+							ObjectKey = table.TableKey,
+							ObjectType = SharedData.EObjectType.Table,
+							Name = table.Name,
+							LogicalName = table.LogicalName,
+							Description = table.Description,
+							UpdateDate = table.UpdateDate,
+							InputColumns = table.DexihTableColumns.Where(c => c.IsInput).Select(c => (DexihColumnBase) c)
+								.ToArray(),
+							OutputColumns = table.DexihTableColumns.Select(c => (DexihColumnBase) c).ToArray()
+						});
 
-				if (maxResults > 0 && counter++ >= maxResults)
-				{
-					return sharedData;
+						if (counter++ > maxResults)
+						{
+							return sharedData;
+						}
+					}
 				}
-			}
-			
-			IQueryable<DexihDatalink> datalinks;
 
-			if (string.IsNullOrEmpty(searchString))
-			{
-				datalinks = DbContext.DexihDatalinks.Where(c =>
-					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid);
-			}
-			else
-			{
-				var search = searchString.ToLower();
-				datalinks = DbContext.DexihDatalinks.Where(c =>
-					c.IsShared && hubKeys.Contains(c.HubKey) && c.IsValid && 
-					(c.Name.ToLower().Contains(search) ));
-			}			
-			foreach (var datalink in datalinks)
-			{
-				var hub = availableHubs.Single(c => c.HubKey == datalink.HubKey);
-				sharedData.Add(new SharedData()
+				foreach (var datalink in hub.DexihDatalinks.Where(c => c.IsShared && ( noSearch || c.Name.ToLower().Contains(search))))
 				{
-					HubKey = hub.HubKey,
-					HubName = hub.Name,
-					ObjectKey = datalink.DatalinkKey,
-					ObjectType = SharedData.EObjectType.Datalink,
-					Name =  datalink.Name,
-					LogicalName =  datalink.Name,
-					Description =  datalink.Description,
-					UpdateDate =  datalink.UpdateDate
-				});
+					sharedData.Add(new SharedData()
+					{
+						HubKey = datalink.HubKey,
+						HubName = hub.Name,
+						ObjectKey = datalink.DatalinkKey,
+						ObjectType = SharedData.EObjectType.Datalink,
+						Name =  datalink.Name,
+						LogicalName =  datalink.Name,
+						Description =  datalink.Description,
+						UpdateDate =  datalink.UpdateDate,
+						InputColumns = datalink.SourceDatalinkTable?.DexihDatalinkColumns?.Select(c => (DexihColumnBase)c).Where(c => c.IsInput).ToArray(),
+						OutputColumns = datalink.GetOutputTable().DexihDatalinkColumns.Select(c => (DexihColumnBase)c).ToArray()
+					});
 
-				if (maxResults > 0 && counter++ >= maxResults)
-				{
-					return sharedData;
+					if (counter++ > maxResults)
+					{
+						return sharedData;
+					}
 				}
 			}
 
 			return sharedData;
+
+
 		}
 		
 		/// <summary>

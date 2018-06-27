@@ -10,6 +10,7 @@ namespace dexih.repository
         {
             DexihDatalinkDependencies = new HashSet<DexihDatalinkDependency>();
             DexihDatalinkDependentSteps = new HashSet<DexihDatalinkDependency>();
+            DexihDatalinkStepColumns = new HashSet<DexihDatalinkStepColumn>();
         }
 
         [JsonIgnore, CopyIgnore]
@@ -24,6 +25,8 @@ namespace dexih.repository
         public long DatalinkKey { get; set; }
 
         public string Name { get; set; }
+        
+        public virtual ICollection<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
 
         public virtual ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
 

@@ -132,7 +132,7 @@ namespace dexih.repository
 	    [CopyReference]
         public virtual DexihFileFormat FileFormat { get; set; }
 
-        public Table GetTable(Connection connection, TransformSettings transformSettings)
+        public Table GetTable(Connection connection, IEnumerable<DexihColumnBase> inputColumns, TransformSettings transformSettings)
         {
 	        Table table;
 
@@ -197,7 +197,7 @@ namespace dexih.repository
 
             foreach (var dbColumn in DexihTableColumns.Where(c => c.IsValid).OrderBy(c => c.Position))
             {
-                table.Columns.Add(dbColumn.GetTableColumn());
+                table.Columns.Add(dbColumn.GetTableColumn(inputColumns));
             }
 	        
 
@@ -206,12 +206,9 @@ namespace dexih.repository
 
         public Table GetRejectedTable(Connection connection, TransformSettings transformSettings)
         {
-            var table = GetTable(connection, transformSettings);
+            var table = GetTable(connection, null, transformSettings);
             return table.GetRejectedTable(RejectedTableName);
         }
-
-
-        
     }
 
 }

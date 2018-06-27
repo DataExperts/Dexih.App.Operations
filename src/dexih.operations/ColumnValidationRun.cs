@@ -236,8 +236,8 @@ namespace dexih.operations
 
                         var dbConnection = Hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == dbTable.ConnectionKey);
                         var connection = dbConnection.GetConnection(_transformSettings);
-                        var table = dbTable.GetTable(connection, _transformSettings);
-                        _lookupColumn = dbColumn.GetTableColumn();
+                        var table = dbTable.GetTable(connection, null, _transformSettings);
+                        _lookupColumn = dbColumn.GetTableColumn(null);
 
                         _lookup = connection.GetTransformReader(table);
                         await _lookup.Open(0, null, cancellationToken);
@@ -245,7 +245,9 @@ namespace dexih.operations
                     }
 
                     var filter = new Filter(_lookupColumn.Name, Filter.ECompare.IsEqual, stringValue);
-                    var lookupReturn = await _lookup.LookupRow(new List<Filter>() { filter }, Transform.EDuplicateStrategy.First, cancellationToken);
+                    var selectQuery = new SelectQuery();
+                    selectQuery.Filters.Add(filter);
+                    var lookupReturn = await _lookup.Lookup(selectQuery, Transform.EDuplicateStrategy.First, cancellationToken);
                     if (lookupReturn == null || !lookupReturn.Any())
                     {
                         return (false, $"The validation lookup on table {dbTable?.Name} column {dbColumn?.Name}");

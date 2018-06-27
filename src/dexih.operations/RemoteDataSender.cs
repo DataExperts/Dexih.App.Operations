@@ -33,12 +33,12 @@ namespace dexih.operations
             _url = url;
         }
 
-        public async Task SendDatalinkData(DexihHub hub, DexihDatalink datalink, SelectQuery selectQuery, BufferBlock<object> buffer, CancellationToken cancellationToken)
+        public async Task SendDatalinkData(DexihHub hub, DexihDatalink datalink, IEnumerable<DexihColumnBase> inputColumns, SelectQuery selectQuery, BufferBlock<object> buffer, CancellationToken cancellationToken)
         {
             try
             {
                 var transformOperations = new TransformsManager(_transformSettings);
-                var runPlan = transformOperations.CreateRunPlan(hub, datalink, null, null, false, selectQuery);
+                var runPlan = transformOperations.CreateRunPlan(hub, datalink, inputColumns, null, null, false, selectQuery);
                 var transform = runPlan.sourceTransform;
 
                 var targetTable = datalink.GetOutputTable();

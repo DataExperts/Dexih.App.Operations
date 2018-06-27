@@ -444,6 +444,45 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_step_dexih_datalinks");
+            });            
+            
+            modelBuilder.Entity<DexihDatalinkStepColumn>(entity =>
+            {
+                entity.HasKey(e => e.DatalinkStepColumnKey).HasName("PK_dexih_datalink_step_columns");
+
+                entity.ToTable("dexih_datalink_step_columns");
+
+                entity.Property(e => e.DatalinkStepColumnKey).HasColumnName("datalink_step_column_key");
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
+                entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(250)");
+                entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(50)");
+                entity.Property(e => e.DeltaTypeString).IsRequired().HasColumnName("delta_type").HasColumnType("varchar(50)");
+                entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
+                entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
+                entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
+                entity.Property(e => e.IsUnique).HasColumnName("is_unique");
+                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasColumnType("varchar(250)");            
+                entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasColumnType("varchar(1024)");
+                entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
+                entity.Property(e => e.MaxLength).HasColumnName("max_length");
+                entity.Property(e => e.Position).HasColumnName("position");
+                entity.Property(e => e.Precision).HasColumnName("precision");
+                entity.Property(e => e.Scale).HasColumnName("scale");
+                entity.Property(e => e.SecurityFlagString).HasColumnName("security_flag").HasColumnType("varchar(50)");
+                entity.Property(e => e.IsInput).HasColumnName("is_input");
+
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.DatalinkStep)
+                    .WithMany(p => p.DexihDatalinkStepColumns)
+                    .HasForeignKey(d => d.DatalinkStepKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalinkstep_columns_dexih_datalinksteps");
+
             });
 
             modelBuilder.Entity<DexihDatalinkTransformItem>(entity =>
@@ -999,6 +1038,7 @@ namespace dexih.repository
         public virtual DbSet<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
         public virtual DbSet<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
         public virtual DbSet<DexihDatalinkStep> DexihDatalinkStep { get; set; }
+	    public virtual DbSet<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
         public virtual DbSet<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
         public virtual DbSet<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
         public virtual DbSet<DexihDatalink> DexihDatalinks { get; set; }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
@@ -45,11 +46,20 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
-		public TableColumn GetTableColumn()
+		public TableColumn GetTableColumn(IEnumerable<DexihColumnBase> inputColumns)
 		{
 			var tableColumn = new TableColumn();
 			this.CopyProperties(tableColumn, false);
 			tableColumn.ReferenceTable = DatalinkTableKey.ToString();
+
+			if (inputColumns != null)
+			{
+				var inputColumn = inputColumns.SingleOrDefault(c => c.Name == tableColumn.Name);
+				if (inputColumn != null)
+				{
+					tableColumn.DefaultValue = inputColumn.DefaultValue;
+				}
+			}
 			return tableColumn;
 		}
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 
@@ -30,14 +31,23 @@ namespace dexih.repository
 
 	    [JsonIgnore, CopyIgnore]
 	    public virtual ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }
-	   
-		public TableColumn GetTableColumn()
-		{
-			var tableColumn = new TableColumn();
-			this.CopyProperties(tableColumn, false);
-			tableColumn.ReferenceTable = TableKey.ToString();
-			return tableColumn;
-		}
+	    
+	    public TableColumn GetTableColumn(IEnumerable<DexihColumnBase> inputColumns)
+	    {
+		    var tableColumn = new TableColumn();
+		    this.CopyProperties(tableColumn, false);
+		    tableColumn.ReferenceTable = TableKey.ToString();
+
+		    if (inputColumns != null)
+		    {
+			    var inputColumn = inputColumns.SingleOrDefault(c => c.Name == tableColumn.Name);
+			    if (inputColumn != null)
+			    {
+				    tableColumn.DefaultValue = inputColumn.DefaultValue;
+			    }
+		    }
+		    return tableColumn;
+	    }
 
     }
 }

@@ -66,109 +66,8 @@ namespace dexih.operations
             return DexihHub;
         }
         
-        public async Task<DexihHub> LoadHubSharedObjects(DexihRepositoryContext dbContext)
-        {
-			try
-			{
-
-                await InitHub(dbContext);
-
-				if (DexihHub == null)
-				{
-                    throw new CacheManagerException($"The hub with the key {HubKey} could not be found in the repository.");
-				}
-
-                var variables = dbContext.DexihHubVariable
-                    .Where(c => c.IsValid && c.HubKey == HubKey);
-
-                DexihHub.DexihHubVariables = await variables.ToArrayAsync();
-
-                // load connections
-                var connections = dbContext.DexihConnections
-					.Where(c => c.IsValid && c.HubKey == HubKey && !c.IsInternal);
-
-				await dbContext.DexihTables
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				await dbContext.DexihTableColumns
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				DexihHub.DexihConnections = await connections.ToArrayAsync();
-
-
-                // load the datalinks
-                var datalinks = dbContext.DexihDatalinks
-                    .Where(c => c.IsValid && c.HubKey == HubKey);
-
-                await dbContext.DexihDatalinkTables
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-                await dbContext.DexihDatalinkColumns
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				await dbContext.DexihDatalinkTransforms
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				await dbContext.DexihDatalinkTransformItems
-                    //.Include(c => c.StandardFunction)
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .OrderBy(c => c.Dt.Datalink.HubKey).ThenBy(c => c.Dt.DatalinkTransformKey).ThenBy(c => c.DatalinkTransformItemKey)
-					.LoadAsync();
-
-				await dbContext.DexihFunctionParameters
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
-					.LoadAsync();
-
-				await dbContext.DexihFunctionArrayParameters
-					.Where(c => c.IsValid && c.HubKey == HubKey)
-					.OrderBy(c => c.FunctionParameter.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.FunctionParameter.DtItem.Dt.DatalinkTransformKey).ThenBy(c => c.FunctionParameter.DtItem.DatalinkTransformItemKey).ThenBy(c => c.Position)
-					.LoadAsync();
-
-				await dbContext.DexihDatalinkProfiles
-					.Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey)
-					.LoadAsync();
-
-                DexihHub.DexihDatalinks = await datalinks.ToArrayAsync();
-
-				// load the datajobs with all dependent schedules/datalink steps.
-				var datajobs = dbContext.DexihDatajobs
-					.Where(c => c.IsValid && c.HubKey == HubKey);
-
-				await dbContext.DexihDatalinkStep
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				await dbContext.DexihDatalinkDependencies
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				await dbContext.DexihTriggers
-					.Where(c => c.IsValid && c.Datajob.IsValid && c.Datajob.HubKey == HubKey)
-					.LoadAsync();
-
-				DexihHub.DexihDatajobs = await datajobs.ToArrayAsync();
-
-				var internalHub = await dbContext.DexihHubs.FirstAsync(c => c.IsValid && c.IsInternal);
-				DexihHub.DexihFileFormats = await dbContext.DexihFileFormat.Where(c => (c.HubKey == HubKey || c.HubKey == internalHub.HubKey) && c.IsValid).ToArrayAsync();
-				DexihHub.DexihColumnValidations = await dbContext.DexihColumnValidation.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
-			    DexihHub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
-			    DexihHub.DexihRemoteAgents = await dbContext.DexihRemoteAgents.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
-
-				return DexihHub;
-				
-			} catch(Exception ex)
-			{
-                throw new CacheManagerException($"An error occurred trying to load the hub.  {ex.Message}", ex);
-			}
-        }
-
-        public async Task<DexihHub> LoadHub(DexihRepositoryContext dbContext)
+		
+	    public async Task<DexihHub> LoadHub(DexihRepositoryContext dbContext)
         {
 			try
 			{
@@ -245,6 +144,10 @@ namespace dexih.operations
 				await dbContext.DexihDatalinkStep
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .LoadAsync();
+				
+				await dbContext.DexihDatalinkStepColumns
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
 
 				await dbContext.DexihDatalinkDependencies
                     .Where(c => c.IsValid && c.HubKey == HubKey)
@@ -381,7 +284,7 @@ namespace dexih.operations
         private async Task LoadDatajobDependencies(DexihDatajob datajob, bool includeDependencies, DexihRepositoryContext dbContext)
         {
             await dbContext.Entry(datajob).Collection(a => a.DexihTriggers).Query().Where(a => a.IsValid && datajob.DatajobKey == a.DatajobKey).LoadAsync();
-            await dbContext.Entry(datajob).Collection(a => a.DexihDatalinkSteps).Query().Where(a => a.IsValid && datajob.DatajobKey == a.DatajobKey).LoadAsync();
+            await dbContext.Entry(datajob).Collection(a => a.DexihDatalinkSteps).Query().Include(c=>c.DexihDatalinkStepColumns).Where(a => a.IsValid && datajob.DatajobKey == a.DatajobKey).LoadAsync();
 
             if(includeDependencies)
             {
