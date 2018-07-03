@@ -80,9 +80,9 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public async Task<DexihHub> GetHub(long hubKey)
+		public Task<DexihHub> GetHub(long hubKey)
 		{
-			var hubReturn = await MemoryCache.GetOrCreateAsync($"HUB-{hubKey}", async entry =>
+			var hubReturn = MemoryCache.GetOrCreateAsync($"HUB-{hubKey}", async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromHours(1);
 				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey));
@@ -118,9 +118,9 @@ namespace dexih.operations
 		/// <param name="userId"></param>
 		/// <param name="isAdmin"></param>
 		/// <returns></returns>
-		public async Task<DexihHub[]> GetUserHubs(string userId, bool isAdmin)
+		public Task<DexihHub[]> GetUserHubs(string userId, bool isAdmin)
 		{
-			return await MemoryCache.GetOrCreateAsync($"USERHUBS-{userId}", async entry =>
+			return MemoryCache.GetOrCreateAsync($"USERHUBS-{userId}", async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 				
@@ -419,9 +419,9 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public async Task<string[]> GetHubUserIds(long hubKey)
+		public Task<string[]> GetHubUserIds(long hubKey)
 		{
-			return await MemoryCache.GetOrCreateAsync($"HUBUSERIDS-{hubKey}", async entry =>
+			return MemoryCache.GetOrCreateAsync($"HUBUSERIDS-{hubKey}", async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 
@@ -459,11 +459,11 @@ namespace dexih.operations
         /// </summary>
         /// <param name="hubKey"></param>
         /// <returns></returns>
-        public async Task<List<HubUser>> GetHubUsers(long hubKey)
+        public Task<List<HubUser>> GetHubUsers(long hubKey)
         {
             try
             {
-	            var returnList = await MemoryCache.GetOrCreateAsync($"HUBUSERS-{hubKey}", async entry =>
+	            var returnList = MemoryCache.GetOrCreateAsync($"HUBUSERS-{hubKey}", async entry =>
 	            {
 		            entry.SlidingExpiration = TimeSpan.FromHours(1);
 
@@ -693,9 +693,9 @@ namespace dexih.operations
 		/// <param name="isAdmin"></param>
 		/// <returns></returns>
 		/// <exception cref="ApplicationUserException"></exception>
-		public async Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey, bool isAdmin = false)
+		public Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey, bool isAdmin = false)
 		{
-			var validate = await MemoryCache.GetOrCreateAsync($"PERMISSION-USER-{user.Id}-HUB-{hubKey}", async entry =>
+			var validate = MemoryCache.GetOrCreateAsync($"PERMISSION-USER-{user.Id}-HUB-{hubKey}", async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 

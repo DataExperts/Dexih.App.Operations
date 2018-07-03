@@ -1,4 +1,7 @@
-﻿using dexih.repository;
+﻿using dexih.functions;
+using dexih.repository;
+using dexih.transforms;
+using dexih.transforms.Transforms;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -18,6 +21,8 @@ namespace dexih.operations
 
         public string GoogleClientId { get; set; }
         public string MicrosoftClientId { get; set; }
+
+        public RemoteLibraries DefaultRemoteLibraries { get; set; }
 
 		public CacheManager()
 		{
@@ -176,6 +181,14 @@ namespace dexih.operations
         {
             BuildVersion = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
             BuildDate = System.IO.File.GetLastWriteTime(Assembly.GetEntryAssembly().Location);
+
+            // load the default remote libraries, which will be reference when a remote agent is not connected.
+            DefaultRemoteLibraries = new RemoteLibraries()
+            {
+                Functions = Functions.GetAllFunctions(),
+                Connections = Connections.GetAllConnections(),
+                Transforms = Transforms.GetAllTransforms()
+            };
 
             return true;
         }
