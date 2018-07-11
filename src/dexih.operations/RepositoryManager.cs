@@ -882,7 +882,7 @@ namespace dexih.operations
                 {
                     var cache = new CacheManager(dbConnection.HubKey, "");
                     await cache.AddConnections(new[] { connectionKey }, true, DbContext);
-                    dbConnection = cache.DexihHub.DexihConnections.First();
+                    dbConnection = cache.Hub.DexihConnections.First();
                 }
 
                 return dbConnection;
@@ -1713,7 +1713,7 @@ namespace dexih.operations
             try
             {
                 DexihRemoteAgent dbRemoteAgent;
-
+	            
                 //check there are no agents with the same name
                 var sameName = await DbContext.DexihRemoteAgents.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == remoteAgent.Name && c.HubKey == remoteAgent.HubKey && c.RemoteAgentKey != remoteAgent.RemoteAgentKey && c.IsValid);
                 if (sameName != null)

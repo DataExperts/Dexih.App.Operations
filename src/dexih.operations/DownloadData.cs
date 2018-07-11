@@ -36,7 +36,7 @@ namespace dexih.operations
 
                     if (downloadObject.ObjectType == SharedData.EObjectType.Table)
                     {
-                        foreach (var dbConnection in cache.DexihHub.DexihConnections)
+                        foreach (var dbConnection in cache.Hub.DexihConnections)
                         {
                             var dbTable = dbConnection.DexihTables.SingleOrDefault(c => c.TableKey == downloadObject.ObjectKey);
                             if (dbTable != null)
@@ -58,6 +58,7 @@ namespace dexih.operations
                                 }
                                 
                                 transform = connection.GetTransformReader(table, true);
+                                transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, cache.CacheEncryptionKey);
                                 transform = new TransformQuery(transform, downloadObject.Query);
                                 var openResult = await transform.Open(0, null, cancellationToken);
                                 if (!openResult)
@@ -69,7 +70,7 @@ namespace dexih.operations
                     }
                     else
                     {
-                        var dbDatalink = cache.DexihHub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == downloadObject.ObjectKey);
+                        var dbDatalink = cache.Hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == downloadObject.ObjectKey);
 
                         if (dbDatalink == null)
                         {
@@ -77,7 +78,7 @@ namespace dexih.operations
                         }
                         
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(cache.DexihHub, dbDatalink, downloadObject.InputColumns, null, null, false, previewMode: true);
+                        var runPlan = transformManager.CreateRunPlan(cache.Hub, dbDatalink, downloadObject.InputColumns, null, null, false, previewMode: true);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)
