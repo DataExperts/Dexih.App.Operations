@@ -68,6 +68,7 @@ namespace dexih.operations
             WriterResult = new TransformWriterResult
             {
                 HubKey = hub.HubKey,
+                AuditConnectionKey = datalink.AuditConnectionKey ?? 0,
                 AuditType = auditType,
                 ReferenceKey = referenceKey,
                 ParentAuditKey = parentAuditKey,
@@ -179,7 +180,7 @@ namespace dexih.operations
                         break;
                 }
 
-                await auditConnection.InitializeAudit(WriterResult, _hub.HubKey, WriterResult.AuditType, ReferenceKey, WriterResult.ParentAuditKey, Datalink.Name, sourceKey, sourceName, Datalink.TargetTableKey ?? 0, _targetTable.Name, WriterResult.TriggerMethod, WriterResult.TriggerInfo, cancellationToken);
+                await auditConnection.InitializeAudit(WriterResult, _hub.HubKey, Datalink.AuditConnectionKey ?? 0, WriterResult.AuditType, ReferenceKey, WriterResult.ParentAuditKey, Datalink.Name, sourceKey, sourceName, Datalink.TargetTableKey ?? 0, _targetTable.Name, WriterResult.TriggerMethod, WriterResult.TriggerInfo, cancellationToken);
                 WriterResult.OnProgressUpdate += Datalink_OnProgressUpdate;
                 WriterResult.OnStatusUpdate += Datalink_OnStatusUpdate;
                 WriterResult.TruncateTarget = _truncateTarget;

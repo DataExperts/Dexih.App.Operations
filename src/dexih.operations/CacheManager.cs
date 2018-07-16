@@ -313,6 +313,35 @@ namespace dexih.operations
 			{
 				AddConnections(new[] {datalink.AuditConnectionKey.Value}, false, hub);
 			}
+	        
+			foreach (var datalinkTransform in datalink.DexihDatalinkTransforms)
+            {
+                if (datalinkTransform.JoinDatalinkTable != null)
+                {
+					if (datalinkTransform.JoinDatalinkTable.SourceType == ESourceType.Table && datalinkTransform.JoinDatalinkTable.SourceTableKey != null)
+					{
+						AddTables(new[] { datalinkTransform.JoinDatalinkTable.SourceTableKey.Value }, hub);
+					}
+					else if  (datalinkTransform.JoinDatalinkTable.SourceType == ESourceType.Datalink && datalinkTransform.JoinDatalinkTable.SourceDatalinkKey != null)
+					{
+						AddDatalinks(new[] { datalinkTransform.JoinDatalinkTable.SourceDatalinkKey.Value }, hub);
+					}
+                }
+
+                foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
+                {
+
+					if (item.CustomFunctionKey != null)
+					{
+						var customFunction = Hub.DexihCustomFunctions.SingleOrDefault(c => c.CustomFunctionKey == item.CustomFunctionKey);
+						if (customFunction == null)
+						{
+							customFunction = hub.DexihCustomFunctions.SingleOrDefault(c => c.CustomFunctionKey == item.CustomFunctionKey && c.IsValid);
+							Hub.DexihCustomFunctions.Add(customFunction);
+						}
+					}
+                }
+            }
         }
 	    
 
@@ -487,6 +516,29 @@ namespace dexih.operations
 						    Hub.DexihFileFormats.Add(fileFormat);
 					    }
 				    }
+			    }
+		    }
+	    }
+
+	    /// <summary>
+	    /// Adds a table object to the cache along with any dependencies.  This is used where the table has not been saved to the repository.
+	    /// Ensure the tableKey is unique.
+	    /// </summary>
+	    /// <param name="table"></param>
+	    /// <param name="hub"></param>
+	    public void AddTable(DexihTable table, DexihHub hub)
+	    {
+		    AddConnections(new long[] { table.ConnectionKey }, false, hub);
+		    var connection = Hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == table.ConnectionKey);
+		    connection.DexihTables.Add(table);
+				    
+		    if(table.FileFormatKey != null)
+		    {
+			    var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.FileFormatKey == table.FileFormatKey);
+			    if(fileFormat == null)
+			    {
+				    fileFormat = hub.DexihFileFormats.SingleOrDefault(c => c.FileFormatKey == table.FileFormatKey && c.IsValid);
+				    Hub.DexihFileFormats.Add(fileFormat);
 			    }
 		    }
 	    }

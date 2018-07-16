@@ -79,7 +79,7 @@ namespace dexih.repository
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [CopyReference]
+        //[CopyReference]
         public virtual ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
         public virtual ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 

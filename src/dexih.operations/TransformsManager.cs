@@ -153,41 +153,32 @@ namespace dexih.operations
         }
 
 
-
-
-
+        /// <summary>
+        /// Gets a reference to the specified profile function.
+        /// </summary>
+        /// <param name="functionAssemblyName"></param>
+        /// <param name="functionClassName"></param>
+        /// <param name="functionMethodName"></param>
+        /// <param name="columnName"></param>
+        /// <param name="detailedResults"></param>
+        /// <returns></returns>
+        /// <exception cref="TransformManagerException"></exception>
         public TransformFunction GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults)
         {
             try
             {
-                Type type;
-                if (string.IsNullOrEmpty(functionAssemblyName))
-                {
-                    type = Type.GetType(functionClassName);
-                }
-                else
-                {
+                var functionMethod =
+                    Functions.GetFunctionMethod(functionClassName, functionMethodName, functionAssemblyName);
 
-                    var assemblyName = new AssemblyName(functionAssemblyName).Name;
-                    var folderPath = Path.GetDirectoryName(this.GetType().GetTypeInfo().Assembly.Location);
-                    var assemblyPath = Path.Combine(folderPath, assemblyName + ".dll");
-                    if (!File.Exists(assemblyPath))
-                    {
-                        throw new TransformManagerException("The profile function could not be started due to a missing assembly.  The assembly name is: " + functionAssemblyName + ", and class: " + functionClassName+ ", and expected in directory: " + this.GetType().GetTypeInfo().Assembly.Location + ".  Has this been installed?");
-                    }
-
-                    var loader = new AssemblyLoader(folderPath);
-                    var assembly = loader.LoadFromAssemblyName(new AssemblyName(assemblyName));
-                    type = assembly.GetType(functionClassName);
-                }
-
-                var profileObject = Activator.CreateInstance(type);
+                var profileObject = Activator.CreateInstance(functionMethod.type);
 
                 var property = profileObject.GetType().GetProperty("DetailedResults");
-                if(property != null)
+                if (property != null)
+                {
                     property.SetValue(profileObject, detailedResults);
+                }
 
-                var profileFunction = new TransformFunction(profileObject, functionMethodName, new TableColumn[] { new TableColumn(columnName) }, null, null);
+                var profileFunction = new TransformFunction(profileObject, functionMethodName, new[] { new TableColumn(columnName) }, null, null);
                 return profileFunction;
             }
             catch (Exception ex)

@@ -86,7 +86,7 @@ namespace dexih.operations
                             throw new DownloadDataException($"The datalink {dbDatalink.Name} failed to open for reading.");
                         }
 
-                        transform.SetCacheMethod(transforms.Transform.ECacheMethod.OnDemandCache);
+                        transform.SetCacheMethod(ECacheMethod.OnDemandCache);
                         transform.SetEncryptionMethod(EEncryptionMethod.MaskSecureFields, "");
 
                         name = dbDatalink.Name;
@@ -114,7 +114,7 @@ namespace dexih.operations
                             break;
                             
                         default:
-                            throw new Exception("The file format " + downloadFormat.ToString() + " is not currently supported for downloading data.");
+                            throw new Exception("The file format " + downloadFormat + " is not currently supported for downloading data.");
                     }
 
                     var entry = archive.CreateEntry(name);

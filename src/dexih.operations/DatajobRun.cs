@@ -97,7 +97,7 @@ namespace dexih.operations
 					throw new DatajobRunException("There is no audit connection spefieid.");
 				}
 
-				await _auditConnection.InitializeAudit(WriterResult, _hub.HubKey, WriterResult.AuditType, Datajob.DatajobKey, WriterResult.ParentAuditKey, Datajob.Name, 0, "", 0, "", WriterResult.TriggerMethod, WriterResult.TriggerInfo, cancellationToken);
+				await _auditConnection.InitializeAudit(WriterResult, _hub.HubKey, Datajob.AuditConnectionKey ?? 0, WriterResult.AuditType, Datajob.DatajobKey, WriterResult.ParentAuditKey, Datajob.Name, 0, "", 0, "", WriterResult.TriggerMethod, WriterResult.TriggerInfo, cancellationToken);
 			}
 			catch (Exception ex)
 			{
@@ -115,6 +115,7 @@ namespace dexih.operations
 			WriterResult = new TransformWriterResult
 			{
 				HubKey = _hub.HubKey,
+				AuditConnectionKey = Datajob.AuditConnectionKey ?? 0,
 				AuditType = "Datajob",
 				ReferenceKey = Datajob.DatajobKey,
 				ParentAuditKey = 0,
