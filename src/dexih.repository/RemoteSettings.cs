@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using dexih.functions;
 using dexih.transforms;
+using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -263,6 +266,21 @@ namespace dexih.repository
         /// File name of the ssl certificate
         /// </summary>
         public string CertificateFilename { get; set; }
+
+        public string CerfificateFilePath()
+        {
+            if (string.IsNullOrEmpty(CertificateFilename))
+            {
+                return null;
+            }
+
+            if (Path.GetFileName(CertificateFilename) == CertificateFilename)
+            {
+                return Path.Combine(Directory.GetCurrentDirectory(), CertificateFilename);
+            }
+
+            return CertificateFilename;
+        }
         
         /// <summary>
         /// Password for the ssl certificate
@@ -343,6 +361,10 @@ namespace dexih.repository
         
         public string ProxyUrl { get; set; }
 
+        public string UserId { get; set; }
+        
+        public bool IsAdmin { get; set; }
+        
         public string UserHash { get; set; }
         
         public string Version { get; set; }

@@ -17,6 +17,8 @@ namespace dexih.repository
         public string Name { get; set; }
         
         public bool RestrictIp { get; set; }
+        
+        public string UserId { get; set; }
 
         [NotMapped]
         public string[] IpAddresses { get; set; }

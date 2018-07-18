@@ -783,6 +783,7 @@ namespace dexih.repository
                 entity.Property(e => e.AllowExternalConnect).HasColumnName("allow_external_connect");
 
                 entity.Property(e => e.IpAddressesString).HasColumnName("ip_addresses").HasColumnType("varchar(8000)");
+                entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("varchar(100)");
                 entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasColumnType("varchar(50)");
                 entity.Property(e => e.IsAuthorized).HasColumnName("is_authorized");
                 entity.Property(e => e.RestrictIp).HasColumnName("restrict_ip");
