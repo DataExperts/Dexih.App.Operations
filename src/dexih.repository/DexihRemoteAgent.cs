@@ -1,25 +1,28 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using dexih.transforms;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
     public partial class DexihRemoteAgent : DexihBaseEntity
-    {
+    {        
+        public DexihRemoteAgent()
+        {
+            DexihremoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
+        }
+        
         [CopyCollectionKey((long)0, true)]
         public long RemoteAgentKey { get; set; }
 
-        // [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
         public string Name { get; set; }
-        
-        public bool RestrictIp { get; set; }
-        
         public string UserId { get; set; }
 
+        public bool RestrictIp { get; set; }
+
+        public bool AllowExternalConnect { get; set; }
         [NotMapped]
         public string[] IpAddresses { get; set; }
 
@@ -30,19 +33,15 @@ namespace dexih.repository
             set => IpAddresses = value?.Split(',').ToArray();
         }
         public string RemoteAgentId { get; set; }
-
-        public bool IsDefault { get; set; }
-        public bool IsAuthorized { get; set; }
-        public bool AllowExternalConnect { get; set; }
+        
+        public string HashedToken { get; set; }
 
         public string LastLoginIpAddress { get; set; }
-        public DateTime? LastLoginDate { get; set; } 
+        public DateTime? LastLoginDateTime { get; set; } 
         
-        [JsonIgnore, CopyIgnore]
-        public virtual DexihHub Hub { get; set; }
-
         [NotMapped]
-        public DexihActiveAgent ActiveAgent { get; set; }
-
+        public DexihActiveAgent[] ActiveAgents { get; set; }
+        
+        public virtual ICollection<DexihRemoteAgentHub> DexihremoteAgentHubs { get; set; }
     }
 }

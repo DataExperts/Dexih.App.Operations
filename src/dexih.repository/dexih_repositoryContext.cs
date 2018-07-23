@@ -768,40 +768,57 @@ namespace dexih.repository
 
             });
 
-
             modelBuilder.Entity<DexihRemoteAgent>(entity =>
             {
-                entity.HasKey(e => e.RemoteAgentKey).HasName("PK_dexih_remotes");
+                entity.HasKey(e => e.RemoteAgentKey).HasName("PK_dexih_remote_agent");
 
                 entity.ToTable("dexih_remote_agents");
 
                 entity.Property(e => e.RemoteAgentKey).HasColumnName("remote_agent_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasColumnType("varchar(50)");
 
-                entity.Property(e => e.IsDefault).HasColumnName("is_default");
-
                 entity.Property(e => e.AllowExternalConnect).HasColumnName("allow_external_connect");
-
                 entity.Property(e => e.IpAddressesString).HasColumnName("ip_addresses").HasColumnType("varchar(8000)");
                 entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("varchar(100)");
                 entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasColumnType("varchar(50)");
-                entity.Property(e => e.IsAuthorized).HasColumnName("is_authorized");
                 entity.Property(e => e.RestrictIp).HasColumnName("restrict_ip");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 
-                entity.Property(e => e.LastLoginDate).HasColumnName("last_login_date");
+                entity.Property(e => e.HashedToken).HasColumnName("hashed_token").HasColumnType("varchar(4000)");
+                
+                entity.Property(e => e.LastLoginDateTime).HasColumnName("last_login_date");
                 entity.Property(e => e.LastLoginIpAddress).HasColumnName("last_login_ip");
-                
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 
-                entity.HasOne(d => d.Hub)
-                    .WithMany(p => p.DexihRemoteAgents)
-                    .HasForeignKey(d => d.HubKey);
             });
 
+            modelBuilder.Entity<DexihRemoteAgentHub>(entity =>
+            {
+                entity.HasKey(e => e.RemoteAgentHubKey).HasName("PK_dexih_remote_agent_hub");
+
+                entity.ToTable("dexih_remote_agent_hubs");
+
+                entity.Property(e => e.RemoteAgentHubKey).HasColumnName("remote_agent_hub_key");
+                entity.Property(e => e.RemoteAgentKey).HasColumnName("remote_agent_key");
+                entity.Property(e => e.IsDefault).HasColumnName("is_default");
+                entity.Property(e => e.IsAuthorized).HasColumnName("is_authorized");
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihRemoteAgentHubs)
+                    .HasForeignKey(d => d.HubKey);
+                
+                entity.HasOne(d => d.RemoteAgent)
+                    .WithMany(p => p.DexihremoteAgentHubs)
+                    .HasForeignKey(d => d.RemoteAgentKey);
+
+            });
 
             modelBuilder.Entity<DexihHubUser>(entity =>
             {
@@ -872,21 +889,6 @@ namespace dexih.repository
                 entity.HasOne(d => d.Hub)
                       .WithMany(p => p.DexihHubVariables)
                     .HasForeignKey(d => d.HubKey);
-            });
-
-            modelBuilder.Entity<DexihSetting>(entity =>
-            {
-                entity.HasKey(e => new { e.Category, e.Name })
-                    .HasName("PK_dexih_settings");
-
-                entity.ToTable("dexih_settings");
-
-                entity.Property(e => e.Category).HasColumnName("category").HasColumnType("varchar(50)");
-                entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(50)");
-                entity.Property(e => e.Value).HasColumnName("value").HasColumnType("varchar(500)");
-				entity.Property(e => e.CreateDate).HasColumnName("create_date"); // .HasColumnType("datetime");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date"); // .HasColumnType("datetime");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
             });
 
             modelBuilder.Entity<DexihTableColumn>(entity =>
@@ -1047,7 +1049,7 @@ namespace dexih.repository
         public virtual DbSet<DexihFunctionParameter> DexihFunctionParameters { get; set; }
 	    public virtual DbSet<DexihFunctionArrayParameter> DexihFunctionArrayParameters { get; set; }
         public virtual DbSet<DexihRemoteAgent> DexihRemoteAgents { get; set; }
-        public virtual DbSet<DexihSetting> DexihSettings { get; set; }
+	    public virtual DbSet<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
         public virtual DbSet<DexihHubUser> DexihHubUser { get; set; }
         public virtual DbSet<DexihHub> DexihHubs { get; set; }
         public virtual DbSet<DexihHubVariable> DexihHubVariable { get; set; }

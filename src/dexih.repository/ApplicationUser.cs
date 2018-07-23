@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -30,12 +31,13 @@ namespace dexih.repository
 		public int InviteQuota { get; set; }
 		public int HubQuota { get; set; }
 
+	    public string PrivateKey { get; set; }
+	    public string CertificateChain { get; set; }
+	    public DateTime? CertificateExpiry { get; set; }
+
 		public bool CanLogin()
 		{
 			return EmailConfirmed && IsInvited && IsEnabled;
 		}
-
     }
-
-
 }

@@ -142,7 +142,7 @@ namespace dexih.operations
 				{
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
-						.Include(c => c.DexihRemoteAgents)
+						.Include(c => c.DexihRemoteAgentHubs)
 						.Where(c => !c.IsInternal && c.IsValid)
 						.ToArrayAsync();
 					return hubs;
@@ -155,7 +155,7 @@ namespace dexih.operations
 					
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
-						.Include(c => c.DexihRemoteAgents)
+						.Include(c => c.DexihRemoteAgentHubs)
 						.Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid).ToArrayAsync();
 					return hubs;
 				}
@@ -362,11 +362,11 @@ namespace dexih.operations
 		        var item = entity.Entity;
 
 		        // remote unwanted entries.
-		        if (item is DexihSetting)
-		        {
-			        entity.State = EntityState.Unchanged;
-			        continue;
-		        }
+//		        if (item is DexihSetting)
+//		        {
+//			        entity.State = EntityState.Unchanged;
+//			        continue;
+//		        }
 
 		        // other entries.  If the key value <=0 modify the state to added, otherwise modify existing entity.
 		        var properties = item.GetType().GetProperties();
@@ -1684,21 +1684,12 @@ namespace dexih.operations
 		/// <param name="iPAddress"></param>
 		/// <param name="remoteSettings"></param>
 		/// <returns></returns>
-		public async Task<DexihRemoteAgent> RemoteAgentAuthorize(long hubKey, string userId, string iPAddress, RemoteSettings remoteSettings)
+		public async Task<DexihRemoteAgent> RemoteAgentLogin(string iPAddress, string remoteAgentId)
 		{
             try
             {
-	            if (!remoteSettings.Permissions.AllowAllHubs && (remoteSettings.Permissions.AllowedHubs == null || !remoteSettings.Permissions.AllowedHubs.Contains(hubKey)))
-	            {
-		            return null;
-	            }
-
 	            var remoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(c => 
-		            c.HubKey == hubKey && 
-		            c.RemoteAgentId == remoteSettings.AppSettings.RemoteAgentId &&
-		            c.UserId == userId &&
-		            c.IsAuthorized &&
-		            (!c.RestrictIp || (c.IpAddresses != null && c.IpAddresses.Contains(iPAddress))) && 
+		            c.RemoteAgentId == remoteAgentId && 
 		            c.IsValid);
 
 	            if (remoteAgent == null)
@@ -1706,103 +1697,39 @@ namespace dexih.operations
 		            return null;
 	            }
 
-	            remoteAgent.LastLoginDate = DateTime.Now;
+	            remoteAgent.LastLoginDateTime = DateTime.Now;
 				remoteAgent.LastLoginIpAddress = iPAddress;
 				await DbContext.SaveChangesAsync();
 				return remoteAgent;
             }
             catch (Exception ex)
             {
-                throw new RepositoryManagerException($"Check remote agent is authorized failed.  {ex.Message}", ex);
+                throw new RepositoryManagerException($"Remote agent login failed.  {ex.Message}", ex);
             }
         }
-
-		/// <summary>
-		/// Gets a list of all hubs which have been authorized for the remote agent.
-		/// </summary>
-		/// <param name="iPAddress"></param>
-		/// <param name="remoteSettings"></param>
-		/// <returns></returns>
-		public async Task<DexihRemoteAgent[]> AuthorizedRemoteAgentHubs(string iPAddress, RemoteSettings remoteSettings)
+		
+		public Task<DexihRemoteAgent> GetRemoteAgent(long remoteAgentKey)
 		{
-			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-HUBS-{remoteSettings.AppSettings.RemoteAgentId}",
-				async entry =>
-				{
-					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
-
-					var hubs = await GetUserHubs(remoteSettings.Runtime.UserId, remoteSettings.Runtime.IsAdmin);
-			
-					var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => 
-						c.RemoteAgentId == remoteSettings.AppSettings.RemoteAgentId &&
-						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
-						c.IsAuthorized &&
-						(!c.RestrictIp || (c.IpAddresses != null && c.IpAddresses.Contains(iPAddress))) && 
-						c.IsValid).ToArrayAsync();
-
-					return remoteAgents;
-				});
+			return DbContext.DexihRemoteAgents.SingleOrDefaultAsync(
+				c => c.RemoteAgentKey == remoteAgentKey && c.IsValid);
 		}
 		
-		/// <summary>
-		/// Gets a list of all remote agents available to the user.
-		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="isAdmin"></param>
-		/// <returns></returns>
-		public async Task<DexihRemoteAgent[]> AuthorizedUserRemoteAgents(string userId, bool isAdmin)
-		{
-			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-USER-HUBS-{userId}",
-				async entry =>
-				{
-					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
-
-					var hubs = await GetUserHubs(userId, isAdmin);
-			
-					var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => 
-						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
-						c.IsAuthorized &&
-						c.IsValid).ToArrayAsync();
-
-					return remoteAgents;
-				});
-		}
-
-        public async Task<DexihRemoteAgent[]> GetRemoteAgents(long hubKey)
-		{
-			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => c.IsValid && c.HubKey == hubKey).ToArrayAsync();
-			return remoteAgents;
-		}
-
-		public async Task<DexihRemoteAgent[]> GetRemoteAgents(IEnumerable<long> hubKeys)
-		{
-			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => c.IsValid && hubKeys.Contains(c.HubKey)).ToArrayAsync();
-			return remoteAgents;
-		}
-
-        public async Task<DexihRemoteAgent> SaveRemoteAgent(string userId, long hubKey, DexihRemoteAgent remoteAgent)
+	   public async Task<DexihRemoteAgent> SaveRemoteAgent(string userId, DexihRemoteAgent remoteAgent)
 		{
             try
             {
-                DexihRemoteAgent dbRemoteAgent;
+	            DexihRemoteAgent dbRemoteAgent;
 	            
-                //check there are no agents with the same name
-                var sameName = await DbContext.DexihRemoteAgents.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == remoteAgent.Name && c.HubKey == remoteAgent.HubKey && c.RemoteAgentKey != remoteAgent.RemoteAgentKey && c.IsValid);
-                if (sameName != null)
-                {
-                    throw new RepositoryManagerException($"A remote agent the name {remoteAgent.Name} already exists in the repository.");
-                }
-
                 //if there is a remoteAgentKey, retrieve the record from the database, and copy the properties across.
                 if (remoteAgent.RemoteAgentKey > 0)
                 {
-                    dbRemoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentKey == remoteAgent.RemoteAgentKey && d.IsValid);
+                    dbRemoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(d => d.RemoteAgentKey == remoteAgent.RemoteAgentKey && d.IsValid);
                     if (dbRemoteAgent != null)
                     {
 	                    if (dbRemoteAgent.UserId == userId)
 	                    {
 		                    remoteAgent.CopyProperties(dbRemoteAgent, true);
 		                    dbRemoteAgent.UserId = userId;
-		                    dbRemoteAgent.IpAddresses = remoteAgent.IpAddresses;
 	                    }
 	                    else
 	                    {
@@ -1811,7 +1738,7 @@ namespace dexih.operations
                     }
                     else
                     {
-                        throw new RepositoryManagerException($"The remote agent could not be saved as the remote agent contains the remoteagent_key {remoteAgent.RemoteAgentKey} that no longer exists in the repository.");
+                        throw new RepositoryManagerException($"The remote agent could not be saved as the remote agent contains the remoteagent_key {remoteAgent.RemoteAgentId} that no longer exists in the repository.");
                     }
                 }
                 else
@@ -1829,6 +1756,126 @@ namespace dexih.operations
 
                 dbRemoteAgent.IsValid = true;
 
+	            await DbContext.SaveChangesAsync();
+
+                return dbRemoteAgent;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save remote agents failed.  {ex.Message}", ex);
+            }
+        }
+		
+		public async Task<bool> DeleteRemoteAgent(long remoteAgentKey)
+		{
+			try
+			{
+				var dbItem = await DbContext.DexihRemoteAgents
+					.SingleAsync(c => c.RemoteAgentKey == remoteAgentKey);
+
+				dbItem.IsValid = false;
+				await DbContext.SaveChangesAsync();
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Delete remote agents failed.  {ex.Message}", ex);
+			}
+		}
+
+		/// <summary>
+		/// Gets a list of all hubs which have been authorized for the remote agent.
+		/// </summary>
+		/// <param name="iPAddress"></param>
+		/// <param name="remoteSettings"></param>
+		/// <returns></returns>
+		public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(string iPAddress, RemoteSettings remoteSettings)
+		{
+			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-HUBS-{remoteSettings.AppSettings.RemoteAgentId}",
+				async entry =>
+				{
+					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
+
+					var hubs = await GetUserHubs(remoteSettings.Runtime.UserId, remoteSettings.Runtime.IsAdmin);
+			
+					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Where(c => 
+						c.RemoteAgent.RemoteAgentId == remoteSettings.AppSettings.RemoteAgentId &&
+						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
+						c.IsAuthorized &&
+						c.IsValid).ToArrayAsync();
+
+					return remoteAgents;
+				});
+		}
+		
+		/// <summary>
+		/// Gets a list of all remote agents available to the user.
+		/// </summary>
+		/// <param name="userId"></param>
+		/// <param name="isAdmin"></param>
+		/// <returns></returns>
+		public async Task<DexihRemoteAgentHub[]> AuthorizedUserRemoteAgentHubs(string userId, bool isAdmin)
+		{
+			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-USER-HUBS-{userId}",
+				async entry =>
+				{
+					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
+
+					var hubs = await GetUserHubs(userId, isAdmin);
+			
+					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Include(c => c.RemoteAgent).Where(c => 
+						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
+						c.IsAuthorized &&
+						c.IsValid).ToArrayAsync();
+
+					return remoteAgents;
+				});
+		}
+
+		public Task<DexihRemoteAgentHub> AuthorizedRemoteAgentHub(long hubKey, long remoteAgentKey)
+		{
+			return DbContext.DexihRemoteAgentHubs.FirstOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentKey == remoteAgentKey && d.IsAuthorized && d.IsValid);
+		}
+
+		public async Task<DexihRemoteAgent[]> GetRemoteAgents(string userId, bool isAdmin)
+		{
+			var userHubs = (await GetUserHubs(userId, isAdmin)).Select(c=>c.HubKey);
+			
+			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => 
+				c.IsValid && 
+				((isAdmin || c.UserId == userId) || c.DexihremoteAgentHubs.Any(d => userHubs.Contains(d.HubKey)))
+				).ToArrayAsync();
+			return remoteAgents;
+		}
+
+        public async Task<DexihRemoteAgentHub> SaveRemoteAgentHub(string userId, long hubKey, DexihRemoteAgentHub remoteAgent)
+		{
+            try
+            {
+	            DexihRemoteAgentHub dbRemoteAgent;
+	            
+                //if there is a remoteAgentKey, retrieve the record from the database, and copy the properties across.
+                if (remoteAgent.RemoteAgentHubKey > 0)
+                {
+                    dbRemoteAgent = await DbContext.DexihRemoteAgentHubs.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentHubKey == remoteAgent.RemoteAgentHubKey && d.IsValid);
+                    if (dbRemoteAgent != null)
+                    {
+	                    remoteAgent.CopyProperties(dbRemoteAgent, true);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The remote agent could not be saved as the remote agent contains the remoteagent_key {remoteAgent.RemoteAgentHubKey} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+                    dbRemoteAgent = remoteAgent;
+					DbContext.DexihRemoteAgentHubs.Add(dbRemoteAgent);
+                }
+
+                dbRemoteAgent.IsValid = true;
+
                 await SaveHubChangesAsync(hubKey);
 
                 return dbRemoteAgent;
@@ -1840,12 +1887,12 @@ namespace dexih.operations
 
         }
 
-        public async Task<bool> DeleteRemoteAgent(long hubKey, long remoteAgentKey)
+        public async Task<bool> DeleteRemoteAgentHub(long hubKey, long remoteAgentHubKey)
 		{
             try
             {
-                var dbItem = await DbContext.DexihRemoteAgents
-                    .SingleAsync(c => c.HubKey == hubKey && c.RemoteAgentKey == remoteAgentKey);
+                var dbItem = await DbContext.DexihRemoteAgentHubs
+                    .SingleAsync(c => c.HubKey == hubKey && c.RemoteAgentHubKey == remoteAgentHubKey);
 
                 dbItem.IsValid = false;
                 await SaveHubChangesAsync(hubKey);
@@ -1856,8 +1903,8 @@ namespace dexih.operations
             {
                 throw new RepositoryManagerException($"Delete remote agents failed.  {ex.Message}", ex);
             }
-
         }
+		
         #endregion
 
         #region Datalink Transform Functions

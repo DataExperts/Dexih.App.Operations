@@ -31,7 +31,7 @@ namespace dexih.repository
             DexihHubVariables = new HashSet<DexihHubVariable>();
             DexihCustomFunctions = new HashSet<DexihCustomFunction>();
             DexihColumnValidations = new HashSet<DexihColumnValidation>();
-            DexihRemoteAgents = new HashSet<DexihRemoteAgent>();
+            DexihRemoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
         }
 
         [CopyCollectionKey((long)0, true)]
@@ -77,7 +77,7 @@ namespace dexih.repository
 
         public virtual ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
         public virtual ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
-        public virtual ICollection<DexihRemoteAgent> DexihRemoteAgents { get; set; }
+        public virtual ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
 
         /// <summary>
         /// Searches all connections and table for a columnKey.
