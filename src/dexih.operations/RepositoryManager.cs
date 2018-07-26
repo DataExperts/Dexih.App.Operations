@@ -735,7 +735,7 @@ namespace dexih.operations
 				}
 
 				var hubUser =
-					await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id);
+					await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid);
 
 				if (hubUser.Permission == DexihHubUser.EPermission.Suspended ||
 				    hubUser.Permission == DexihHubUser.EPermission.None)
@@ -2006,7 +2006,7 @@ namespace dexih.operations
 	                //columns in the source table are added to the target table
 	                if (addSourceColumns)
 	                {
-		                foreach (var col in sourceTable.DexihTableColumns.Where(c => c.IsSourceColumn).ToList())
+		                foreach (var col in sourceTable.DexihTableColumns.Where(c => c.IsSourceColumn).OrderBy(p => p.Position).ToList())
 		                {
 			                var newColumn = new DexihTableColumn();
 			                col.CopyProperties(newColumn, true);
