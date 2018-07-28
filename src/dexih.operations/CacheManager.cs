@@ -466,6 +466,10 @@ namespace dexih.operations
                 if(table == null)
                 {
                     table = await dbContext.DexihTables.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.TableKey == tableKey && c.IsValid);
+	                if (table == null)
+	                {
+		                throw new CacheManagerException($"Could not find the table with the key {tableKey}.");
+	                }
                     await LoadTableColumns(table, dbContext);
 
 					await AddConnections(new long[] { table.ConnectionKey }, false, dbContext);
@@ -493,16 +497,23 @@ namespace dexih.operations
 		    foreach (var tableKey in tableKeys)
 		    {
 			    DexihTable table = null;
+			    // table already added to cache?
 			    foreach(var connection in Hub.DexihConnections)
 			    {
 				    table = connection.DexihTables.SingleOrDefault(c => c.TableKey == tableKey);
 				    if (table != null) break;
 			    }
 
+			    // not added, then add table to cache.
 			    if(table == null)
 			    {
 				    table = hub.GetTableFromKey(tableKey);
 
+				    if (table == null)
+				    {
+					    throw new CacheManagerException($"Could not find the table with the key {tableKey}.");
+				    }
+				    
 				    AddConnections(new long[] { table.ConnectionKey }, false, hub);
 				    var connection = Hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == table.ConnectionKey);
 				    connection.DexihTables.Add(table);
