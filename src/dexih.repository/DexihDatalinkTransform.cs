@@ -111,7 +111,7 @@ namespace dexih.repository
 
                 foreach (var param in item.DexihFunctionParameters)
                 {
-                    if (param.Direction == DexihFunctionParameter.EParameterDirection.Input && param.DatalinkColumn != null)
+                    if (param.Direction == DexihParameterBase.EParameterDirection.Input && param.DatalinkColumn != null)
                     {
                         columns.Add(param.DatalinkColumn);
                     }
@@ -139,7 +139,7 @@ namespace dexih.repository
 				}
                 else
                 {
-                    transform.Name = "Transfom - " + DatalinkTransformKey.ToString();
+                    transform.Name = "Transfom - " + DatalinkTransformKey;
                 }
 
 				if(JoinDatalinkTable != null)
@@ -221,7 +221,7 @@ namespace dexih.repository
 
                 transform.PassThroughColumns = PassThroughColumns;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;
-
+                
                 var joinSortColumn = JoinSortDatalinkColumn?.GetTableColumn(null);
                 transform.JoinSortField = joinSortColumn;
 

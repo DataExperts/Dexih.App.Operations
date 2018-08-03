@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using dexih.functions;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository

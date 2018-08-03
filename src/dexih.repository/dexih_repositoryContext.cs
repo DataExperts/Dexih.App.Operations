@@ -264,7 +264,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
                 entity.Property(e => e.FailActionString).HasColumnName("fail_action").HasColumnType("varchar(20)");
                 entity.Property(e => e.AuditConnectionKey).HasColumnName("audit_connection_key");
-                entity.Property(e => e.ExternalTrigger).HasColumnName("external_trigger");
+                // entity.Property(e => e.ExternalTrigger).HasColumnName("external_trigger");
                 entity.Property(e => e.FileWatch).HasColumnName("file_watch");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");

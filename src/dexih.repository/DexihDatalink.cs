@@ -313,17 +313,14 @@ namespace dexih.repository
             }
 
             var newColumns = new HashSet<DexihDatalinkColumn>();
+            
             foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
             {
-                if (columns.ContainsKey(column.DatalinkColumnKey))
-                {
-                    newColumns.Add(columns[column.DatalinkColumnKey]);
-                }
-                else
-                {
-                    newColumns.Add(column);
-                }
+                newColumns.Add(columns.ContainsKey(column.DatalinkColumnKey)
+                    ? columns[column.DatalinkColumnKey]
+                    : column);
             }
+            
             SourceDatalinkTable.DexihDatalinkColumns = newColumns;
 
             foreach (var datalinkTransform in DexihDatalinkTransforms.OrderBy(c=>c.Position))
@@ -346,6 +343,12 @@ namespace dexih.repository
                             }
                         }
                         datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns = newColumns;
+                    }
+                    
+                    if (item.FilterDatalinkColumn != null && columns.ContainsKey(item.FilterDatalinkColumn.DatalinkColumnKey))
+                    {
+                        item.FilterDatalinkColumnKey = item.FilterDatalinkColumn.DatalinkColumnKey > 0 ? item.FilterDatalinkColumn.DatalinkColumnKey : 0;
+                        item.FilterDatalinkColumn = columns[item.FilterDatalinkColumn.DatalinkColumnKey];
                     }
 
                     if (item.SourceDatalinkColumn != null && columns.ContainsKey(item.SourceDatalinkColumn.DatalinkColumnKey))

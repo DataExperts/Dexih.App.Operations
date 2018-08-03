@@ -433,7 +433,7 @@ namespace dexih.operations
 
                     _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding profiling.  Elapsed: {timer.Elapsed}");
                 }
-
+                
                 if(selectQuery != null)
                 {
                     var transform = new TransformQuery(primaryTransform, selectQuery);

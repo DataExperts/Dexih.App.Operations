@@ -426,6 +426,9 @@ namespace dexih.repository
                 AddIfMissing(new NamingStandard() { Name =  "IsCurrentField.Column.Name", Value =  "IsCurrent" });
                 AddIfMissing(new NamingStandard() { Name =  "IsCurrentField.Column.Logical", Value =  "IsCurrent" });
 				AddIfMissing(new NamingStandard() { Name =  "IsCurrentField.Column.Description", Value =  "True/False - Is the current record within the valid range?" });
+                AddIfMissing(new NamingStandard() { Name =  "Version.Column.Name", Value =  "Version" });
+                AddIfMissing(new NamingStandard() { Name =  "Version.Column.Logical", Value =  "Version" });
+                AddIfMissing(new NamingStandard() { Name =  "Version.Column.Description", Value =  "Version number of preserved records." });
                 AddIfMissing(new NamingStandard() { Name =  "SourceSurrogateKey.Column.Name", Value =  "SourceSk" });
                 AddIfMissing(new NamingStandard() { Name =  "SourceSurrogateKey.Column.Logical", Value =  "SourceSk" });
                 AddIfMissing(new NamingStandard() { Name =  "SourceSurrogateKey.Column.Description", Value =  "The surrogate key from the source table." });

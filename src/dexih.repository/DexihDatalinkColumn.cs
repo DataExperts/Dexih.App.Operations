@@ -20,9 +20,10 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
 
-	    [CopyCollectionKey((long)0)]
+	    [CopyCollectionKey((long)0, true)]
         public long DatalinkColumnKey { get; set; }
 
+	    [CopyParentCollectionKey]
         public long? DatalinkTableKey { get; set; }
 
         [JsonIgnore, CopyIgnore]

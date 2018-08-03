@@ -71,10 +71,10 @@ namespace dexih.repository
                     }
                     else
                     {
-                        if (!allowSecureVariables && (variable.IsEncrypted || variable.IsEnvironmentVariable))
-                        {
-                            throw new Exception($"The variable {variable.Name} could not be used as encrypted or enviornment variables and not available for this parameter.");
-                        }
+//                        if (!allowSecureVariables && (variable.IsEncrypted || variable.IsEnvironmentVariable))
+//                        {
+//                            throw new Exception($"The variable {variable.Name} could not be used as encrypted or enviornment variables are not available for this parameter.");
+//                        }
                         
                         if (newValue == null)
                         {

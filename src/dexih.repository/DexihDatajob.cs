@@ -49,7 +49,7 @@ namespace dexih.repository
         /// <summary>
         /// Indicates if the job can be triggered through the external api.
         /// </summary>
-        public bool ExternalTrigger { get; set; }
+        // public bool ExternalTrigger { get; set; }
 
         public virtual ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
         public virtual ICollection<DexihTrigger> DexihTriggers { get; set; }

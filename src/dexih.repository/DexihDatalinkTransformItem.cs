@@ -214,7 +214,8 @@ namespace dexih.repository
 				var timer = Stopwatch.StartNew();
 				logger?.LogTrace($"GetFunctionMethod, started.");
 
-				if (TransformItemType != ETransformItemType.CustomFunction && TransformItemType != ETransformItemType.BuiltInFunction)
+				if (TransformItemType != ETransformItemType.CustomFunction &&
+				    TransformItemType != ETransformItemType.BuiltInFunction)
 				{
 					throw new RepositoryException("The datalink transform item is not a custom function");
 				}
@@ -251,99 +252,106 @@ namespace dexih.repository
 							outputs.Add(newParameter);
 					}
 
-                }
+				}
 
-                var inputsArray = inputs.ToArray();
-                var outputsArray = outputs.ToArray();
-                
+				var inputsArray = inputs.ToArray();
+				var outputsArray = outputs.ToArray();
+
 				TransformFunction function;
 
 				if (!string.IsNullOrEmpty(FunctionClassName))
 				{
-					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction();
+					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName)
+						.GetTransformFunction();
 				}
-                else
+				else
 				{
 					var generatedClass = CreateFunctionCode(inputsArray, outputsArray, hub, createConsoleSample);
-                    
-                    var syntaxTree = CSharpSyntaxTree.ParseText(generatedClass);
 
-                    var references = new MetadataReference[]
-                    {
-                        MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-                        MetadataReference.CreateFromFile(typeof(Hashtable).GetTypeInfo().Assembly.Location)
-                    };
+					var syntaxTree = CSharpSyntaxTree.ParseText(generatedClass);
 
-                    var compilation = CSharpCompilation.Create("Function" + Guid.NewGuid() + ".dll",
-                    syntaxTrees: new[] { syntaxTree },
-                    references: references,
-                    options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+					var references = new MetadataReference[]
+					{
+						MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
+						MetadataReference.CreateFromFile(typeof(Hashtable).GetTypeInfo().Assembly.Location)
+					};
 
-                    var message = new StringBuilder();
+					var compilation = CSharpCompilation.Create("Function" + Guid.NewGuid() + ".dll",
+						syntaxTrees: new[] {syntaxTree},
+						references: references,
+						options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-                    using (var ms = new MemoryStream())
-                    {
-	                    logger?.LogTrace($"GetFunctionMethod, pre-compile  elspase: {timer.Elapsed}");
-                        var result = compilation.Emit(ms);
-	                    logger?.LogTrace($"GetFunctionMethod, post-compile elspase: {timer.Elapsed}");
+					var message = new StringBuilder();
 
-                        if (!result.Success)
-                        {
-                            var failures = result.Diagnostics.Where(diagnostic =>
-                                diagnostic.IsWarningAsError ||
-                                diagnostic.Severity == DiagnosticSeverity.Error);
+					using (var ms = new MemoryStream())
+					{
+						logger?.LogTrace($"GetFunctionMethod, pre-compile  elspase: {timer.Elapsed}");
+						var result = compilation.Emit(ms);
+						logger?.LogTrace($"GetFunctionMethod, post-compile elspase: {timer.Elapsed}");
 
-                            foreach (var diagnostic in failures)
-                            {
-                                message.AppendFormat("{0}: {1}", diagnostic.Id, diagnostic.GetMessage());
-                            }
+						if (!result.Success)
+						{
+							var failures = result.Diagnostics.Where(diagnostic =>
+								diagnostic.IsWarningAsError ||
+								diagnostic.Severity == DiagnosticSeverity.Error);
 
-                            throw new RepositoryException($"Failed to compile custom function.  {message}.");
-                        }
-                        else
-                        {
+							foreach (var diagnostic in failures)
+							{
+								message.AppendFormat("{0}: {1}", diagnostic.Id, diagnostic.GetMessage());
+							}
 
-                            ms.Seek(0, SeekOrigin.Begin);
+							throw new RepositoryException($"Invalid custom function: {message}.");
+						}
+						else
+						{
 
-                            var folderPath = Path.GetDirectoryName(GetType().GetTypeInfo().Assembly.Location);
-                            var loader = new AssemblyLoader(folderPath);
-                            var assembly = loader.LoadFromStream(ms);
+							ms.Seek(0, SeekOrigin.Begin);
 
-                            function = new TransformFunction();
+							var folderPath = Path.GetDirectoryName(GetType().GetTypeInfo().Assembly.Location);
+							var loader = new AssemblyLoader(folderPath);
+							var assembly = loader.LoadFromStream(ms);
 
-                            var mappingFunction = assembly.GetType("Program");
-                            function.ObjectReference = Activator.CreateInstance(mappingFunction);
-                            function.FunctionMethod = mappingFunction.GetMethod("CustomFunction");
-                            function.ResetMethod = mappingFunction.GetMethod("Reset");
-                            function.ReturnType = ReturnType;
-                        }
-                    }
+							function = new TransformFunction();
 
-                }
+							var mappingFunction = assembly.GetType("Program");
+							function.ObjectReference = Activator.CreateInstance(mappingFunction);
+							function.FunctionMethod = mappingFunction.GetMethod("CustomFunction");
+							function.ResetMethod = mappingFunction.GetMethod("Reset");
+							function.ReturnType = ReturnType;
+						}
+					}
+
+				}
 
 				// if the function has an arrayparamters property then set it.  This give the function access to the 
 				// columns that are used, and is specifically used by the column_to_rows function.
-				var arrayParameterProperty = function.ObjectReference.GetType().GetProperties().SingleOrDefault(c => c.Name == "ArrayParameters");
+				var arrayParameterProperty = function.ObjectReference.GetType().GetProperties()
+					.SingleOrDefault(c => c.Name == "ArrayParameters");
 				if (arrayParameterProperty != null && arrayParameters != null)
 				{
 					arrayParameterProperty.SetValue(function.ObjectReference, arrayParameters.ToArray());
 				}
 
 
-                function.Inputs = inputsArray;
-                function.Outputs = outputsArray;
+				function.Inputs = inputsArray;
+				function.Outputs = outputsArray;
 				if (TargetDatalinkColumn != null)
 				{
 					function.TargetColumn = TargetDatalinkColumn.GetTableColumn(null);
 				}
-                function.OnError = OnError;
-                function.OnNull = OnNull;
-                function.NotCondition = NotCondition;
-                function.InvalidAction = InvalidAction;
 
-                return function;
+				function.OnError = OnError;
+				function.OnNull = OnNull;
+				function.NotCondition = NotCondition;
+				function.InvalidAction = InvalidAction;
 
-            }
+				return function;
+
+			}
+			catch (RepositoryException)
+			{
+				throw;
+			}
             catch (Exception ex)
             {
                 throw new RepositoryException($"Function did not compile.  {ex.Message}", ex);

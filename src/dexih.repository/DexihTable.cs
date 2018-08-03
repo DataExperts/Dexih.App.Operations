@@ -87,8 +87,13 @@ namespace dexih.repository
         public string FileProcessedPath { get; set; }
         public string FileRejectedPath { get; set; }
 		public string FileMatchPattern { get; set; }
+	    
         public string RestfulUri { get; set; }
-        public bool IsVersioned { get; set; }
+	    
+	    [NotMapped]
+	    public int MaxImportLevels { get; set; }
+        
+	    public bool IsVersioned { get; set; }
         public bool IsInternal { get; set; }
 		public bool IsShared { get; set; }
 
