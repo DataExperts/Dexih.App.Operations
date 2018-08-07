@@ -45,12 +45,12 @@ namespace dexih.operations
         private readonly bool _truncateTarget;
         private readonly bool _resetIncremental;
         private readonly object _resetIncrementalValue;
-        private readonly string _encryptionKey;
+        private readonly GlobalVariables _globalVariables;
 
         private readonly ILogger _logger;
 
 
-        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, string encryptionKey, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery, IEnumerable<DexihColumnBase> inputColumns)
+        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, GlobalVariables globalVariables, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery, IEnumerable<DexihColumnBase> inputColumns)
         {
             _transformSettings = transformSettings;
             _logger = logger;
@@ -61,7 +61,7 @@ namespace dexih.operations
             _resetIncremental = resetIncremental;
             _resetIncrementalValue = resetIncrementalValue;
             _inputColumns = inputColumns;
-            _encryptionKey = encryptionKey;
+            _globalVariables = globalVariables;
 
             ReferenceKey = referenceKey;
 
@@ -222,7 +222,7 @@ namespace dexih.operations
             {
                 var transformManager = new TransformsManager(_transformSettings, _logger);
                 //Get the last Transform that will load the target table.
-                Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, null, WriterResult.LastMaxIncrementalValue, WriterResult.TruncateTarget, _selectQuery);
+                Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, _globalVariables, null, WriterResult.LastMaxIncrementalValue, WriterResult.TruncateTarget, _selectQuery);
             }
             catch (Exception ex)
             {
@@ -294,7 +294,7 @@ namespace dexih.operations
                 var targetReader = TargetConnection.GetTransformReader(targetTable);
                 var transformDelta = new TransformDelta(Reader.sourceTransform, targetReader,
                     Datalink.UpdateStrategy, surrogateKeyValue, Datalink.AddDefaultRow);
-                transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, _encryptionKey);
+                transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, _globalVariables.EncryptionKey);
 
                 var writer = new TransformWriter();
                 if (Datalink.RowsPerCommit > 0)

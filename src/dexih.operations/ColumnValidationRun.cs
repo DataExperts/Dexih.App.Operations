@@ -46,7 +46,8 @@ namespace dexih.operations
                 this, 
                 this.GetType().GetMethod("Run"), 
                 new TableColumn[] { new TableColumn(columnName) }, 
-                new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") }
+                new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") },
+                null
                 )
             {
                 InvalidAction = ColumnValidation.InvalidAction

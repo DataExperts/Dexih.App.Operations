@@ -160,10 +160,10 @@ namespace dexih.operations
         /// <param name="functionClassName"></param>
         /// <param name="functionMethodName"></param>
         /// <param name="columnName"></param>
-        /// <param name="detailedResults"></param>
+        /// <param name="globalVariables"></param>
         /// <returns></returns>
         /// <exception cref="TransformManagerException"></exception>
-        public TransformFunction GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults)
+        public TransformFunction GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults, GlobalVariables globalVariables)
         {
             try
             {
@@ -171,14 +171,15 @@ namespace dexih.operations
                     Functions.GetFunctionMethod(functionClassName, functionMethodName, functionAssemblyName);
 
                 var profileObject = Activator.CreateInstance(functionMethod.type);
-
+                
                 var property = profileObject.GetType().GetProperty("DetailedResults");
                 if (property != null)
                 {
                     property.SetValue(profileObject, detailedResults);
                 }
 
-                var profileFunction = new TransformFunction(profileObject, functionMethodName, new[] { new TableColumn(columnName) }, null, null);
+
+                var profileFunction = new TransformFunction(profileObject, functionMethodName, new[] { new TableColumn(columnName) }, null, null, globalVariables);
                 return profileFunction;
             }
             catch (Exception ex)
@@ -188,7 +189,7 @@ namespace dexih.operations
         }
 
 
-		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, IEnumerable<DexihColumnBase> inputColumns, bool previewMode)
+		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, IEnumerable<DexihColumnBase> inputColumns, GlobalVariables globalVariables, bool previewMode)
 		{
             try
             {
@@ -202,7 +203,7 @@ namespace dexih.operations
                         {
                             throw new TransformManagerException($"The source datalink with the key {datalinkTable.SourceDatalinkKey} was not found");
                         }
-                        returnValue = CreateRunPlan(hub, datalink, null, null, false, previewMode: previewMode);
+                        returnValue = CreateRunPlan(hub, datalink, null, globalVariables, null, false, previewMode: previewMode);
                         returnValue.sourceTransform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
                         break;
                     case ESourceType.Table:
@@ -303,7 +304,7 @@ namespace dexih.operations
             
         }
 
-        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, IEnumerable<DexihColumnBase> inputColumns, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null, bool previewMode = false) //Last datatransform key is used to preview the output of a specific transform in the series.
+        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, IEnumerable<DexihColumnBase> inputColumns, GlobalVariables globalVariables, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null, bool previewMode = false) //Last datatransform key is used to preview the output of a specific transform in the series.
         {
             try
             {
@@ -311,7 +312,7 @@ namespace dexih.operations
 
                 var timer = Stopwatch.StartNew();
                 
-				var primaryTransformResult = GetSourceTransform(hub, datalink.SourceDatalinkTable, inputColumns, previewMode);
+				var primaryTransformResult = GetSourceTransform(hub, datalink.SourceDatalinkTable, inputColumns, globalVariables, previewMode);
 				var primaryTransform = primaryTransformResult.sourceTransform;
 				var sourceTable = primaryTransformResult.sourceTable;
 				foreach(var column in primaryTransform.CacheTable.Columns)
@@ -349,7 +350,7 @@ namespace dexih.operations
                 //loop through the transforms to create the chain.
                 foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
                 {
-                    var transform = datalinkTransform.GetTransform(hub, _logger);
+                    var transform = datalinkTransform.GetTransform(hub, globalVariables, _logger);
 
                     _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 
@@ -397,7 +398,7 @@ namespace dexih.operations
 					Transform referenceTransform = null;
 					if(datalinkTransform.JoinDatalinkTable != null) 
 					{
-						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, null, previewMode);
+						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, null, globalVariables, previewMode);
 						referenceTransform = joinTransformResult.sourceTransform;
 					}
                     
@@ -423,7 +424,7 @@ namespace dexih.operations
                     {
                         foreach (var column in targetTable.DexihTableColumns.Where(c => c.IsSourceColumn))
                         {
-                            var profileFunction = GetProfileFunction(profile.FunctionAssemblyName, profile.FunctionClassName, profile.FunctionMethodName, column.Name, profile.DetailedResults);
+                            var profileFunction = GetProfileFunction(profile.FunctionAssemblyName, profile.FunctionClassName, profile.FunctionMethodName, column.Name, profile.DetailedResults, globalVariables);
                             profileRules.Add(profileFunction);
                         }
                     }

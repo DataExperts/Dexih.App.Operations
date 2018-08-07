@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
+using dexih.functions;
 using dexih.functions.Query;
 using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
@@ -121,7 +122,7 @@ namespace dexih.repository
             return columns;
         }
 
-        public Transform GetTransform(DexihHub hub, ILogger logger = null)
+        public Transform GetTransform(DexihHub hub, GlobalVariables globalVariables, ILogger logger = null)
         {
             try
             {
@@ -203,7 +204,7 @@ namespace dexih.repository
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.BuiltInFunction:
                         case DexihDatalinkTransformItem.ETransformItemType.CustomFunction:
-                            var createNewFunction = item.CreateFunctionMethod(hub, false, logger);
+                            var createNewFunction = item.CreateFunctionMethod(hub, globalVariables, false, logger);
 
                             transform.Functions.Add(createNewFunction);
 

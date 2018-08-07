@@ -1237,9 +1237,7 @@ namespace dexih.operations
 						// Reset columns ensures only one instance of each column exists.  
 						// without this the entity framework tries to insert record twice causing PK violations.
                         datalink.ResetDatalinkColumns(existingColumns);
-
                         datalink.CopyProperties(existingDatalink);
-                        existingDatalink.ResetDatalinkColumns();
 	                    existingDatalink.UpdateDate = DateTime.Now;
                         savedDatalinks.Add(existingDatalink);
                     } 

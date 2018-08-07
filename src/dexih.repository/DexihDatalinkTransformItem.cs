@@ -207,7 +207,7 @@ namespace dexih.repository
         /// Creates a reference to a compiled version of the mapping function.
         /// </summary>
         /// <returns></returns>
-        public TransformFunction CreateFunctionMethod(DexihHub hub, bool createConsoleSample = false, ILogger logger = null)
+        public TransformFunction CreateFunctionMethod(DexihHub hub, GlobalVariables globalVariables, bool createConsoleSample = false, ILogger logger = null)
 		{
 			try
 			{
@@ -261,8 +261,7 @@ namespace dexih.repository
 
 				if (!string.IsNullOrEmpty(FunctionClassName))
 				{
-					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName)
-						.GetTransformFunction();
+					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction(globalVariables);
 				}
 				else
 				{

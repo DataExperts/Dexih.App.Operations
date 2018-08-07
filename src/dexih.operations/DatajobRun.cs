@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using static dexih.repository.DexihDatajob;
 using static dexih.transforms.TransformWriterResult;
 using System.Threading.Tasks.Dataflow;
+using dexih.functions;
 using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
@@ -48,12 +49,12 @@ namespace dexih.operations
 		private readonly bool _truncateTarget;
 		private readonly bool _resetIncremental;
 		private readonly object _resetIncrementalValue;
-		private readonly string _encryptionKey;
+		private readonly GlobalVariables _globalVariables;
 
 		private readonly ILogger _logger;
 
 
-		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, string encryptionKey, bool truncateTarget, bool resetIncremental, object resetIncrementalValue)
+		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, GlobalVariables globalVariables, bool truncateTarget, bool resetIncremental, object resetIncrementalValue)
 		{
 			_transformSettings = transformSettings;
 			_logger = logger;
@@ -61,7 +62,7 @@ namespace dexih.operations
 			_truncateTarget = truncateTarget;
 			_resetIncremental = resetIncremental;
 			_resetIncrementalValue = resetIncrementalValue;
-			_encryptionKey = encryptionKey;
+			_globalVariables = globalVariables;
 
 			Datajob = datajob;
 			_hub = hub;
@@ -189,7 +190,7 @@ namespace dexih.operations
 				foreach (var step in Datajob.DexihDatalinkSteps)
 				{
 					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == step.DatalinkKey);
-					var datalinkRun = new DatalinkRun(_transformSettings, _logger, datalink, _hub, _encryptionKey, "Datalink", datalink.DatalinkKey, WriterResult.AuditKey, ETriggerMethod.Manual, "Triggered by datajob " + Datajob.Name, _truncateTarget, _resetIncremental, _resetIncrementalValue, null, step.DexihDatalinkStepColumns);
+					var datalinkRun = new DatalinkRun(_transformSettings, _logger, datalink, _hub, _globalVariables, "Datalink", datalink.DatalinkKey, WriterResult.AuditKey, ETriggerMethod.Manual, "Triggered by datajob " + Datajob.Name, _truncateTarget, _resetIncremental, _resetIncrementalValue, null, step.DexihDatalinkStepColumns);
 					DatalinkSteps.Add(datalinkRun);
 
 					//start datalinks that have no dependencies.
