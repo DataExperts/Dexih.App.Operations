@@ -1205,7 +1205,7 @@ namespace dexih.operations
 
                     if (datalink.DatalinkKey <= 0)
                     {
-                        var newDatalink = datalink.CloneProperties<DexihDatalink>();
+                        var newDatalink = datalink; // .CloneProperties<DexihDatalink>();
 
 						if(includeTargetTable && datalink.TargetTable != null) 
 						{
