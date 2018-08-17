@@ -12,7 +12,6 @@ namespace dexih.repository
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
         
-        [CopyReference]
         public virtual DexihDatalinkColumn DatalinkColumn { get; set; }
 
     }

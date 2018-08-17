@@ -1202,45 +1202,101 @@ namespace dexih.operations
                         throw new RepositoryManagerException($"A datalink with the name {datalink.Name} already exists in the repository.");
 					}
 
+					DexihDatalink existingDatalink;
 
-                    if (datalink.DatalinkKey <= 0)
-                    {
-                        var newDatalink = datalink; // .CloneProperties<DexihDatalink>();
-
+					// get the existing datalink so we save over existing data.
+					// if there is no existing datalink, create a new one.
+					if (datalink.DatalinkKey <= 0)
+					{
+						existingDatalink = new DexihDatalink();
 						if(includeTargetTable && datalink.TargetTable != null) 
 						{
-							newDatalink.TargetTable = datalink.TargetTable;
+							existingDatalink.TargetTable = datalink.TargetTable;
 						}
+						DbContext.Add(existingDatalink);
+					}
+					else
+					{
+						var cacheManager = new CacheManager(hubKey, "");
+						existingDatalink = await cacheManager.GetDatalink(datalink.DatalinkKey, DbContext);
+					}
+					
+					// get columns from the repository instance, and merge the tracked instances into the new one.
+					var columns = existingDatalink.GetAllDatalinkColumns();
+					var newColumns = datalink.GetAllDatalinkColumns();
 
-                        newDatalink.ResetDatalinkColumns();
-                        DbContext.Add(newDatalink);
-                        savedDatalinks.Add(newDatalink);
-                    }
-                    else 
-                    {
-	                    var cacheManager = new CacheManager(hubKey, "");
-                        var existingDatalink = await cacheManager.GetDatalink(datalink.DatalinkKey, DbContext);
-
-                        // get columns from the repository instance, and merge the tracked instances into the new one.
-                        var existingColumns = existingDatalink.GetAllDatalinkColumns();
-						var newColumns = datalink.GetAllDatalinkColumns();
-
-						// copy newColumns over existing column instances
-						foreach(var newColumn in newColumns.Values)
+					// copy newColumns over existing column instances
+					foreach(var newColumn in newColumns.Values)
+					{
+						if(columns.ContainsKey(newColumn.DatalinkColumnKey))
 						{
-							if(existingColumns.ContainsKey(newColumn.DatalinkColumnKey))
-							{
-								newColumn.CopyProperties(existingColumns[newColumn.DatalinkColumnKey]);
-							}
+							newColumn.CopyProperties(columns[newColumn.DatalinkColumnKey]);
 						}
+						else
+						{
+							columns.Add(newColumn.DatalinkColumnKey, newColumn);
+						}
+					}
 
-						// Reset columns ensures only one instance of each column exists.  
-						// without this the entity framework tries to insert record twice causing PK violations.
-                        datalink.ResetDatalinkColumns(existingColumns);
-                        datalink.CopyProperties(existingDatalink);
-	                    existingDatalink.UpdateDate = DateTime.Now;
-                        savedDatalinks.Add(existingDatalink);
-                    } 
+					// Reset columns ensures only one instance of each column exists.  
+					// without this the entity framework tries to insert record twice causing PK violations.
+					datalink.CopyProperties(existingDatalink);
+					existingDatalink.ResetDatalinkColumns(columns);
+
+					if (existingDatalink.DatalinkKey == 0 && existingDatalink.TargetTable != null && includeTargetTable)
+					{
+						existingDatalink.TargetTableKey = existingDatalink.TargetTable.TableKey;
+					}
+					
+					existingDatalink.UpdateDate = DateTime.Now;
+					savedDatalinks.Add(existingDatalink);
+
+
+//                    if (datalink.DatalinkKey <= 0)
+//                    {
+//                        var newDatalink = datalink; // .CloneProperties<DexihDatalink>();
+//
+//						if(includeTargetTable && datalink.TargetTable != null) 
+//						{
+//							newDatalink.TargetTable = datalink.TargetTable;
+//						}
+//
+//                        newDatalink.ResetDatalinkColumns();
+//	                    newDatalink = newDatalink.CloneProperties<DexihDatalink>();
+//                        DbContext.Add(newDatalink);
+//                        savedDatalinks.Add(newDatalink);
+//                    }
+//                    else 
+//                    {
+//	                    var cacheManager = new CacheManager(hubKey, "");
+//                        var existingDatalink = await cacheManager.GetDatalink(datalink.DatalinkKey, DbContext);
+//
+//                        // get columns from the repository instance, and merge the tracked instances into the new one.
+//                        var existingColumns = existingDatalink.GetAllDatalinkColumns();
+//						var newColumns = datalink.GetAllDatalinkColumns();
+//
+//						// copy newColumns over existing column instances
+//						foreach(var newColumn in newColumns.Values)
+//						{
+//							if(existingColumns.ContainsKey(newColumn.DatalinkColumnKey))
+//							{
+//								newColumn.CopyProperties(existingColumns[newColumn.DatalinkColumnKey]);
+//							}
+//							else
+//							{
+//								existingColumns.Add(newColumn.DatalinkColumnKey, newColumn);
+//							}
+//						}
+//
+//						// Reset columns ensures only one instance of each column exists.  
+//						// without this the entity framework tries to insert record twice causing PK violations.
+//	                    var newDatalink = datalink;
+//	                    newDatalink.ResetDatalinkColumns(existingColumns);
+//	                    // newDatalink = newDatalink.CloneProperties<DexihDatalink>();
+//	                    newDatalink.CopyProperties(existingDatalink);
+//	                    existingDatalink.UpdateDate = DateTime.Now;
+//                        savedDatalinks.Add(existingDatalink);
+//                    } 
                 }
 
                 // uncomment to check changes.
@@ -1361,7 +1417,6 @@ namespace dexih.operations
 				}
 
 				var newDatalinks = new List<DexihDatalink>();
-				var newTargetTables = new List<DexihTable>();
 
 				if (sourceTableKeys.Length == 0)
 				{
@@ -2651,7 +2706,7 @@ namespace dexih.operations
 								}
 							}
 
-							var existingTable = existingTables.SingleOrDefault(tab => table.Name == tab.Name);
+							var existingTable = existingTables.SingleOrDefault(tab => table.Name == tab.Name && table.ConnectionKey == tab.ConnectionKey);
                             if(existingTable == null)
                             {
                                 AddTable(table);

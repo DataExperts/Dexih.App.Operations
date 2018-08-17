@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections;
 using System.Diagnostics;
+using System.Security.Authentication;
 using Microsoft.Extensions.Logging;
 using static dexih.functions.Query.SelectColumn;
 
@@ -159,16 +160,12 @@ namespace dexih.repository
 		[JsonIgnore, CopyIgnore]
 		public virtual DexihDatalinkTransform Dt { get; set; }
 
-		[CopyReference]
 		public virtual DexihDatalinkColumn SourceDatalinkColumn { get; set; }
 
-		[CopyReference]
 		public virtual DexihDatalinkColumn TargetDatalinkColumn { get; set; }
 
-		[CopyReference]
 		public virtual DexihDatalinkColumn JoinDatalinkColumn { get; set; }
 
-		[CopyReference]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
 
         // public virtual DexihStandardFunction StandardFunction { get; set; }
@@ -272,7 +269,7 @@ namespace dexih.repository
 					var references = new MetadataReference[]
 					{
 						MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-						MetadataReference.CreateFromFile(typeof(Hashtable).GetTypeInfo().Assembly.Location)
+						MetadataReference.CreateFromFile(typeof(DictionaryBase).GetTypeInfo().Assembly.Location)
 					};
 
 					var compilation = CSharpCompilation.Create("Function" + Guid.NewGuid() + ".dll",
@@ -385,11 +382,12 @@ namespace dexih.repository
 	        {
 		        throw new RepositoryException("The function contains no code.");
 	        }
-	        
+
             var code = new StringBuilder();
             code.Append(@"
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 // This is a sample program used to test a custom function in the data experts integration hub.
 // This code can be run as a c# console application.
@@ -397,10 +395,10 @@ public class Program
 {
     // These variables are cached between row calls and can be used to store data.
     // These are reset in the group/row transform whenever a neew group is encountered.
-	static int? CacheInt;
-	static double? CacheDouble;
-	static string CacheString;
-	static Hashtable CacheHashtable;
+	static int intValue;
+	static double doubleValue;
+	static string stringValue;
+	static Dictionary<string, object> cache = new Dictionary<string, object>();
 
     //This is a test function.
 	public static void Main()
@@ -430,12 +428,38 @@ $FunctionCode
 	// The reset function is called when a new group starts on an aggregate function
     public static bool Reset()
     {
-        CacheInt = null;
-        CacheDouble = null;
-        CacheString = null;
-        CacheHashtable = null;
+        intValue = 0;
+        doubleValue = 0;
+        stringValue = null;
+        cache.Clear();
         return true;
     }
+
+	// helper for getting dictionary values
+	static T GetValue<T>(string name)
+	{
+		if(cache.ContainsKey(name)) 
+		{
+			return (T) cache[name];
+		}
+		else 
+		{
+			return default(T);
+		}
+	}
+
+	// helper for setting dictionary values
+	static void SetValue<T>(string name, T value)
+	{
+		if(cache.ContainsKey(name)) 
+		{
+			cache[name] = value;
+		}
+		else 
+		{
+			cache.Add(name, value);
+		}
+	}
 }
                     ");
 

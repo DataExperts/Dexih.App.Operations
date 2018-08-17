@@ -244,9 +244,12 @@ namespace dexih.repository
         {
             var columns = new Dictionary<long, DexihDatalinkColumn>();
 
-            foreach(var column in SourceDatalinkTable.DexihDatalinkColumns)
+            if (SourceDatalinkTable != null)
             {
-                columns[column.DatalinkColumnKey] = column;
+                foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
+                {
+                    columns[column.DatalinkColumnKey] = column;
+                }
             }
 
             foreach (var datalinkTransform in DexihDatalinkTransforms.OrderBy(c => c.Position))
@@ -313,15 +316,18 @@ namespace dexih.repository
             }
 
             var newColumns = new HashSet<DexihDatalinkColumn>();
-            
-            foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
+
+            if (SourceDatalinkTable != null)
             {
-                newColumns.Add(columns.ContainsKey(column.DatalinkColumnKey)
-                    ? columns[column.DatalinkColumnKey]
-                    : column);
+                foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
+                {
+                    newColumns.Add(columns.ContainsKey(column.GetPreservedColumnKey())
+                        ? columns[column.GetPreservedColumnKey()]
+                        : column);
+                }
+                SourceDatalinkTable.DexihDatalinkColumns = newColumns;
             }
-            
-            SourceDatalinkTable.DexihDatalinkColumns = newColumns;
+
 
             foreach (var datalinkTransform in DexihDatalinkTransforms.OrderBy(c=>c.Position))
             {
@@ -333,9 +339,9 @@ namespace dexih.repository
                         newColumns = new HashSet<DexihDatalinkColumn>();
                         foreach (var column in datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns)
                         {
-                            if (columns.ContainsKey(column.DatalinkColumnKey))
+                            if (columns.ContainsKey(column.GetPreservedColumnKey()))
                             {
-                                newColumns.Add(columns[column.DatalinkColumnKey]);
+                                newColumns.Add(columns[column.GetPreservedColumnKey()]);
                             }
                             else
                             {
@@ -345,44 +351,44 @@ namespace dexih.repository
                         datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns = newColumns;
                     }
                     
-                    if (item.FilterDatalinkColumn != null && columns.ContainsKey(item.FilterDatalinkColumn.DatalinkColumnKey))
+                    if (item.FilterDatalinkColumn != null && columns.ContainsKey(item.FilterDatalinkColumn.GetPreservedColumnKey()))
                     {
-                        item.FilterDatalinkColumnKey = item.FilterDatalinkColumn.DatalinkColumnKey > 0 ? item.FilterDatalinkColumn.DatalinkColumnKey : 0;
-                        item.FilterDatalinkColumn = columns[item.FilterDatalinkColumn.DatalinkColumnKey];
+                        item.FilterDatalinkColumnKey = item.FilterDatalinkColumn.GetPreservedColumnKey() > 0 ? item.FilterDatalinkColumn.GetPreservedColumnKey() : 0;
+                        item.FilterDatalinkColumn = columns[item.FilterDatalinkColumn.GetPreservedColumnKey()];
                     }
 
-                    if (item.SourceDatalinkColumn != null && columns.ContainsKey(item.SourceDatalinkColumn.DatalinkColumnKey))
+                    if (item.SourceDatalinkColumn != null && columns.ContainsKey(item.SourceDatalinkColumn.GetPreservedColumnKey()))
                     {
-                        item.SourceDatalinkColumnKey = item.SourceDatalinkColumn.DatalinkColumnKey > 0 ? item.SourceDatalinkColumn.DatalinkColumnKey : 0;
-                        item.SourceDatalinkColumn = columns[item.SourceDatalinkColumn.DatalinkColumnKey];
+                        item.SourceDatalinkColumnKey = item.SourceDatalinkColumn.GetPreservedColumnKey() > 0 ? item.SourceDatalinkColumn.GetPreservedColumnKey() : 0;
+                        item.SourceDatalinkColumn = columns[item.SourceDatalinkColumn.GetPreservedColumnKey()];
                     }
 
-                    if (item.JoinDatalinkColumn != null && columns.ContainsKey(item.JoinDatalinkColumn.DatalinkColumnKey))
+                    if (item.JoinDatalinkColumn != null && columns.ContainsKey(item.JoinDatalinkColumn.GetPreservedColumnKey()))
                     {
-                        item.JoinDatalinkColumnKey = item.JoinDatalinkColumn.DatalinkColumnKey > 0 ? item.JoinDatalinkColumn.DatalinkColumnKey : 0;
-                        item.JoinDatalinkColumn = columns[item.JoinDatalinkColumn.DatalinkColumnKey];
+                        item.JoinDatalinkColumnKey = item.JoinDatalinkColumn.GetPreservedColumnKey() > 0 ? item.JoinDatalinkColumn.GetPreservedColumnKey() : 0;
+                        item.JoinDatalinkColumn = columns[item.JoinDatalinkColumn.GetPreservedColumnKey()];
                     }
 
-                    if (item.TargetDatalinkColumn != null && columns.ContainsKey(item.TargetDatalinkColumn.DatalinkColumnKey))
+                    if (item.TargetDatalinkColumn != null && columns.ContainsKey(item.TargetDatalinkColumn.GetPreservedColumnKey()))
                     {
-                        item.TargetDatalinkColumnKey = item.TargetDatalinkColumn.DatalinkColumnKey > 0 ? item.TargetDatalinkColumn.DatalinkColumnKey : 0;
-                        item.TargetDatalinkColumn = columns[item.TargetDatalinkColumn.DatalinkColumnKey];
+                        item.TargetDatalinkColumnKey = item.TargetDatalinkColumn.GetPreservedColumnKey() > 0 ? item.TargetDatalinkColumn.GetPreservedColumnKey() : 0;
+                        item.TargetDatalinkColumn = columns[item.TargetDatalinkColumn.GetPreservedColumnKey()];
                     }
 
 					foreach (var param in item.DexihFunctionParameters)
                     {
-                        if (param.DatalinkColumn != null && columns.ContainsKey(param.DatalinkColumn.DatalinkColumnKey))
+                        if (param.DatalinkColumn != null && columns.ContainsKey(param.DatalinkColumn.GetPreservedColumnKey()))
                         {
-                            param.DatalinkColumnKey = param.DatalinkColumn.DatalinkColumnKey > 0
-                                ? param.DatalinkColumn.DatalinkColumnKey
+                            param.DatalinkColumnKey = param.DatalinkColumn.GetPreservedColumnKey() > 0
+                                ? param.DatalinkColumn.GetPreservedColumnKey()
                                 : 0;
-                            param.DatalinkColumn = columns[param.DatalinkColumn.DatalinkColumnKey];
+                            param.DatalinkColumn = columns[param.DatalinkColumn.GetPreservedColumnKey()];
                         }
 
-                        foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null && columns.ContainsKey(c.DatalinkColumn.DatalinkColumnKey)))
+                        foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null && columns.ContainsKey(c.DatalinkColumn.GetPreservedColumnKey())))
                         {
-                            paramArray.DatalinkColumnKey = paramArray.DatalinkColumn.DatalinkColumnKey > 0 ? paramArray.DatalinkColumn.DatalinkColumnKey : 0;
-                            paramArray.DatalinkColumn = columns[paramArray.DatalinkColumn.DatalinkColumnKey];
+                            paramArray.DatalinkColumnKey = paramArray.DatalinkColumn.GetPreservedColumnKey() > 0 ? paramArray.DatalinkColumn.GetPreservedColumnKey() : 0;
+                            paramArray.DatalinkColumn = columns[paramArray.DatalinkColumn.GetPreservedColumnKey()];
                         }
                     }
                 }
@@ -392,6 +398,7 @@ namespace dexih.repository
             foreach (var column in columns.Values.Where(c => c.DatalinkColumnKey < 0))
             {
                 column.DatalinkColumnKey = 0;
+                column.DatalinkTableKey = null;
             }
         }
 

@@ -85,7 +85,7 @@ namespace dexih.repository
 
                 foreach(var param in item.DexihFunctionParameters)
                 {
-                    if(param.Direction == DexihFunctionParameter.EParameterDirection.Output && param.DatalinkColumn != null)
+                    if(param.Direction == DexihParameterBase.EParameterDirection.Output && param.DatalinkColumn != null)
                     {
                         columns.Add(param.DatalinkColumn);
                     }
