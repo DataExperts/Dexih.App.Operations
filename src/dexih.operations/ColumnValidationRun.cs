@@ -5,9 +5,12 @@ using dexih.transforms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions.BuiltIn;
+using dexih.functions.Mappings;
+using dexih.functions.Parameter;
 using static dexih.repository.DexihColumnValidation;
 using static Dexih.Utils.DataType.DataType;
 
@@ -40,19 +43,29 @@ namespace dexih.operations
         private int ValidationPassCount { get; set; }
         private int ValidationFailCount { get; set; }
 
-        public TransformFunction GetValidationFunction(string columnName)
+        public Mapping GetValidationMapping(string columnName)
         {
-            var validationFunction = new TransformFunction(
-                this, 
-                this.GetType().GetMethod("Run"), 
-                new TableColumn[] { new TableColumn(columnName) }, 
-                new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") },
-                null
-                )
+//            var validationFunction = new TransformFunction(
+//                this, 
+//                this.GetType().GetMethod(nameof(Run)), 
+//                new TableColumn[] { new TableColumn(columnName) }, 
+//                new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") },
+//                null
+//                )
+//            {
+//                InvalidAction = ColumnValidation.InvalidAction
+//            };
+//            
+            var parameters = new Parameters()
             {
-                InvalidAction = ColumnValidation.InvalidAction
+                Inputs = new Parameter[] {new ParameterColumn(columnName, ETypeCode.String)},
+                ReturnParameter = new ParameterColumn(columnName, ETypeCode.String),
+                Outputs = new Parameter[] {new ParameterColumn(columnName, ETypeCode.String), new ParameterColumn("RejectReason", ETypeCode.String), }
             };
-            return validationFunction;
+            var validationFunction = new TransformFunction(this, GetType().GetMethod(nameof(Run)), parameters, null);
+
+            var mapping = new MapFunction(validationFunction, parameters);
+            return mapping;
         }
 
         public bool Run(object value, out object cleanedValue, out string rejectReason)

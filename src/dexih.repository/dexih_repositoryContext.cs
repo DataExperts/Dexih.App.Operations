@@ -499,6 +499,7 @@ namespace dexih.repository
                 entity.Property(e => e.InvalidActionString).HasColumnName("invalid_action").HasColumnType("varchar(20)");
                 entity.Property(e => e.JoinDatalinkColumnKey).HasColumnName("join_datalink_column_key");
                 entity.Property(e => e.FilterDatalinkColumnKey).HasColumnName("filter_datalink_column_key");
+                entity.Property(e => e.SourceValue).HasColumnName("source_value").HasColumnType("varchar(1000)");
                 entity.Property(e => e.JoinValue).HasColumnName("join_value").HasColumnType("varchar(1000)");
                 entity.Property(e => e.FilterValue).HasColumnName("filter_value").HasColumnType("varchar(1000)");
                 entity.Property(e => e.FilterCompareString).HasColumnName("filter_compare");
@@ -507,8 +508,12 @@ namespace dexih.repository
                 entity.Property(e => e.OnErrorString).IsRequired().HasColumnName("on_error").HasColumnType("varchar(20)");
                 entity.Property(e => e.OnNullString).IsRequired().HasColumnName("on_null").HasColumnType("varchar(20)");
                 entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.ReturnTypeString).HasColumnName("return_type").HasColumnType("varchar(20)");
+                // entity.Property(e => e.ReturnTypeString).HasColumnName("return_type").HasColumnType("varchar(20)");
                 entity.Property(e => e.SortDirectionString).HasColumnName("sort_direction").HasColumnType("varchar(20)");
+                entity.Property(e => e.SeriesGrainString).HasColumnName("series_grain").HasColumnType("varchar(20)");
+                entity.Property(e => e.SeriesFill).HasColumnName("series_fill");
+                entity.Property(e => e.SeriesStart).HasColumnName("series_start").HasColumnType("varchar(40)");
+                entity.Property(e => e.SeriesFinish).HasColumnName("series_finish").HasColumnType("varchar(40)");
                 entity.Property(e => e.SourceDatalinkColumnKey).HasColumnName("source_datalink_column_key");
                 entity.Property(e => e.FunctionClassName).HasColumnName("function_class_name");
                 entity.Property(e => e.FunctionMethodName).HasColumnName("function_method_name");
@@ -577,6 +582,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
 
                 entity.Property(e => e.PassThroughColumns).HasColumnName("pass_through_columns");
+                entity.Property(e => e.GroupRows).HasColumnName("group_rows");
 
                 entity.Property(e => e.JoinDatalinkTableKey).HasColumnName("join_datalink_table_key");
 				entity.Property(e => e.JoinDuplicateStrategyString).HasColumnName("join_duplicate_strategy").HasColumnType("varchar(50)");
@@ -717,12 +723,13 @@ namespace dexih.repository
                 entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
                 entity.Property(e => e.DatalinkTransformItemKey).HasColumnName("datalink_transform_item_key");
                 entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(20)");
-                entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(10)");
+                entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(20)");
                 entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasColumnType("varchar(50)");
                 entity.Property(e => e.Value).HasColumnName("value").HasColumnType("varchar(1024)");
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.IsArray).HasColumnName("is_array");
-
+                entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasColumnType("varchar(200)");
+                
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
@@ -751,9 +758,10 @@ namespace dexih.repository
                 entity.Property(e => e.FunctionParameterKey).HasColumnName("function_parameter_key");
                 entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasColumnType("varchar(50)");
                 entity.Property(e => e.DataTypeString).IsRequired().HasColumnName("datatype").HasColumnType("varchar(20)");
-                entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(10)");
+                entity.Property(e => e.DirectionString).IsRequired().HasColumnName("direction").HasColumnType("varchar(20)");
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.IsArray).HasColumnName("is_array");
+                entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasColumnType("varchar(200)");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");

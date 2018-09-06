@@ -16,7 +16,11 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Collections;
 using System.Diagnostics;
 using System.Security.Authentication;
+using System.Threading;
+using dexih.functions.Mappings;
+using dexih.functions.Parameter;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Serialization;
 using static dexih.functions.Query.SelectColumn;
 
 namespace dexih.repository
@@ -26,7 +30,7 @@ namespace dexih.repository
 		[JsonConverter(typeof(StringEnumConverter))]
 		public enum ETransformItemType
 		{
-			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair
+			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair, Series
 		}
 
 		public DexihDatalinkTransformItem() => DexihFunctionParameters = new HashSet<DexihFunctionParameter>();
@@ -57,6 +61,7 @@ namespace dexih.repository
 		public long? JoinDatalinkColumnKey { get; set; }
 		public long? FilterDatalinkColumnKey { get; set; }
 
+		public string SourceValue { get; set; }
 		public string JoinValue { get; set; }
 		public string FilterValue { get; set; }
 
@@ -65,7 +70,7 @@ namespace dexih.repository
 		public string FunctionMethodName { get; set; }
 
 		public long? CustomFunctionKey { get; set; }
-
+		
         [NotMapped]
 		public Sort.EDirection? SortDirection { get; set; }
 		[JsonIgnore, CopyIgnore]
@@ -112,15 +117,35 @@ namespace dexih.repository
                     Aggregate = (EAggregate)Enum.Parse(typeof(EAggregate), value);
             }
         }
+		
+		[NotMapped]
+		public ESeriesGrain? SeriesGrain { get; set; }
 
-        [NotMapped]
-		public ETypeCode ReturnType { get; set; }
 		[JsonIgnore, CopyIgnore]
-		public string ReturnTypeString
+		public string SeriesGrainString
 		{
-			get => ReturnType.ToString();
-			set => ReturnType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
+			get => SeriesGrain.ToString();
+			set
+			{
+				if (string.IsNullOrEmpty(value))
+					SeriesGrain = null;
+				else
+					SeriesGrain = (ESeriesGrain)Enum.Parse(typeof(ESeriesGrain), value);
+			}
 		}
+		
+		public bool SeriesFill { get; set; }
+		public string SeriesStart { get; set; }
+		public string SeriesFinish { get; set; }
+
+//        [NotMapped]
+//		public ETypeCode ReturnType { get; set; }
+//		[JsonIgnore, CopyIgnore]
+//		public string ReturnTypeString
+//		{
+//			get => ReturnType.ToString();
+//			set => ReturnType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
+//		}
 		public string FunctionCode { get; set; }
 		public string FunctionResultCode { get; set; }
 
@@ -173,38 +198,33 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
-		private Parameter ConvertParameter(DexihFunctionParameterBase parameter, bool isArray)
+		private Parameter ConvertParameter(DexihFunctionParameterBase parameter, DexihParameterBase.EParameterDirection direction)
 		{
-			var newParameter = new Parameter()
-			{
-				Column = parameter.DatalinkColumn?.GetTableColumn(null),
-				DataType = parameter.DataType,
-				IsColumn = parameter.DatalinkColumn != null,
-				Name = parameter.ParameterName,
-				IsArray = isArray
-			};
-			
-			try
-			{
-				newParameter.SetValue(parameter.Value);
-			}
-			catch (Exception ex)
-			{
-#if DEBUG
-				throw new RepositoryException($"Failed to set parameter {parameter.ParameterName} with value {parameter.Value}.  {ex.Message}", ex);
-#else
-						throw new RepositoryException($"Failed to set parameter {parameter.ParameterName}.  {ex.Message}", ex);
-#endif
-			}
 
-			return newParameter;
+			var column = parameter.DatalinkColumn?.GetTableColumn(null);
+			
+			if (direction == DexihParameterBase.EParameterDirection.Input || direction == DexihParameterBase.EParameterDirection.ResultInput)
+			{
+				if (column != null)
+				{
+					return new ParameterColumn(parameter.ParameterName, parameter.DataType, column);
+				}
+				else
+				{
+					return new ParameterValue(parameter.ParameterName, parameter.DataType, parameter.Value);
+				}
+			}
+			else
+			{
+				return new ParameterOutputColumn(parameter.ParameterName, parameter.DataType, column);				
+			}
 		}
 		
         /// <summary>
         /// Creates a reference to a compiled version of the mapping function.
         /// </summary>
         /// <returns></returns>
-        public TransformFunction CreateFunctionMethod(DexihHub hub, GlobalVariables globalVariables, bool createConsoleSample = false, ILogger logger = null)
+        public (TransformFunction function, Parameters parameters) CreateFunctionMethod(DexihHub hub, GlobalVariables globalVariables, bool createConsoleSample = false, ILogger logger = null)
 		{
 			try
 			{
@@ -217,52 +237,81 @@ namespace dexih.repository
 					throw new RepositoryException("The datalink transform item is not a custom function");
 				}
 
-				ICollection<Parameter> arrayParameters = null;
-
 				//create the input & output parameters
 				var inputs = new List<Parameter>();
 				var outputs = new List<Parameter>();
+				var resultInputs = new List<Parameter>();
+				var resultOutputs = new List<Parameter>();
+				Parameter returnParameter = null;
+				Parameter resultReturnParameter = null;
+				
 
-				foreach (var parameter in DexihFunctionParameters)
+				foreach (var parameter in DexihFunctionParameters.OrderBy(c=>c.Position))
 				{
+					Parameter newParameter;
 					if (parameter.IsArray)
 					{
-						arrayParameters = new List<Parameter>();
+						var arrayParameters = new List<Parameter>();
+						
 						foreach (var arrayParameter in parameter.ArrayParameters)
 						{
-							var newParameter = ConvertParameter(arrayParameter, true);
-							arrayParameters.Add(newParameter);
-							if (parameter.Direction == DexihParameterBase.EParameterDirection.Input)
-								inputs.Add(newParameter);
-							else
-								outputs.Add(newParameter);
-
+							arrayParameters.Add(ConvertParameter(arrayParameter, arrayParameter.Direction));
 						}
+						
+						newParameter = new ParameterArray(parameter.ParameterName, parameter.DataType, arrayParameters);
 					}
 					else
 					{
-						var newParameter = ConvertParameter(parameter, false);
-
-						if (parameter.Direction == DexihParameterBase.EParameterDirection.Input)
-							inputs.Add(newParameter);
-						else
-							outputs.Add(newParameter);
+						newParameter = ConvertParameter(parameter, parameter.Direction);
 					}
 
+					switch (parameter.Direction)
+					{
+						case DexihParameterBase.EParameterDirection.Input:
+							inputs.Add(newParameter);
+							break;
+						case DexihParameterBase.EParameterDirection.Output:
+							outputs.Add(newParameter);
+							break;
+						case DexihParameterBase.EParameterDirection.ResultInput:
+							resultInputs.Add(newParameter);
+							break;
+						case DexihParameterBase.EParameterDirection.ResultOutput:
+							resultOutputs.Add(newParameter);
+							break;
+						case DexihParameterBase.EParameterDirection.ReturnValue:
+							returnParameter = newParameter;
+							break;
+						case DexihParameterBase.EParameterDirection.ResultReturnValue:
+							resultReturnParameter = newParameter;
+							break;
+							
+					}
 				}
 
-				var inputsArray = inputs.ToArray();
-				var outputsArray = outputs.ToArray();
+				// var returnParameter = TargetDatalinkColumn == null ? null : new ParameterOutputColumn("return", TargetDatalinkColumn.GetTableColumn(null));
+
+				Parameters parameters = new Parameters() { 
+					Inputs = inputs, 
+					Outputs = outputs, 
+					ResultInputs = resultInputs, 
+					ResultOutputs = resultOutputs, 
+					ReturnParameter = returnParameter,
+					ResultReturnParameter = resultReturnParameter
+				};
+				
+//				var inputsArray = inputs.ToArray();
+//				var outputsArray = outputs.ToArray();
 
 				TransformFunction function;
 
 				if (!string.IsNullOrEmpty(FunctionClassName))
 				{
-					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction(globalVariables);
+					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction(parameters, globalVariables);
 				}
 				else
 				{
-					var generatedClass = CreateFunctionCode(inputsArray, outputsArray, hub, createConsoleSample);
+					var generatedClass = CreateFunctionCode(parameters, hub, createConsoleSample);
 
 					var syntaxTree = CSharpSyntaxTree.ParseText(generatedClass);
 
@@ -281,9 +330,9 @@ namespace dexih.repository
 
 					using (var ms = new MemoryStream())
 					{
-						logger?.LogTrace($"GetFunctionMethod, pre-compile  elspase: {timer.Elapsed}");
+						logger?.LogTrace($"GetFunctionMethod, pre-compile  elapse: {timer.Elapsed}");
 						var result = compilation.Emit(ms);
-						logger?.LogTrace($"GetFunctionMethod, post-compile elspase: {timer.Elapsed}");
+						logger?.LogTrace($"GetFunctionMethod, post-compile elapse: {timer.Elapsed}");
 
 						if (!result.Success)
 						{
@@ -313,7 +362,7 @@ namespace dexih.repository
 							function.ObjectReference = Activator.CreateInstance(mappingFunction);
 							function.FunctionMethod = mappingFunction.GetMethod("CustomFunction");
 							function.ResetMethod = mappingFunction.GetMethod("Reset");
-							function.ReturnType = ReturnType;
+							// function.ReturnType = ReturnType;
 						}
 					}
 
@@ -321,27 +370,32 @@ namespace dexih.repository
 
 				// if the function has an arrayparamters property then set it.  This give the function access to the 
 				// columns that are used, and is specifically used by the column_to_rows function.
+
+				var parameterArray = (ParameterArray) parameters.Inputs.FirstOrDefault(c => c is ParameterArray);
+				
+				
 				var arrayParameterProperty = function.ObjectReference.GetType().GetProperties()
 					.SingleOrDefault(c => c.Name == "ArrayParameters");
-				if (arrayParameterProperty != null && arrayParameters != null)
+				if (arrayParameterProperty != null && parameterArray != null)
 				{
-					arrayParameterProperty.SetValue(function.ObjectReference, arrayParameters.ToArray());
+					arrayParameterProperty.SetValue(function.ObjectReference, parameterArray.Parameters);
 				}
 
 
-				function.Inputs = inputsArray;
-				function.Outputs = outputsArray;
-				if (TargetDatalinkColumn != null)
-				{
-					function.TargetColumn = TargetDatalinkColumn.GetTableColumn(null);
-				}
+//				function.Inputs = inputsArray;
+//				function.Outputs = outputsArray;
+//				
+//				if (TargetDatalinkColumn != null)
+//				{
+//					function.TargetColumn = TargetDatalinkColumn.GetTableColumn(null);
+//				}
 
 				function.OnError = OnError;
 				function.OnNull = OnNull;
 				function.NotCondition = NotCondition;
 				function.InvalidAction = InvalidAction;
 
-				return function;
+				return (function, parameters);
 
 			}
 			catch (RepositoryException)
@@ -358,7 +412,7 @@ namespace dexih.repository
         /// Generates the function code using the custom code.
         /// </summary>
         /// <returns></returns>
-        public string CreateFunctionCode(Parameter[] inputs, Parameter[] outputs, DexihHub hubCache, bool createConsoleSample = false)
+        public string CreateFunctionCode(Parameters parameters, DexihHub hubCache, bool createConsoleSample = false)
         {
 	        string functionCode;
 	        
@@ -466,7 +520,7 @@ $FunctionCode
 	        var tabbedCode = "\t\t" + functionCode.Replace("\n", "\n\t\t");
 	        
             code.Replace("$FunctionCode", tabbedCode);
-            code.Replace("$FunctionReturn", ReturnType.ToString());
+            code.Replace("$FunctionReturn", parameters.ReturnParameter.DataType.ToString());
 
             if (createConsoleSample)
             {
@@ -490,11 +544,11 @@ $FunctionCode
                 code.Replace("$TestFunction", testFunction.ToString());
 
                 var inputParameters = new StringBuilder();
-                foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Input))
+                foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input))
                 {
                     inputParameters.Append("\t\t" + inputParameter.DataType + " " + inputParameter.ParameterName + " = ");
 
-	                var parameter = inputs?.SingleOrDefault(c => c.Name == inputParameter.ParameterName);
+	                var parameter = parameters.Inputs?.SingleOrDefault(c => c.Name == inputParameter.ParameterName);
 	                if (parameter != null)
 	                {
 		                var basicType = GetBasicType(inputParameter.DataType);
@@ -567,10 +621,10 @@ $FunctionCode
                 var outputParameters = new StringBuilder();
                 var writeResults = new StringBuilder();
 
-				outputParameters.AppendLine("\t\t" + ReturnType + " " + returnName + ";");
+				outputParameters.AppendLine("\t\t" + parameters.ReturnParameter.DataType + " " + returnName + ";");
 				writeResults.AppendLine("\t\tConsole.WriteLine(\"" + returnName + " = {0}\", " + returnName + ");");
 
-                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Output))
+                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
                 {
                     outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.ParameterName + ";");
                     testFunction.Append("out " + outputParameter.ParameterName + ", ");
@@ -581,7 +635,7 @@ $FunctionCode
                 code.Replace("$WriteResults", writeResults.ToString());
 
 
-                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihFunctionParameter.EParameterDirection.Output))
+                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
                 {
                     outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.ParameterName + ";");
                     testFunction.Append("out " + outputParameter.ParameterName + ", ");
@@ -598,14 +652,14 @@ $FunctionCode
 
 
 			var parameterString = "";
-			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihFunctionParameter.EParameterDirection.Input))
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Input))
 			{
 				var addArray = "";
 				if (t.IsArray) addArray = "[]";
 				parameterString += t.DataType + addArray + " " + t.ParameterName + ",";
 			}
 
-			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihFunctionParameter.EParameterDirection.Output))
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Output))
 			{
 				var addArray = "";
 				if (t.IsArray) addArray = "[]";

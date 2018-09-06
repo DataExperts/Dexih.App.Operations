@@ -8,8 +8,10 @@ using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
 using dexih.functions;
+using dexih.functions.Mappings;
 using dexih.functions.Query;
 using dexih.transforms.Transforms;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using static dexih.transforms.Transforms.TransformAttribute;
 
@@ -30,7 +32,9 @@ namespace dexih.repository
         public int Position { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        
         public bool PassThroughColumns { get; set; }
+        public bool GroupRows { get; set; }
 
         public long? JoinDatalinkTableKey { get; set; }
         public string JoinTableAlias { get; set; }
@@ -140,13 +144,15 @@ namespace dexih.repository
 				}
                 else
                 {
-                    transform.Name = "Transfom - " + DatalinkTransformKey;
+                    transform.Name = "Transform - " + DatalinkTransformKey;
                 }
 
 				if(JoinDatalinkTable != null)
 				{
 					transform.ReferenceTableAlias = JoinDatalinkTable.DatalinkTableKey.ToString();	
 				}
+
+                var mappings = new Mappings(PassThroughColumns, GroupRows);
 
                 foreach (var item in DexihDatalinkTransformItems.OrderBy(c => c.Position))
                 {
@@ -160,67 +166,53 @@ namespace dexih.repository
                     switch (item.TransformItemType)
                     {
                         case DexihDatalinkTransformItem.ETransformItemType.ColumnPair:
-
-                            if (sourceColumn == null)
-                            {
-                                throw new RepositoryException("The source column with the key " + item.SourceDatalinkColumnKey + " and the target " +  (targetColumn == null ? "Unknown" : targetColumn.Name) + " had an error.  Plese review the mappings and fix any errors.");
-                            }
-
                             if (targetColumn == null)
                             {
-                                throw new RepositoryException("The target column with the key " + item.TargetDatalinkColumnKey + " and the source " + (sourceColumn == null ? "Unknown" : sourceColumn.Name) + " had an error.  Plese review the mappings and fix any errors.");
+                                throw new RepositoryException("The target column with the key " + item.TargetDatalinkColumnKey + " and the source " + (sourceColumn == null ? "Unknown" : sourceColumn.Name) + " had an error.  Please review the mappings and fix any errors.");
                             }
 
-                            transform.ColumnPairs.Add(new ColumnPair(sourceColumn, targetColumn));
-
+                            mappings.Add(new MapColumn(item.SourceValue, sourceColumn, targetColumn));
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.JoinPair:
-                            transform.JoinPairs.Add(new JoinPair()
-                            {
-                                SourceColumn = sourceColumn,
-                                JoinColumn = joinColumn,
-                                JoinValue = item.JoinValue
-                            });
-
+                            
+                            mappings.Add(new MapJoin(item.SourceValue, sourceColumn, item.JoinValue, joinColumn));
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.FilterPair:
-                            transform.FilterPairs.Add(new FilterPair()
+                            mappings.Add(new MapFilter()
                             {
                                 Column1 = sourceColumn,
                                 Column2 = filterColumn,
                                 Compare = item.FilterCompare??Filter.ECompare.IsEqual, 
-                                FilterValue = item.FilterValue
+                                Value1 = item.SourceValue,
+                                Value2 = item.FilterValue
                             });
-
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.AggregatePair:
-                            transform.AggregatePairs.Add(new AggregatePair()
+                            mappings.Add(new MapAggregate(sourceColumn, targetColumn, item.Aggregate??SelectColumn.EAggregate.Sum)
                             {
-                                SourceColumn = sourceColumn,
-                                TargetColumn = targetColumn,
-                                Aggregate = item.Aggregate??SelectColumn.EAggregate.Sum
+                                Value = item.SourceValue
                             });
-
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.BuiltInFunction:
                         case DexihDatalinkTransformItem.ETransformItemType.CustomFunction:
-                            var createNewFunction = item.CreateFunctionMethod(hub, globalVariables, false, logger);
-
-                            transform.Functions.Add(createNewFunction);
-
+                            var func = item.CreateFunctionMethod(hub, globalVariables, false, logger);
+                            mappings.Add(new MapFunction(func.function, func.parameters));
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.Sort:
-                            transform.SortFields.Add(new Sort() { Column = sourceColumn, Direction = item.SortDirection ?? Sort.EDirection.Ascending });
-
+                            mappings.Add(new MapSort(sourceColumn, item.SortDirection ?? Sort.EDirection.Ascending));
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.Column:
-                            transform.ColumnPairs.Add(new ColumnPair(sourceColumn));
-
+                            mappings.Add(new MapGroup(sourceColumn));
+                            break;
+                        case DexihDatalinkTransformItem.ETransformItemType.Series:
+                            mappings.Add(new MapSeries(sourceColumn, item.SeriesGrain??ESeriesGrain.Day, item.SeriesFill, item.SeriesStart, item.SeriesFinish));
                             break;
                     }
                 }
 
-                transform.PassThroughColumns = PassThroughColumns;
+                transform.Mappings = mappings;
+
+                // transform.PassThroughColumns = PassThroughColumns;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;
                 
                 var joinSortColumn = JoinSortDatalinkColumn?.GetTableColumn(null);

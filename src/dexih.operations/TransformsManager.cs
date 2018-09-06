@@ -9,11 +9,14 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using dexih.functions.Mappings;
+using dexih.functions.Parameter;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.Query;
 using dexih.transforms.Exceptions;
 using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Serialization;
 using static dexih.repository.DexihDatalinkTable;
 
 namespace dexih.operations
@@ -163,7 +166,7 @@ namespace dexih.operations
         /// <param name="globalVariables"></param>
         /// <returns></returns>
         /// <exception cref="TransformManagerException"></exception>
-        public TransformFunction GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults, GlobalVariables globalVariables)
+        public Mapping GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults, GlobalVariables globalVariables)
         {
             try
             {
@@ -178,9 +181,13 @@ namespace dexih.operations
                     property.SetValue(profileObject, detailedResults);
                 }
 
-
-                var profileFunction = new TransformFunction(profileObject, functionMethodName, new[] { new TableColumn(columnName) }, null, null, globalVariables);
-                return profileFunction;
+                var parameters = new Parameters()
+                {
+                    Inputs = new Parameter[] {new ParameterColumn("value", new TableColumn(columnName))}
+                };
+                var profileFunction = new TransformFunction(profileObject, functionMethodName, parameters, globalVariables);
+                var mapFunction = new MapFunction(profileFunction, parameters);
+                return mapFunction;
             }
             catch (Exception ex)
             {
@@ -273,7 +280,8 @@ namespace dexih.operations
                 var transformColumns = returnValue.sourceTransform.CacheTable.Columns;
                 var datalinkColumns = datalinkTable.DexihDatalinkColumns;
 
-                var mappings = new List<ColumnPair>();
+                // var mappings = new List<ColumnPair>();
+                var mappings = new Mappings();
                 
                 foreach (var column in datalinkColumns)
                 {
@@ -281,13 +289,13 @@ namespace dexih.operations
                     if (transformColumn == null)
                     {
                         var newColumn = column.GetTableColumn(inputColumns);
-                        mappings.Add(new ColumnPair() { TargetColumn = newColumn});
+                        mappings.Add(new MapColumn(newColumn)); 
                     }
                 }
 
                 if (mappings.Count > 0)
                 {
-                    var transforMapping = new TransformMapping(returnValue.sourceTransform, true, mappings, null);
+                    var transforMapping = new TransformMapping(returnValue.sourceTransform, mappings);
                     returnValue.sourceTransform = transforMapping;
                 }
 
@@ -299,7 +307,7 @@ namespace dexih.operations
             }
         }
 
-        private void MergeInputColumn(TableColumn column, DexihColumnBase[] intputColumns)
+        private void MergeInputColumn(TableColumn column, DexihColumnBase[] inputColumns)
         {
             
         }
@@ -332,14 +340,13 @@ namespace dexih.operations
                     maxIncrementalValue != null && 
                     maxIncrementalValue.ToString() != "")
                 {
-                    var filterPair = new FilterPair()
+
+                    var mappings = new Mappings()
                     {
-                        Column1 = incrementalCol,
-                        FilterValue = maxIncrementalValue,
-                        Compare = Filter.ECompare.GreaterThan
+                        new MapFilter(incrementalCol, maxIncrementalValue, Filter.ECompare.GreaterThan)
                     };
 
-                    var filterTransform = new TransformFilter(primaryTransform, null, new List<FilterPair> { filterPair} );
+                    var filterTransform = new TransformFilter(primaryTransform, mappings);
                     filterTransform.SetInTransform(primaryTransform);
                     primaryTransform = filterTransform;
                 }
@@ -385,8 +392,8 @@ namespace dexih.operations
 							        {
 							            DefaultValue = column.DefaultValue
 							        };
-							    var function = validation.GetValidationFunction(column.Name);
-                                transform.Functions.Add(function);
+							    var function = validation.GetValidationMapping(column.Name);
+                                transform.Mappings.Add(function);
 							}
 						}
 
@@ -419,7 +426,7 @@ namespace dexih.operations
                 {
 					var targetTable = hub.GetTableFromKey((long)datalink.TargetTableKey);
 
-                    var profileRules = new List<TransformFunction>();
+                    var profileRules = new Mappings();
                     foreach (var profile in datalink.DexihDatalinkProfiles)
                     {
                         foreach (var column in targetTable.DexihTableColumns.Where(c => c.IsSourceColumn))

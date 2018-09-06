@@ -78,7 +78,7 @@ namespace dexih.operations
                         }
                         
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(cache.Hub, dbDatalink, downloadObject.InputColumns, null, null, false, previewMode: true);
+                        var runPlan = transformManager.CreateRunPlan(cache.Hub, dbDatalink, downloadObject.InputColumns, null, downloadObject.DatalinkTransformKey, false, previewMode: true);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)
@@ -145,6 +145,10 @@ namespace dexih.operations
             public long ObjectKey { get; set; }
             public SelectQuery Query { get; set; }
             public DexihColumnBase[] InputColumns { get; set; }
+
+            // used when downloading data from a specific a transform data.
+            public long? DatalinkTransformKey { get; set; }
+
         }
 
         public enum EDownloadFormat

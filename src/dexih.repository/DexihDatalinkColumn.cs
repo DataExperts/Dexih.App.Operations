@@ -31,7 +31,6 @@ namespace dexih.repository
 		    {
 			    if (value == 0)
 			    {
-				    var a = 1;
 			    }
 			    if (value != 0)
 			    {

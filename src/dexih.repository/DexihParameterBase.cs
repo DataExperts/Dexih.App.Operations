@@ -12,7 +12,7 @@ namespace dexih.repository
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EParameterDirection
         {
-            Input, Output
+            Input, Output, ResultInput, ResultOutput, ReturnValue, ResultReturnValue
         }
 
         [JsonIgnore, CopyIgnore]
@@ -40,5 +40,16 @@ namespace dexih.repository
             set => DataType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
         }
         public bool IsArray { get; set; } = false;
+
+        [NotMapped]
+        public string[] ListOfValues { get; set; }
+        
+        [JsonIgnore, CopyIgnore]
+        public string ListOfValuesString
+        {
+            get => ListOfValues == null ? null : string.Join(",", ListOfValues);
+            set => ListOfValues = value?.Split(',');
+        }
+        
     }
 }

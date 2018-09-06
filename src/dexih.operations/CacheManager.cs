@@ -554,6 +554,58 @@ namespace dexih.operations
 		    }
 	    }
 
+	    /// <summary>
+	    /// Adds a datalink to the cache, along with any dependencies.
+	    /// </summary>
+	    /// <param name="datalink"></param>
+	    /// <param name="hub"></param>
+	    public void AddDatalink(DexihDatalink datalink, DexihHub hub)
+	    {
+		    if (datalink.SourceDatalinkTable.SourceType == DexihDatalinkTable.ESourceType.Table && datalink.SourceDatalinkTable.SourceTableKey != null)
+		    {
+			    AddTables(new[] { datalink.SourceDatalinkTable.SourceTableKey.Value }, hub);
+		    }
+		    else if ( datalink.SourceDatalinkTable.SourceDatalinkKey != null)
+		    {
+			    AddDatalinks(new[] { datalink.SourceDatalinkTable.SourceDatalinkKey.Value }, hub);
+		    }
+
+		    if (datalink.TargetTableKey != null)
+		    {
+			    AddTables(new[] {(long)datalink.TargetTableKey}, hub);
+		    }
+
+		    if (datalink.AuditConnectionKey != null)
+		    {
+			    AddConnections(new[] {datalink.AuditConnectionKey.Value}, false, hub);
+		    }
+		    
+		    foreach (var datalinkTransform in datalink.DexihDatalinkTransforms)
+		    {
+			    if (datalinkTransform.JoinDatalinkTable != null)
+			    {
+				    if (datalinkTransform.JoinDatalinkTable.SourceType == DexihDatalinkTable.ESourceType.Table && datalinkTransform.JoinDatalinkTable.SourceTableKey != null)
+				    {
+					    AddTables(new[] { datalinkTransform.JoinDatalinkTable.SourceTableKey.Value }, hub);
+				    }
+				    else if ( datalinkTransform.JoinDatalinkTable.SourceDatalinkKey != null)
+				    {
+					    AddDatalinks(new[] { datalinkTransform.JoinDatalinkTable.SourceDatalinkKey.Value }, hub);
+				    }
+			    }
+
+			    foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
+			    {
+				    if (item.CustomFunctionKey != null)
+				    {
+					    AddCustomFunctions(new[] {(long)item.CustomFunctionKey}, hub);
+				    }
+			    }
+		    }
+		    
+		    Hub.DexihDatalinks.Add(datalink);
+	    }
+
         public async Task AddDatajobs(IEnumerable<long> datajobKeys, DexihRepositoryContext dbContext)
         {
             foreach (var datajobKey in datajobKeys)
