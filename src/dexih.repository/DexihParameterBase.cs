@@ -40,16 +40,5 @@ namespace dexih.repository
             set => DataType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
         }
         public bool IsArray { get; set; } = false;
-
-        [NotMapped]
-        public string[] ListOfValues { get; set; }
-        
-        [JsonIgnore, CopyIgnore]
-        public string ListOfValuesString
-        {
-            get => ListOfValues == null ? null : string.Join(",", ListOfValues);
-            set => ListOfValues = value?.Split(',');
-        }
-        
     }
 }

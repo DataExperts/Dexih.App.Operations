@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using Dexih.Utils.CopyProperties;
+using Newtonsoft.Json;
 
 namespace dexih.repository
 {
@@ -8,6 +9,16 @@ namespace dexih.repository
         public long? DatalinkColumnKey { get; set; }
         
         public string Value { get; set; }
+        
+        [NotMapped]
+        public string[] ListOfValues { get; set; }
+        
+        [JsonIgnore, CopyIgnore]
+        public string ListOfValuesString
+        {
+            get => ListOfValues == null ? null : string.Join(",", ListOfValues);
+            set => ListOfValues = value?.Split(',');
+        }
 
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }

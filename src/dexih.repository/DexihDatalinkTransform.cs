@@ -34,7 +34,6 @@ namespace dexih.repository
         public string Description { get; set; }
         
         public bool PassThroughColumns { get; set; }
-        public bool GroupRows { get; set; }
 
         public long? JoinDatalinkTableKey { get; set; }
         public string JoinTableAlias { get; set; }
@@ -152,7 +151,7 @@ namespace dexih.repository
 					transform.ReferenceTableAlias = JoinDatalinkTable.DatalinkTableKey.ToString();	
 				}
 
-                var mappings = new Mappings(PassThroughColumns, GroupRows);
+                var mappings = new Mappings(PassThroughColumns);
 
                 foreach (var item in DexihDatalinkTransformItems.OrderBy(c => c.Position))
                 {

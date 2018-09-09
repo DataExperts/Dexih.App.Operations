@@ -582,7 +582,6 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(1024)");
 
                 entity.Property(e => e.PassThroughColumns).HasColumnName("pass_through_columns");
-                entity.Property(e => e.GroupRows).HasColumnName("group_rows");
 
                 entity.Property(e => e.JoinDatalinkTableKey).HasColumnName("join_datalink_table_key");
 				entity.Property(e => e.JoinDuplicateStrategyString).HasColumnName("join_duplicate_strategy").HasColumnType("varchar(50)");
