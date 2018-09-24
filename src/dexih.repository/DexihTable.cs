@@ -38,46 +38,9 @@ namespace dexih.repository
 	    public string QueryString { get; set; }
         public string RowPath { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string FormatTypeString
-        {
-            get => FormatType.ToString();
-	        set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    FormatType = ETypeCode.Json;
-                }
-                else
-                {
-                    FormatType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
-                }
-            }
-        }
-
-        [NotMapped]
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
-	    [NotMapped] 
 	    public long[] SortColumnKeys { get; set; } = new long[0];
-
-        [JsonIgnore, CopyIgnore]
-        public string SortColumnKeysString
-        {
-            get => SortColumnKeys == null ? null : string.Join(",", SortColumnKeys);
-	        set 
-			{
-				if(string.IsNullOrEmpty(value))
-				{
-					SortColumnKeys = new long[0];
-				}
-				else 
-				{
-					SortColumnKeys = value.Split(',').Select(long.Parse).ToArray();
-				}
-			}
-        }
-
         public bool AutoManageFiles { get; set; }
 
 		public bool UseCustomFilePaths { get; set; }
@@ -94,7 +57,7 @@ namespace dexih.repository
 	    public int MaxImportLevels { get; set; }
         
 	    public bool IsVersioned { get; set; }
-        public bool IsInternal { get; set; }
+//        public bool IsInternal { get; set; }
 		public bool IsShared { get; set; }
 
 
@@ -163,7 +126,7 @@ namespace dexih.repository
 		        }
 	        }
 	        
-	        // create a temporary copy and exclude the fileformat (which is different between DexihTable & Table)
+	        // create a temporary copy and exclude the fileFormat (which is different between DexihTable & Table)
 	        this.CopyProperties(table, false);
 
 	        // shift to array to avoid multiple enumerations.

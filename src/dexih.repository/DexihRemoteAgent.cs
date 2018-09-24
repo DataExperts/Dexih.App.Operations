@@ -24,15 +24,8 @@ namespace dexih.repository
         public bool RestrictIp { get; set; }
 
         public bool AllowExternalConnect { get; set; }
-        [NotMapped]
         public string[] IpAddresses { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string IpAddressesString
-        {
-            get => IpAddresses == null ? null : string.Join(",", IpAddresses);
-            set => IpAddresses = value?.Split(',').ToArray();
-        }
         public string RemoteAgentId { get; set; }
         
         public string HashedToken { get; set; }

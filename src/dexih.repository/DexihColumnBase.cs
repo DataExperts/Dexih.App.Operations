@@ -21,14 +21,6 @@ namespace dexih.repository
 
         public string Description { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string DataTypeString
-        {
-            get => DataType.ToString();
-            set => DataType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
-        }
-
-        [NotMapped]
         public ETypeCode DataType { get; set; }
 
         public int? MaxLength { get; set; }
@@ -40,15 +32,6 @@ namespace dexih.repository
 
         public bool AllowDbNull { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string DeltaTypeString
-        {
-            get => DeltaType.ToString();
-            set => DeltaType = (EDeltaType)Enum.Parse(typeof(EDeltaType), value);
-        }
-
-        [NotMapped]
-        [JsonConverter(typeof(StringEnumConverter))]
         public EDeltaType DeltaType { get; set; }
 
         public string DefaultValue { get; set; }
@@ -60,23 +43,15 @@ namespace dexih.repository
 
         public bool IsInput { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string SecurityFlagString
-        {
-            get => SecurityFlag.ToString();
-            set => SecurityFlag = (ESecurityFlag)Enum.Parse(typeof(ESecurityFlag), value);
-        }
-
-        [NotMapped]
-        [JsonConverter(typeof(StringEnumConverter))]
+        
         public ESecurityFlag SecurityFlag { get; set; }
 
 
-        [NotMapped]
         /// <summary>
         /// Is the column one form the source (vs. a value added column).
         /// </summary>
         /// <returns></returns>
+        [NotMapped]
         public bool IsSourceColumn
         {
             get
@@ -92,11 +67,11 @@ namespace dexih.repository
             }
         }
 
-        [NotMapped]
         /// <summary>
         /// Columns which require no mapping and are generated automatically for auditing.
         /// </summary>
         /// <returns></returns>
+        [NotMapped]
         public bool IsGeneratedColumn
         {
             get

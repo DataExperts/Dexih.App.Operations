@@ -225,16 +225,16 @@ namespace dexih.operations
                             throw new TransformManagerException($"The source table with the key {datalinkTable.SourceTableKey.Value} could not be found.");
                         }
                         
-                        if (sourceDbTable.IsInternal)
-                        {
-                            var sourceTable = datalinkTable.GetTable(null, inputColumns);
-                            var rowCreator = new ReaderRowCreator();
-                            rowCreator.InitializeRowCreator(0, 0, 1);
-                            rowCreator.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
-                            returnValue = (rowCreator, sourceTable);
-                        }
-                        else
-                        {
+//                        if (sourceDbTable.IsInternal)
+//                        {
+//                            var sourceTable = datalinkTable.GetTable(null, inputColumns);
+//                            var rowCreator = new ReaderRowCreator();
+//                            rowCreator.InitializeRowCreator(0, 0, 1);
+//                            rowCreator.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
+//                            returnValue = (rowCreator, sourceTable);
+//                        }
+//                        else
+//                        {
                             var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
 
                             if (sourceDbConnection == null)
@@ -247,7 +247,7 @@ namespace dexih.operations
                             var transform = sourceConnection.GetTransformReader(sourceTable, previewMode);
                             transform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
                             returnValue =  (transform, sourceTable);
-                        }
+//                        }
 
                         break;
                     case ESourceType.Rows:

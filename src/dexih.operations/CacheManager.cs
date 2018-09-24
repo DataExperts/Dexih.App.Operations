@@ -90,7 +90,7 @@ namespace dexih.operations
 
                 // load connections
                 var connections = dbContext.DexihConnections
-					.Where(c => c.IsValid && c.HubKey == HubKey && !c.IsInternal);
+					.Where(c => c.IsValid && c.HubKey == HubKey);
 
 				await dbContext.DexihTables
                     .Where(c => c.IsValid && c.HubKey == HubKey)
@@ -161,10 +161,22 @@ namespace dexih.operations
 					.Where(c => c.IsValid && c.Datajob.IsValid && c.Datajob.HubKey == HubKey)
 					.LoadAsync();
 
+				Hub.DexihDatalinkTests = await dbContext.DexihDatalinkTests
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.ToArrayAsync();
+
+				await dbContext.DexihDatalinkTestSteps
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+
+				await dbContext.DexihDatalinkTestTables
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+
+
 				Hub.DexihDatajobs = await datajobs.ToArrayAsync();
 
-				var internalHub = await dbContext.DexihHubs.FirstAsync(c => c.IsValid && c.IsInternal);
-				Hub.DexihFileFormats = await dbContext.DexihFileFormat.Where(c => (c.HubKey == HubKey || c.HubKey == internalHub.HubKey) && c.IsValid).ToArrayAsync();
+				Hub.DexihFileFormats = await dbContext.DexihFileFormat.Where(c => (c.HubKey == HubKey) && c.IsValid).ToArrayAsync();
 				Hub.DexihColumnValidations = await dbContext.DexihColumnValidation.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 			    Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
@@ -344,6 +356,17 @@ namespace dexih.operations
             }
         }
 	    
+	    public void LoadDatalinkTestDependencies(DexihDatalinkTest datalinkTest, DexihHub hub)
+	    {
+		    var datalinkKeys = datalinkTest.DexihDatalinkTestSteps.Select(c => c.DatalinkKey);
+		    AddDatalinks(datalinkKeys, hub);
+
+		    var connectionKeys = datalinkTest.DexihDatalinkTestSteps.Select(c => c.ExpectedConnectionKey).Concat(
+			    datalinkTest.DexihDatalinkTestSteps.Select(c=>c.TargetConnectionKey));
+		    
+		    AddConnections(connectionKeys, false, hub);
+	    }
+	    
 
         private async Task LoadDatajobDependencies(DexihDatajob datajob, bool includeDependencies, DexihRepositoryContext dbContext)
         {
@@ -452,6 +475,20 @@ namespace dexih.operations
 		    }
 	    }
 
+	    public void AddDatalinkTests(IEnumerable<long> datalinkTestKeys, DexihHub hub)
+	    {
+		    var datalinkTests = hub.DexihDatalinkTests.Where(c => datalinkTestKeys.ToArray().Contains(c.DatalinkTestKey));
+		    foreach (var datalinkTest in datalinkTests)
+		    {
+			    var existingDatalinkTest = Hub.DexihDatalinkTests.SingleOrDefault(c => c.DatalinkTestKey == datalinkTest.DatalinkTestKey);
+			    if(existingDatalinkTest == null)
+			    {
+				    Hub.DexihDatalinkTests.Add(datalinkTest);
+				    LoadDatalinkTestDependencies(datalinkTest, hub);
+			    }
+		    }
+	    }
+
         public async Task AddTables(IEnumerable<long> tableKeys, DexihRepositoryContext dbContext)
         {
             foreach (var tableKey in tableKeys)
@@ -482,7 +519,7 @@ namespace dexih.operations
 		                var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.FileFormatKey == table.FileFormatKey);
 		                if(fileFormat == null)
 		                {
-			                var internalHub = await dbContext.DexihHubs.FirstAsync(c => c.IsValid && c.IsInternal);
+			                var internalHub = await dbContext.DexihHubs.FirstAsync(c => c.IsValid);
 			                fileFormat = await dbContext.DexihFileFormat.SingleOrDefaultAsync(c => (c.HubKey == HubKey || c.HubKey == internalHub.HubKey) && c.FileFormatKey == table.FileFormatKey && c.IsValid);
 			                Hub.DexihFileFormats.Add(fileFormat);
 		                }
@@ -775,5 +812,13 @@ namespace dexih.operations
             }
 
         }
+
+	    public async Task<DexihDatalinkTest> GetDatalinkTest(long datalinkTestKey, DexihRepositoryContext dbContext)
+	    {
+		    var datalinkTest = await dbContext.DexihDatalinkTests.Include(c => c.DexihDatalinkTestSteps)
+			    .ThenInclude(d => d.DexihDatalinkTestTables).SingleOrDefaultAsync(c=>c.DatalinkTestKey == datalinkTestKey);
+
+		    return datalinkTest;
+	    }
     }
 }

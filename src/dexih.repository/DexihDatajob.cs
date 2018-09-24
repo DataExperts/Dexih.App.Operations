@@ -30,15 +30,8 @@ namespace dexih.repository
         public string Name { get; set; }
         public string Description { get; set; }
 
-        [NotMapped]
         public EFailAction FailAction { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string FailActionString
-        {
-            get => FailAction.ToString();
-            set => FailAction = (EFailAction)Enum.Parse(typeof(EFailAction), value);
-        }
         public long? AuditConnectionKey { get; set; }
 
         /// <summary>

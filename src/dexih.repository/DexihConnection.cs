@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace dexih.repository
 {
-    public partial class DexihConnection : DexihBaseEntity
+    public class DexihConnection : DexihBaseEntity
     {
         #region Enums
         [JsonConverter(typeof(StringEnumConverter))]
@@ -37,15 +37,7 @@ namespace dexih.repository
 
         public string ConnectionAssemblyName { get; set; }
         public string ConnectionClassName { get; set; }
-
-        [JsonIgnore, CopyIgnore]
-        public string PurposeString 
-        {
-            get => Purpose.ToString();
-            private set => Purpose = (EConnectionPurpose)Enum.Parse(typeof(EConnectionPurpose), value);
-        }
         
-        [NotMapped]
         public EConnectionPurpose Purpose { get; set; }
 
         public string Name { get; set; }
@@ -60,7 +52,7 @@ namespace dexih.repository
         public bool UseConnectionString { get; set; }
         public string ConnectionString { get; set; }
         public bool UseConnectionStringVariable { get; set; }
-        public bool IsInternal { get; set; }
+ //       public bool IsInternal { get; set; }
         public bool EmbedTableKey { get; set; }
  
         //these store the raw (unencrypted values) and are not saved to the database.
@@ -69,16 +61,16 @@ namespace dexih.repository
         [NotMapped]
         public string ConnectionStringRaw { get; set; }
 
-        public virtual ICollection<DexihTable> DexihTables { get; set; }
+        public ICollection<DexihTable> DexihTables { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalink> DexihDatalinkAuditConnections { get; set; }
+        public ICollection<DexihDatalink> DexihDatalinkAuditConnections { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
+        public ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihHub Hub { get; set; }
+        public DexihHub Hub { get; set; }
 
         public string GetPassword(string key, int iterations)
         {

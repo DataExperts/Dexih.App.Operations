@@ -10,7 +10,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
-    public partial class DexihColumnValidation : DexihBaseEntity
+    public class DexihColumnValidation : DexihBaseEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum ECleanAction
@@ -31,14 +31,7 @@ namespace dexih.repository
         public string Name { get; set; }
         public string Description { get; set; }
         
-        [NotMapped]
         public ETypeCode DataType { get; set; }
-        [JsonIgnore, CopyIgnore]
-        public string DataTypeString 
-        {
-            get => DataType.ToString();
-            set => DataType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
-        }
         public int? MinLength { get; set; }
         public int? MaxLength { get; set; }
         public bool AllowDbNull { get; set; }
@@ -47,55 +40,30 @@ namespace dexih.repository
         public string PatternMatch { get; set; }
         public string RegexMatch { get; set; }
         
-        [NotMapped, CopyIgnore]
+        [CopyIgnore]
         public string[] ListOfValues { get; set; }
         
-        [JsonIgnore]
-        public string ListOfValuesString
-        {
-            get => ListOfValues == null ? null : string.Join("||", ListOfValues);
-            set => ListOfValues = string.IsNullOrEmpty(value) ? null : value.Split(new[] { "||" }, StringSplitOptions.None).ToArray();
-        }
-        
-        [NotMapped, CopyIgnore]
+        [CopyIgnore]
         public string[] ListOfNotValues { get; set; }
 
-        [JsonIgnore]
-        public string ListOfNotValuesString
-        {
-            get => ListOfNotValues == null ? null : string.Join("||", ListOfNotValues);
-            set => ListOfNotValues = string.IsNullOrEmpty(value) ? null : value.Split(new[] { "||" }, StringSplitOptions.None).ToArray();
-        }
-        
         [JsonIgnore, CopyIgnore]
-        public virtual DexihTableColumn LookupColumn { get; set; }
+        public DexihTableColumn LookupColumn { get; set; }
 
 
         public long? LookupColumnKey { get; set; }
         public bool LookupIsValid { get; set; }
         public bool LookupMultipleRecords { get; set; }
 
-        [NotMapped]
         public TransformFunction.EInvalidAction InvalidAction { get; set; }
-        [JsonIgnore, CopyIgnore]
-        public string InvalidActionString {
-            get => InvalidAction.ToString();
-            set => InvalidAction = (TransformFunction.EInvalidAction)Enum.Parse(typeof(TransformFunction.EInvalidAction), value);
-        }        
-        [NotMapped]
         public ECleanAction CleanAction { get; set; }
-        [JsonIgnore, CopyIgnore]
-        public string CleanActionString{
-            get => CleanAction.ToString();
-            set => CleanAction = (ECleanAction)Enum.Parse(typeof(ECleanAction), value);
-        }
+
         public string CleanValue { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihHub Hub { get; set; }
+        public DexihHub Hub { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihTableColumn> DexihColumnValidationColumn {get; set;}
+        public ICollection<DexihTableColumn> DexihColumnValidationColumn {get; set;}
         
     }
 }

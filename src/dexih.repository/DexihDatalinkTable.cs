@@ -45,15 +45,7 @@ namespace dexih.repository
 	    
         public string Name { get; set; }
 
-        [NotMapped]
         public ESourceType SourceType { get; set; }
-
-        [JsonIgnore, CopyIgnore]
-        public string SourceTypeString
-        {
-            get => SourceType.ToString();
-            set => SourceType = (ESourceType)Enum.Parse(typeof(ESourceType), value);
-        }
 
         public virtual ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
 

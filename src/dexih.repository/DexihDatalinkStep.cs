@@ -26,17 +26,17 @@ namespace dexih.repository
 
         public string Name { get; set; }
         
-        public virtual ICollection<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
+        public ICollection<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
 
-        public virtual ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
-
-        [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalinkDependency> DexihDatalinkDependentSteps { get; set; }
+        public ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihDatajob Datajob { get; set; }
+        public ICollection<DexihDatalinkDependency> DexihDatalinkDependentSteps { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public DexihDatajob Datajob { get; set; }
         
         [JsonIgnore, CopyIgnore]
-        public virtual DexihDatalink Datalink { get; set; }
+        public DexihDatalink Datalink { get; set; }
     }
 }

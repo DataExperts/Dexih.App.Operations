@@ -10,16 +10,8 @@ namespace dexih.repository
         
         public string Value { get; set; }
         
-        [NotMapped]
         public string[] ListOfValues { get; set; }
         
-        [JsonIgnore, CopyIgnore]
-        public string ListOfValuesString
-        {
-            get => ListOfValues == null ? null : string.Join(",", ListOfValues);
-            set => ListOfValues = value?.Split(',');
-        }
-
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
         

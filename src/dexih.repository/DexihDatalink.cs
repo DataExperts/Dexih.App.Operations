@@ -45,27 +45,11 @@ namespace dexih.repository
         public long? TargetTableKey { get; set; }
         public long? AuditConnectionKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string UpdateStrategyString
-        {
-            get => UpdateStrategy.ToString();
-            set => UpdateStrategy = value == null ? TransformDelta.EUpdateStrategy.Reload  : (TransformDelta.EUpdateStrategy)Enum.Parse(typeof(TransformDelta.EUpdateStrategy), value);
-        }
-
-        [NotMapped]
         public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; }
 
         public bool VirtualTargetTable { get; set; }
 
-        [NotMapped]
         public EDatalinkType DatalinkType { get; set; }
-
-        [JsonIgnore, CopyIgnore]
-        public string DatalinkTypeString
-        {
-            get => DatalinkType.ToString();
-	        set => DatalinkType = (EDatalinkType)Enum.Parse(typeof(EDatalinkType), value);
-        }
 
         public int RowsPerCommit { get; set; }
         public int RowsPerProgress { get; set; }
@@ -80,8 +64,8 @@ namespace dexih.repository
         public EntityStatus EntityStatus { get; set; }
 
         //[CopyReference]
-        public virtual ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
-        public virtual ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
+        public ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
+        public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public virtual ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
@@ -90,19 +74,19 @@ namespace dexih.repository
         /// <summary>
         /// Reference to the source columns for the datalink.
         /// </summary>
-        public virtual DexihDatalinkTable SourceDatalinkTable { get; set; }
+        public DexihDatalinkTable SourceDatalinkTable { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
+        public ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
         
         [JsonIgnore, CopyIgnore]
-        public virtual DexihHub Hub { get; set; }
+        public DexihHub Hub { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihTable TargetTable { get; set; }
+        public DexihTable TargetTable { get; set; }
         
 	    [JsonIgnore, CopyReference]
-        public virtual DexihConnection AuditConnection { get; set; }
+        public DexihConnection AuditConnection { get; set; }
 
         /// <summary>
         /// Gets the output columns (including join/passthrough columns for a transform).

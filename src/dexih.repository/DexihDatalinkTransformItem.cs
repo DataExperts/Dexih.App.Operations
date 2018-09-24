@@ -46,15 +46,7 @@ namespace dexih.repository
 
 		public int Position { get; set; }
 
-		[NotMapped]
 		public ETransformItemType TransformItemType { get; set; }
-
-		[JsonIgnore, CopyIgnore]
-		public string TransformItemTypeString
-		{
-			get => TransformItemType.ToString();
-			set => TransformItemType = (ETransformItemType)Enum.Parse(typeof(ETransformItemType), value);
-		}
 
 		public long? TargetDatalinkColumnKey { get; set; }
 		public long? SourceDatalinkColumnKey { get; set; }
@@ -71,111 +63,25 @@ namespace dexih.repository
 
 		public long? CustomFunctionKey { get; set; }
 		
-        [NotMapped]
 		public Sort.EDirection? SortDirection { get; set; }
-		[JsonIgnore, CopyIgnore]
-		public string SortDirectionString
-		{
-			get => SortDirection.ToString();
-			set
-			{
-				if (string.IsNullOrEmpty(value))
-					SortDirection = null;
-				else
-					SortDirection = (Sort.EDirection)Enum.Parse(typeof(Sort.EDirection), value);
-			}
-		}
 
-		[NotMapped]
 		public Filter.ECompare? FilterCompare { get; set; }
 
-		[JsonIgnore, CopyIgnore]
-		public string FilterCompareString
-		{
-			get => FilterCompare.ToString();
-			set
-			{
-				if (string.IsNullOrEmpty(value))
-					FilterCompare = null;
-				else
-					FilterCompare = (Filter.ECompare)Enum.Parse(typeof(Filter.ECompare), value);
-			}
-		}
-
-        [NotMapped]
         public EAggregate? Aggregate { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string AggregateString
-        {
-            get => Aggregate.ToString();
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                    Aggregate = null;
-                else
-                    Aggregate = (EAggregate)Enum.Parse(typeof(EAggregate), value);
-            }
-        }
-		
-		[NotMapped]
 		public ESeriesGrain? SeriesGrain { get; set; }
-
-		[JsonIgnore, CopyIgnore]
-		public string SeriesGrainString
-		{
-			get => SeriesGrain.ToString();
-			set
-			{
-				if (string.IsNullOrEmpty(value))
-					SeriesGrain = null;
-				else
-					SeriesGrain = (ESeriesGrain)Enum.Parse(typeof(ESeriesGrain), value);
-			}
-		}
-		
 		public bool SeriesFill { get; set; }
 		public string SeriesStart { get; set; }
 		public string SeriesFinish { get; set; }
 
-//        [NotMapped]
-//		public ETypeCode ReturnType { get; set; }
-//		[JsonIgnore, CopyIgnore]
-//		public string ReturnTypeString
-//		{
-//			get => ReturnType.ToString();
-//			set => ReturnType = (ETypeCode)Enum.Parse(typeof(ETypeCode), value);
-//		}
 		public string FunctionCode { get; set; }
 		public string FunctionResultCode { get; set; }
 
-		[NotMapped]
 		public EErrorAction OnError { get; set; }
-		[JsonIgnore, CopyIgnore]
-		public string OnErrorString
-		{
-			get => OnError.ToString();
-			set => OnError = (EErrorAction)Enum.Parse(typeof(EErrorAction), value);
-		}
-
-		[NotMapped]
 		public EErrorAction OnNull { get; set; }
-		[JsonIgnore, CopyIgnore]
-		public string OnNullString
-		{
-			get => OnNull.ToString();
-			set => OnNull = (EErrorAction)Enum.Parse(typeof(EErrorAction), value);
-		}
 		public bool NotCondition { get; set; }
 
-		[NotMapped]
 		public TransformFunction.EInvalidAction InvalidAction { get; set; }
-		[JsonIgnore, CopyIgnore]
-		public string InvalidActionString
-		{
-			get => InvalidAction.ToString();
-			set => InvalidAction = (TransformFunction.EInvalidAction)Enum.Parse(typeof(TransformFunction.EInvalidAction), value);
-		}
 
 		[NotMapped, CopyIgnore]
 		public EntityStatus EntityStatus { get; set; }

@@ -8,7 +8,7 @@ using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
-    public partial class DexihCustomFunction : DexihBaseEntity
+    public class DexihCustomFunction : DexihBaseEntity
     {
 
         public DexihCustomFunction()
@@ -24,51 +24,13 @@ namespace dexih.repository
         public string ResultCode { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        
-        [NotMapped]
         public DataType.ETypeCode? ReturnType { get; set; }
-
-        [JsonIgnore, CopyIgnore]
-        public string ReturnTypeString
-        {
-            get => ReturnType.ToString();
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    ReturnType = null;
-                }
-                else
-                {
-                    ReturnType = (DataType.ETypeCode)Enum.Parse(typeof(DataType.ETypeCode), value);
-                }
-            }
-        }
-
-        [NotMapped]
         public EFunctionType? FunctionType { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string FunctionTypeString
-        {
-            get => FunctionType.ToString();
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    FunctionType = null;
-                }
-                else
-                {
-                    FunctionType = (EFunctionType)Enum.Parse(typeof(EFunctionType), value);
-                }
-            }
-        }
-
-        public virtual ICollection<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
+        public ICollection<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemCustomFunction { get; set; }
+        public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemCustomFunction { get; set; }
 
     }
 }

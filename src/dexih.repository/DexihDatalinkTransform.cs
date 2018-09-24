@@ -36,30 +36,14 @@ namespace dexih.repository
         public bool PassThroughColumns { get; set; }
 
         public long? JoinDatalinkTableKey { get; set; }
-        public string JoinTableAlias { get; set; }
         public long? JoinSortDatalinkColumnKey { get; set; }
 
-        [NotMapped]
         public ETransformType TransformType { get; set; }
-
-        [JsonIgnore, CopyIgnore]
-        public string TransformTypeString
-        {
-            get => TransformType.ToString();
-            set => TransformType = (ETransformType)Enum.Parse(typeof(ETransformType), value);
-        }
 
         public string TransformClassName { get; set; }
         public string TransformAssemblyName { get; set; }
 
-        [NotMapped]
         public EDuplicateStrategy JoinDuplicateStrategy { get; set; }
-
-        [JsonIgnore, CopyIgnore]
-        public string JoinDuplicateStrategyString {
-            get => JoinDuplicateStrategy.ToString();
-            set => JoinDuplicateStrategy = (EDuplicateStrategy) Enum.Parse(typeof(EDuplicateStrategy), value);
-        }
 
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }

@@ -32,6 +32,7 @@ namespace dexih.repository
             DexihCustomFunctions = new HashSet<DexihCustomFunction>();
             DexihColumnValidations = new HashSet<DexihColumnValidation>();
             DexihRemoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
+            DexihDatalinkTests = new HashSet<DexihDatalinkTest>();
         }
 
         [CopyCollectionKey((long)0, true)]
@@ -40,44 +41,21 @@ namespace dexih.repository
         public string Description { get; set; }
         public string EncryptionKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string SharedAccessString
-        {
-            get => SharedAccess.ToString();
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    SharedAccess = ESharedAccess.Reader;
-                }
-                else
-                {
-                    SharedAccess = (ESharedAccess)Enum.Parse(typeof(ESharedAccess), value);
-                }
-            }
-        }        
-        [NotMapped]
         public ESharedAccess SharedAccess { get; set; }
         
-//		public int? MaxOwners { get; set; }
-//        public int? MaxUsers { get; set; }
-//        public int? MaxReaders { get; set; }
-//        public int? MaxDatalinks { get; set; }
-//        public int? MaxDatajobs { get; set; }
-//        public int? DailyTransactionQuota { get; set; }
-//        public DateTime? ExpiryDate { get; set; }
-        public bool IsInternal { get; set; }
+ //       public bool IsInternal { get; set; }
 
-        public virtual ICollection<DexihConnection> DexihConnections { get; set; }
-        public virtual ICollection<DexihDatajob> DexihDatajobs { get; set; }
-        public virtual ICollection<DexihDatalink> DexihDatalinks { get; set; }
-        public virtual ICollection<DexihHubUser> DexihHubUsers { get; set; }
-        public virtual ICollection<DexihFileFormat> DexihFileFormats { get; set; }
-        public virtual ICollection<DexihHubVariable> DexihHubVariables { get; set; }
+        public ICollection<DexihConnection> DexihConnections { get; set; }
+        public ICollection<DexihDatajob> DexihDatajobs { get; set; }
+        public ICollection<DexihDatalink> DexihDatalinks { get; set; }
+        public ICollection<DexihHubUser> DexihHubUsers { get; set; }
+        public ICollection<DexihFileFormat> DexihFileFormats { get; set; }
+        public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
+        public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
 
-        public virtual ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
-        public virtual ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
-        public virtual ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
+        public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
+        public ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
+        public ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
 
         /// <summary>
         /// Searches all connections and table for a columnKey.

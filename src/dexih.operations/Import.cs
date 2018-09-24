@@ -25,6 +25,7 @@ namespace dexih.operations
         public ImportObjects<DexihFileFormat> FileFormats { get; set; }
         public ImportObjects<DexihCustomFunction> CustomFunctions { get; set; }
         public ImportObjects<DexihRemoteAgentHub> RemoteAgentHubs { get; set; }
+        public ImportObjects<DexihDatalinkTest> DatalinkTests { get; set; }
 
         public Import(long hubKey)
         {
@@ -39,6 +40,7 @@ namespace dexih.operations
             CustomFunctions = new ImportObjects<DexihCustomFunction>();
             FileFormats = new ImportObjects<DexihFileFormat>();
             RemoteAgentHubs = new ImportObjects<DexihRemoteAgentHub>();
+            DatalinkTests = new ImportObjects<DexihDatalinkTest>();
         }
 
         /// <summary>
@@ -80,6 +82,9 @@ namespace dexih.operations
                     case DexihRemoteAgentHub a:
                         RemoteAgentHubs.Add(a, operation);
                         break;
+                    case DexihDatalinkTest a:
+                        DatalinkTests.Add(a, operation);
+                        break;
                     default:
                         return false;
                 }
@@ -94,7 +99,7 @@ namespace dexih.operations
         public bool Any()
         {
             return HubVariables.Any() || Datajobs.Any() || Datalinks.Any() || Connections.Any() || Tables.Any() ||
-                   ColumnValidations.Any() || CustomFunctions.Any() || FileFormats.Any() || RemoteAgentHubs.Any();
+                   ColumnValidations.Any() || CustomFunctions.Any() || FileFormats.Any() || RemoteAgentHubs.Any() || DatalinkTests.Any();
         }
     }
 

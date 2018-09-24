@@ -3,6 +3,7 @@ using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using static dexih.functions.TableColumn;
@@ -143,7 +144,7 @@ namespace dexih.operations
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
-						.Where(c => !c.IsInternal && c.IsValid)
+						.Where(c => c.IsValid)
 						.ToArrayAsync();
 					return hubs;
 				}
@@ -156,7 +157,7 @@ namespace dexih.operations
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
-						.Where(c => hubKeys.Contains(c.HubKey) && !c.IsInternal && c.IsValid).ToArrayAsync();
+						.Where(c => hubKeys.Contains(c.HubKey) && c.IsValid).ToArrayAsync();
 					return hubs;
 				}
 			});
@@ -174,14 +175,14 @@ namespace dexih.operations
 			if (isAdmin)
 			{
 				// admin user has access to all hubs
-				return await DbContext.DexihHubs.Where(c => !c.IsInternal && c.IsValid).ToArrayAsync();
+				return await DbContext.DexihHubs.Where(c => c.IsValid).ToArrayAsync();
 			}
 			else
 			{
 				if (string.IsNullOrEmpty(userId))
 				{
 					// no user can only see public hubs
-					return await DbContext.DexihHubs.Where(c => c.SharedAccess == DexihHub.ESharedAccess.Public && !c.IsInternal && c.IsValid).ToArrayAsync();
+					return await DbContext.DexihHubs.Where(c => c.SharedAccess == DexihHub.ESharedAccess.Public && c.IsValid).ToArrayAsync();
 				}
 				else
 				{
@@ -190,7 +191,7 @@ namespace dexih.operations
 					
 					// all hubs the user has reader access to, or are public
 					return await DbContext.DexihHubs.Where(c => 
-						(!c.IsInternal && c.IsValid) &&
+						c.IsValid &&
 						(
 							c.SharedAccess == DexihHub.ESharedAccess.Public ||
 							c.SharedAccess == DexihHub.ESharedAccess.Registered ||
@@ -220,7 +221,7 @@ namespace dexih.operations
 				if (string.IsNullOrEmpty(userId))
 				{
 					// no user can only see public hubs
-					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.SharedAccess == DexihHub.ESharedAccess.Public && !c.IsInternal && c.IsValid);
+					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.SharedAccess == DexihHub.ESharedAccess.Public && c.IsValid);
 					return hub != null;
 				}
 				else
@@ -236,7 +237,7 @@ namespace dexih.operations
 					// all hubs other public/shared hubs
 					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => 
 						c.HubKey == hubKey &&
-						(!c.IsInternal && c.IsValid) &&
+						(c.IsValid) &&
 						(
 							c.SharedAccess == DexihHub.ESharedAccess.Public ||
 							c.SharedAccess == DexihHub.ESharedAccess.Registered 
@@ -916,7 +917,7 @@ namespace dexih.operations
 		{
 			if (_internalConnectionKey == 0)
 			{
-				var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsInternal);
+				var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey);
 				if (dbConnection == null)
 				{
 					throw new RepositoryManagerException($"There is no internal connection in the hub with key {hubKey}.");
@@ -1209,6 +1210,7 @@ namespace dexih.operations
 					if (datalink.DatalinkKey <= 0)
 					{
 						existingDatalink = new DexihDatalink();
+						
 						if(includeTargetTable && datalink.TargetTable != null) 
 						{
 							existingDatalink.TargetTable = datalink.TargetTable;
@@ -1296,17 +1298,19 @@ namespace dexih.operations
 //	                    newDatalink.CopyProperties(existingDatalink);
 //	                    existingDatalink.UpdateDate = DateTime.Now;
 //                        savedDatalinks.Add(existingDatalink);
-//                    } 
+//                    }
+					
+					await SaveHubChangesAsync(hubKey);
+
                 }
 
                 // uncomment to check changes.
-                //var modifiedEntries = DbContext.ChangeTracker
-                   //.Entries()
-                   //.Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
-                   //.Select(x => x)
-                   //.ToList();
+//                var modifiedEntries = DbContext.ChangeTracker
+//                   .Entries()
+//                   .Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
+//                   .Select(x => x)
+//                   .ToList();
 
-                await SaveHubChangesAsync(hubKey);
                 //await DbContext.DexihUpdateStrategies.LoadAsync();
 				 return savedDatalinks.ToArray();
 			}
@@ -1561,6 +1565,15 @@ namespace dexih.operations
 
                     newDatalinks.Add(datalink);
 				}
+				
+				var changedEntriesCopy = DbContext.ChangeTracker.Entries()
+					.Where(e => e.State == EntityState.Added ||
+					            e.State == EntityState.Modified ||
+					            e.State == EntityState.Deleted)
+					.ToList();
+
+				foreach (var entry in changedEntriesCopy)
+					entry.State = EntityState.Detached;
 
 				var savedDatalinks = await SaveDatalinks(hubKey, newDatalinks.ToArray(), true);
 				return savedDatalinks;
@@ -2433,6 +2446,147 @@ namespace dexih.operations
             }
         }
 
+		
+		public async Task<DexihDatalinkTest[]> DeleteDatalinkTests(long hubKey, long[] datalinkTestKeys)
+        {
+            try
+            {
+                var dbTests = await DbContext.DexihDatalinkTests
+                    .Where(c => c.HubKey == hubKey && datalinkTestKeys.Contains(c.DatalinkTestKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var item in dbTests)
+                {
+	                item.IsValid = false;
+                }
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbTests;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete hub variables failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihDatalinkTest> SaveDatalinkTest(long hubKey, DexihDatalinkTest datalinkTest)
+        {
+            try
+            {
+	            DexihDatalinkTest dbDatalinkTest;
+
+                //check there are no connections with the same name
+                var sameName = await DbContext.DexihDatalinkTests.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datalinkTest.Name && c.DatalinkTestKey != datalinkTest.DatalinkTestKey && c.IsValid);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A test with the name {datalinkTest.Name} already exists in the repository.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (datalinkTest.DatalinkTestKey > 0)
+                {
+	                var cacheManager = new CacheManager(hubKey, "");
+	                dbDatalinkTest = await cacheManager.GetDatalinkTest(datalinkTest.DatalinkTestKey, DbContext);
+                    if (dbDatalinkTest != null)
+                    {
+	                    datalinkTest.CopyProperties(dbDatalinkTest, false);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The test could not be saved as it contains the datalink_test_key {datalinkTest.DatalinkTestKey} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+	                dbDatalinkTest = new DexihDatalinkTest();
+	                datalinkTest.CopyProperties(dbDatalinkTest, false);
+                    DbContext.DexihDatalinkTests.Add(dbDatalinkTest);
+                }
+
+
+	            dbDatalinkTest.UpdateDate = DateTime.Now;	            
+	            dbDatalinkTest.IsValid = true;
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbDatalinkTest;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save file format {datalinkTest.Name} failed.  {ex.Message}", ex);
+            }
+        }
+
+		/// <summary>
+		/// Creates a new datalink test with a separate step for each of the specified datalinkKeys.
+		/// </summary>
+		/// <param name="hubKey"></param>
+		/// <param name="hub">Reference to the hub cache</param>
+		/// <param name="name"></param>
+		/// <param name="datalinkKeys">Array containing datalink keys to add to the test.</param>
+		/// <param name="targetConnectionKey"></param>
+		/// <param name="sourceConnectionKey"></param>
+		/// <returns></returns>
+		public async Task<DexihDatalinkTest> NewDatalinkTest(long hubKey, DexihHub hub, string name, long[] datalinkKeys, long auditConnectionKey, long targetConnectionKey, long sourceConnectionKey)
+		{
+			var datalinks = hub.DexihDatalinks.Where(c => datalinkKeys.Contains(c.DatalinkKey)).ToArray();
+			var datalinkTest = new DexihDatalinkTest
+			{
+				Name = string.IsNullOrEmpty(name) ? ( datalinks.Count() == 1 ? $"{datalinks[0].Name} tests" : "datalink tests") : name,
+				AuditConnectionKey = auditConnectionKey
+			};
+
+			var uniqueId = ShortGuid.NewGuid().ToString().Replace("-", "_");
+
+			foreach (var datalink in datalinks)
+			{
+				var targetTable = datalink.VirtualTargetTable || datalink.TargetTableKey == null
+					? null
+					: hub.GetTableFromKey(datalink.TargetTableKey.Value);
+
+				var targetName = targetTable?.Name ?? $"datalink_{datalink.DatalinkKey}";
+
+				var datalinkStep = new DexihDatalinkTestStep()
+				{
+					DatalinkKey = datalink.DatalinkKey,
+					Name = $"Test for datalink {datalink.Name}",
+					ExpectedConnectionKey = targetConnectionKey,
+					ExpectedTableName = $"{targetName}_expected_{uniqueId}",
+					ExpectedSchema = "",
+					TargetTableName = $"{targetName}_{uniqueId}",
+					TargetConnectionKey = targetConnectionKey
+				};
+
+				var sourceTables = datalink.GetAllSourceTables(hub);
+
+				foreach (var table in sourceTables)
+				{
+					var testTable = new DexihDatalinkTestTable()
+					{
+						TableKey = table.TableKey,
+						SourceConnectionKey = sourceConnectionKey,
+						SourceTableName = $"{table.Name}_source_{uniqueId}",
+						SourceSchema = "",
+						TestConnectionKey = sourceConnectionKey,
+						TestTableName = $"{table.Name}_test_{uniqueId}",
+						TestSchema = "",
+						Action = DexihDatalinkTestTable.ETestTableAction.DropCreateCopy,
+					};
+					datalinkStep.DexihDatalinkTestTables.Add(testTable);
+				}
+
+				datalinkTest.DexihDatalinkTestSteps.Add(datalinkStep);
+			}
+
+			DbContext.DexihDatalinkTests.Add(datalinkTest);
+			await SaveHubChangesAsync(hubKey);
+
+			return datalinkTest;
+		}
+
+		
 		/// <summary>
 		/// Compares an imported hub structure against the database structure, and maps keys and dependent obects together.
 		/// </summary>

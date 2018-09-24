@@ -22,15 +22,8 @@ namespace dexih.repository
         public string UserId { get; set; }
         public long HubKey { get; set; }
 
-        [NotMapped]
         public EPermission Permission { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public string PermissionString
-        {
-            get => Permission.ToString();
-            set => Permission = (EPermission)Enum.Parse(typeof(EPermission), value);
-        }
 
         [JsonIgnore, CopyIgnore]
         public virtual DexihHub Hub { get; set; }

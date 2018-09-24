@@ -32,15 +32,9 @@ namespace dexih.repository
         public long DatajobKey { get; set; }
         public DateTime? StartDate { get; set; }
         public TimeSpan? IntervalTime { get; set; }
-        
-        [JsonIgnore]
-        public string DaysOfWeekString { get; set; }
-        
-        [NotMapped, CopyIgnore]
-        public EDayOfWeek[] DaysOfWeek {
-            get { return string.IsNullOrEmpty(DaysOfWeekString) ? new EDayOfWeek[] { } : DaysOfWeekString.Split(',').Select(c => (EDayOfWeek)Enum.Parse(typeof(EDayOfWeek), c)).ToArray(); }
-            set { DaysOfWeekString = String.Join(",", value.Select(c=>c.ToString())); }
-        }
+
+        [CopyIgnore] 
+        public EDayOfWeek[] DaysOfWeek { get; set; }
 
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
