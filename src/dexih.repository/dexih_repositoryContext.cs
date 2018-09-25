@@ -667,24 +667,24 @@ namespace dexih.repository
                 entity.Property(e => e.FilterValue).HasColumnName("filter_value").HasMaxLength(1000);
                 entity.Property(e => e.FilterCompare).HasColumnName("filter_compare").HasMaxLength(50)
                     .HasConversion(
-                        v => v.ToString(),
-                        v => (Filter.ECompare?) Enum.Parse(typeof(Filter.ECompare), v));
+                        v => v == null ? null : v.ToString(),
+                        v => String.IsNullOrEmpty(v) ? null : (Filter.ECompare?) Enum.Parse(typeof(Filter.ECompare), v));
                 entity.Property(e => e.Aggregate).HasColumnName("aggregate").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (SelectColumn.EAggregate) Enum.Parse(typeof(SelectColumn.EAggregate), v));
+                        v => String.IsNullOrEmpty(v) ? SelectColumn.EAggregate.Sum : (SelectColumn.EAggregate) Enum.Parse(typeof(SelectColumn.EAggregate), v));
                 entity.Property(e => e.OnError).HasColumnName("on_error").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (EErrorAction) Enum.Parse(typeof(EErrorAction), v));
+                        v => String.IsNullOrEmpty(v) ? EErrorAction.Abend : (EErrorAction) Enum.Parse(typeof(EErrorAction), v));
                 entity.Property(e => e.OnNull).HasColumnName("on_null").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (EErrorAction) Enum.Parse(typeof(EErrorAction), v));
+                        v => String.IsNullOrEmpty(v) ? EErrorAction.Abend : (EErrorAction) Enum.Parse(typeof(EErrorAction), v));
                 entity.Property(e => e.SortDirection).HasColumnName("sort_direction").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (Sort.EDirection) Enum.Parse(typeof(Sort.EDirection), v));
+                        v => String.IsNullOrEmpty(v) ? Sort.EDirection.Descending : (Sort.EDirection) Enum.Parse(typeof(Sort.EDirection), v));
                 entity.Property(e => e.SeriesGrain).HasColumnName("series_grain").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
