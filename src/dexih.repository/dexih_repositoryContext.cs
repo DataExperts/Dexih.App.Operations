@@ -280,7 +280,7 @@ namespace dexih.repository
                         v => (DexihParameterBase.EParameterDirection) Enum.Parse(typeof(DexihParameterBase.EParameterDirection), v));
 
                 entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.IsArray).HasColumnName("is_array");
+                entity.Property(e => e.Rank).HasColumnName("rank");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -368,6 +368,7 @@ namespace dexih.repository
                         v => (TableColumn.ESecurityFlag) Enum.Parse(typeof(TableColumn.ESecurityFlag), v));
 
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
+                entity.Property(e => e.Rank).HasColumnName("rank");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -545,7 +546,7 @@ namespace dexih.repository
                         v => (TableColumn.ESecurityFlag) Enum.Parse(typeof(TableColumn.ESecurityFlag), v));
 
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
-
+                entity.Property(e => e.Rank).HasColumnName("rank");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
@@ -935,7 +936,7 @@ namespace dexih.repository
                 entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
                 entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(1024);
                 entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.IsArray).HasColumnName("is_array");
+                entity.Property(e => e.Rank).HasColumnName("rank");
                 entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
@@ -980,7 +981,7 @@ namespace dexih.repository
                         v => (DexihParameterBase.EParameterDirection) Enum.Parse(typeof(DexihParameterBase.EParameterDirection), v));
                 
                 entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.IsArray).HasColumnName("is_array");
+                entity.Property(e => e.Rank).HasColumnName("rank");
                 entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
@@ -1160,6 +1161,7 @@ namespace dexih.repository
                 entity.Property(e => e.Precision).HasColumnName("precision");
                 entity.Property(e => e.Scale).HasColumnName("scale");
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
+                entity.Property(e => e.Rank).HasColumnName("rank");
                 entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
@@ -1216,7 +1218,7 @@ namespace dexih.repository
                 entity.Property(e => e.SortColumnKeys).HasColumnName("sort_column_keys").HasMaxLength(500)
                     .HasConversion(
                         v => v == null ? null : string.Join(",", v),
-                        v => string.IsNullOrEmpty(v) ? new long[0] : v.Split(',').Select(long.Parse).ToArray());
+                        v => string.IsNullOrEmpty(v) ? new long[0] : v.Split(",", StringSplitOptions.None).Select(long.Parse).ToArray());
 
                 entity.Property(e => e.RestfulUri).HasColumnName("restful_uri").HasMaxLength(2000);
                 entity.Property(e => e.RowPath).HasColumnName("row_path").HasMaxLength(2000);
@@ -1264,7 +1266,7 @@ namespace dexih.repository
                 entity.Property(e => e.DaysOfWeek).HasColumnName("days_of_week").HasMaxLength(200)
                     .HasConversion(
                         v => String.Join(",", v.Select(c=>c.ToString())),
-                        v => string.IsNullOrEmpty(v) ? new DexihTrigger.EDayOfWeek[] { } : v.Split(',').Select(c => (DexihTrigger.EDayOfWeek)Enum.Parse(typeof(DexihTrigger.EDayOfWeek), c)).ToArray());
+                        v => string.IsNullOrEmpty(v) ? new DexihTrigger.EDayOfWeek[] { } : v.Split(',', StringSplitOptions.None).Select(c => (DexihTrigger.EDayOfWeek)Enum.Parse(typeof(DexihTrigger.EDayOfWeek), c)).ToArray());
                 entity.Property(e => e.MaxRecurs).HasColumnName("max_recurrs");
                 entity.Property(e => e.CronExpression).HasColumnName("cron_expression").HasMaxLength(500);
 

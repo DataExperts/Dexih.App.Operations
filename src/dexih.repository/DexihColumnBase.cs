@@ -42,6 +42,13 @@ namespace dexih.repository
         public bool IsIncrementalUpdate { get; set; }
 
         public bool IsInput { get; set; }
+        
+        /// <summary>
+        /// The number of array dimensions (zero for non array).
+        /// </summary>
+        public int Rank { get; set; }
+
+        public bool IsArray() => Rank > 0;
 
         
         public ESecurityFlag SecurityFlag { get; set; }

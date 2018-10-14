@@ -3,7 +3,7 @@
     <Description>dexih_repository Class Library</Description>
     <VersionPrefix>0.2.1</VersionPrefix>
     <Authors>Gary</Authors>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <AssemblyName>dexih.repository</AssemblyName>
     <OutputType>Library</OutputType>
     <PackageId>dexih.repository</PackageId>
@@ -13,6 +13,7 @@
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.1.2" />

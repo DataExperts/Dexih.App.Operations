@@ -47,25 +47,25 @@ namespace dexih.repository
 
         public ESourceType SourceType { get; set; }
 
-        public virtual ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
+        public ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihTable SourceTable { get; set; }
+        public DexihTable SourceTable { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihDatalink SourceDatalink { get; set; }
+        public DexihDatalink SourceDatalink { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalink> DexihDatalinkSourceTables { get; set; }
+        public ICollection<DexihDatalink> DexihDatalinkSourceTables { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
+        public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
         /// <summary>
         /// Converts the datalinkTable to a base "Table" class.
         /// </summary>
         /// <returns></returns>
-		public Table GetTable(Table sourceTable, IEnumerable<DexihColumnBase> inputColumns)
+		public Table GetTable(Table sourceTable, ICollection<DexihColumnBase> inputColumns)
         {
 			Table table;
 

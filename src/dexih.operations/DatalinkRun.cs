@@ -40,7 +40,7 @@ namespace dexih.operations
         private readonly DexihHub _hub;
         private readonly SelectQuery _selectQuery;
 		private readonly TransformSettings _transformSettings;
-        private readonly IEnumerable<DexihColumnBase> _inputColumns;
+        private readonly ICollection<DexihColumnBase> _inputColumns;
 
         private readonly bool _truncateTarget;
         private readonly bool _resetIncremental;
@@ -50,7 +50,7 @@ namespace dexih.operations
         private readonly ILogger _logger;
 
 
-        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, GlobalVariables globalVariables, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery, IEnumerable<DexihColumnBase> inputColumns)
+        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, GlobalVariables globalVariables, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery, ICollection<DexihColumnBase> inputColumns)
         {
             _transformSettings = transformSettings;
             _logger = logger;

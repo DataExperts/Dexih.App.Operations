@@ -22,26 +22,27 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
 
-	    private long _datlainkColumnKey;
+//	    private long _datalinkColumnKey;
 	    
-	    [CopyCollectionKey((long)0, true)]
-        public long DatalinkColumnKey {
-		    get => _datlainkColumnKey;
-		    set
-		    {
-			    if (value == 0)
-			    {
-			    }
-			    if (value != 0)
-			    {
-				    OldDatalinkColumnKey = value;
-			    }
+	    [CopyCollectionKey(0L, true)]
+	    public long DatalinkColumnKey { get; set; }
+//        public long DatalinkColumnKey {
+//		    get => _datalinkColumnKey;
+//		    set
+//		    {
+//			    if (value == 0)
+//			    {
+//			    }
+//			    if (value != 0)
+//			    {
+//				    OldDatalinkColumnKey = value;
+//			    }
+//
+//			    _datalinkColumnKey = value;
+//		    } 
+//	    }
 
-			    _datlainkColumnKey = value;
-		    } 
-	    }
-
-	    // [CopyParentCollectionKey]
+	    [CopyParentCollectionKey]
         public long? DatalinkTableKey { get; set; }
 
         [JsonIgnore, CopyIgnore]
@@ -82,21 +83,21 @@ namespace dexih.repository
 			return tableColumn;
 		}
 
-	    /// <summary>
-	    /// Used to keep an original datalink column key when reloading references.
-	    /// </summary>
-	    [NotMapped, JsonIgnore]
-	    public long OldDatalinkColumnKey { get; set; }
-
-	    public long GetPreservedColumnKey()
-	    {
-		    if (DatalinkColumnKey == 0)
-		    {
-			    return OldDatalinkColumnKey;
-		    }
-
-		    return DatalinkColumnKey;
-	    }
+//	    /// <summary>
+//	    /// Used to keep an original datalink column key when reloading references.
+//	    /// </summary>
+//	    [NotMapped, JsonIgnore]
+//	    public long OldDatalinkColumnKey { get; set; }
+//
+//	    public long GetPreservedColumnKey()
+//	    {
+//		    if (DatalinkColumnKey == 0)
+//		    {
+//			    return OldDatalinkColumnKey;
+//		    }
+//
+//		    return DatalinkColumnKey;
+//	    }
 
 
     }

@@ -26,6 +26,6 @@ namespace dexih.repository
 
         public ETypeCode DataType { get; set; }
         
-        public bool IsArray { get; set; } = false;
+        public int Rank { get; set; } = 0;
     }
 }

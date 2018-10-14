@@ -221,7 +221,7 @@ namespace dexih.repository
 
   
         /// <summary>
-        /// Gets a single (deduplicated) list of all DatalinkColumns use by the datalink.
+        /// Gets a single (deduplicated) list of all DatalinkColumns use by the datalink, and sets the instances to null
         /// </summary>
         /// <returns></returns>
         public Dictionary<long, DexihDatalinkColumn> GetAllDatalinkColumns()
@@ -253,34 +253,44 @@ namespace dexih.repository
                 // for any source mappings for the transform, copy the tracked instance.
                 foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
                 {
+                    item.SourceDatalinkColumnKey = item.SourceDatalinkColumn?.DatalinkColumnKey;
                     if (item.SourceDatalinkColumn != null && !columns.ContainsKey(item.SourceDatalinkColumn.DatalinkColumnKey))
                     {
                         columns[item.SourceDatalinkColumn.DatalinkColumnKey] = item.SourceDatalinkColumn;
                     }
+                    item.SourceDatalinkColumn = null;
 
+                    item.JoinDatalinkColumnKey = item.JoinDatalinkColumn?.DatalinkColumnKey;
                     if (item.JoinDatalinkColumn != null && !columns.ContainsKey(item.JoinDatalinkColumn.DatalinkColumnKey))
                     {
                         columns[item.JoinDatalinkColumn.DatalinkColumnKey] = item.JoinDatalinkColumn;
                     }
+                    item.JoinDatalinkColumn = null;
 
+                    item.TargetDatalinkColumnKey = item.TargetDatalinkColumn?.DatalinkColumnKey;
                     if (item.TargetDatalinkColumn != null && !columns.ContainsKey(item.TargetDatalinkColumn.DatalinkColumnKey))
                     {
                         columns[item.TargetDatalinkColumn.DatalinkColumnKey] = item.TargetDatalinkColumn;
                     }
+                    item.TargetDatalinkColumn = null;
 
                     foreach (var param in item.DexihFunctionParameters)
                     {
+                        param.DatalinkColumnKey = param.DatalinkColumn?.DatalinkColumnKey;
                         if (param.DatalinkColumn != null && !columns.ContainsKey(param.DatalinkColumn.DatalinkColumnKey))
                         {
                             columns[param.DatalinkColumn.DatalinkColumnKey] = param.DatalinkColumn;
                         }
+                        param.DatalinkColumn = null;
 
                         foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null))
                         {
-                            if (!columns.ContainsKey(paramArray.DatalinkColumn.DatalinkColumnKey))
+                            paramArray.DatalinkColumnKey = paramArray.DatalinkColumn?.DatalinkColumnKey;
+                            if (paramArray.DatalinkColumn != null && !columns.ContainsKey(paramArray.DatalinkColumn.DatalinkColumnKey))
                             {
                                 columns[paramArray.DatalinkColumn.DatalinkColumnKey] = paramArray.DatalinkColumn;
                             }
+                            paramArray.DatalinkColumn = null;
                         }
                     }
                 }
@@ -291,6 +301,7 @@ namespace dexih.repository
 
         /// <summary>
         /// Resets all DatalinkColumns with the same reference/instance.
+        /// Sets all negative datalink columns keys to 0
         /// </summary>
         public void ResetDatalinkColumns(Dictionary<long, DexihDatalinkColumn> columns = null)
         {
@@ -305,13 +316,12 @@ namespace dexih.repository
             {
                 foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
                 {
-                    newColumns.Add(columns.ContainsKey(column.GetPreservedColumnKey())
-                        ? columns[column.GetPreservedColumnKey()]
+                    newColumns.Add(columns.ContainsKey(column.DatalinkColumnKey)
+                        ? columns[column.DatalinkColumnKey]
                         : column);
                 }
                 SourceDatalinkTable.DexihDatalinkColumns = newColumns;
             }
-
 
             foreach (var datalinkTransform in DexihDatalinkTransforms.OrderBy(c=>c.Position))
             {
@@ -323,9 +333,9 @@ namespace dexih.repository
                         newColumns = new HashSet<DexihDatalinkColumn>();
                         foreach (var column in datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns)
                         {
-                            if (columns.ContainsKey(column.GetPreservedColumnKey()))
+                            if (columns.ContainsKey(column.DatalinkColumnKey))
                             {
-                                newColumns.Add(columns[column.GetPreservedColumnKey()]);
+                                newColumns.Add(columns[column.DatalinkColumnKey]);
                             }
                             else
                             {
@@ -335,44 +345,42 @@ namespace dexih.repository
                         datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns = newColumns;
                     }
                     
-                    if (item.FilterDatalinkColumn != null && columns.ContainsKey(item.FilterDatalinkColumn.GetPreservedColumnKey()))
+                    if (item.FilterDatalinkColumnKey != null && columns.ContainsKey(item.FilterDatalinkColumnKey.Value))
                     {
-                        item.FilterDatalinkColumnKey = item.FilterDatalinkColumn.GetPreservedColumnKey() > 0 ? item.FilterDatalinkColumn.GetPreservedColumnKey() : 0;
-                        item.FilterDatalinkColumn = columns[item.FilterDatalinkColumn.GetPreservedColumnKey()];
+                        item.FilterDatalinkColumn = columns[item.FilterDatalinkColumnKey.Value];
+                        if(item.FilterDatalinkColumnKey < 0) item.FilterDatalinkColumnKey = 0;
                     }
 
-                    if (item.SourceDatalinkColumn != null && columns.ContainsKey(item.SourceDatalinkColumn.GetPreservedColumnKey()))
+                    if (item.SourceDatalinkColumnKey != null && columns.ContainsKey(item.SourceDatalinkColumnKey.Value))
                     {
-                        item.SourceDatalinkColumnKey = item.SourceDatalinkColumn.GetPreservedColumnKey() > 0 ? item.SourceDatalinkColumn.GetPreservedColumnKey() : 0;
-                        item.SourceDatalinkColumn = columns[item.SourceDatalinkColumn.GetPreservedColumnKey()];
+                        item.SourceDatalinkColumn = columns[item.SourceDatalinkColumnKey.Value];
+                        if(item.SourceDatalinkColumnKey < 0) item.SourceDatalinkColumnKey = 0;
                     }
 
-                    if (item.JoinDatalinkColumn != null && columns.ContainsKey(item.JoinDatalinkColumn.GetPreservedColumnKey()))
+                    if (item.JoinDatalinkColumnKey != null && columns.ContainsKey(item.JoinDatalinkColumnKey.Value))
                     {
-                        item.JoinDatalinkColumnKey = item.JoinDatalinkColumn.GetPreservedColumnKey() > 0 ? item.JoinDatalinkColumn.GetPreservedColumnKey() : 0;
-                        item.JoinDatalinkColumn = columns[item.JoinDatalinkColumn.GetPreservedColumnKey()];
+                        item.JoinDatalinkColumn = columns[item.JoinDatalinkColumnKey.Value];
+                        if(item.JoinDatalinkColumnKey < 0) item.JoinDatalinkColumnKey = 0;
                     }
 
-                    if (item.TargetDatalinkColumn != null && columns.ContainsKey(item.TargetDatalinkColumn.GetPreservedColumnKey()))
+                    if (item.TargetDatalinkColumnKey != null && columns.ContainsKey(item.TargetDatalinkColumnKey.Value))
                     {
-                        item.TargetDatalinkColumnKey = item.TargetDatalinkColumn.GetPreservedColumnKey() > 0 ? item.TargetDatalinkColumn.GetPreservedColumnKey() : 0;
-                        item.TargetDatalinkColumn = columns[item.TargetDatalinkColumn.GetPreservedColumnKey()];
+                        item.TargetDatalinkColumn = columns[item.TargetDatalinkColumnKey.Value];
+                        if(item.TargetDatalinkColumnKey < 0) item.TargetDatalinkColumnKey = 0;
                     }
 
 					foreach (var param in item.DexihFunctionParameters)
                     {
-                        if (param.DatalinkColumn != null && columns.ContainsKey(param.DatalinkColumn.GetPreservedColumnKey()))
+                        if (param.DatalinkColumnKey != null && columns.ContainsKey(param.DatalinkColumnKey.Value))
                         {
-                            param.DatalinkColumnKey = param.DatalinkColumn.GetPreservedColumnKey() > 0
-                                ? param.DatalinkColumn.GetPreservedColumnKey()
-                                : 0;
-                            param.DatalinkColumn = columns[param.DatalinkColumn.GetPreservedColumnKey()];
+                            param.DatalinkColumn = columns[param.DatalinkColumnKey.Value];
+                            if(param.DatalinkColumnKey < 0) param.DatalinkColumnKey = 0;
                         }
 
-                        foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null && columns.ContainsKey(c.DatalinkColumn.GetPreservedColumnKey())))
+                        foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumnKey != null && columns.ContainsKey(c.DatalinkColumnKey.Value)))
                         {
-                            paramArray.DatalinkColumnKey = paramArray.DatalinkColumn.GetPreservedColumnKey() > 0 ? paramArray.DatalinkColumn.GetPreservedColumnKey() : 0;
-                            paramArray.DatalinkColumn = columns[paramArray.DatalinkColumn.GetPreservedColumnKey()];
+                            paramArray.DatalinkColumn = columns[paramArray.DatalinkColumnKey.Value];
+                            if(paramArray.DatalinkColumnKey < 0) paramArray.DatalinkColumnKey = 0;
                         }
                     }
                 }

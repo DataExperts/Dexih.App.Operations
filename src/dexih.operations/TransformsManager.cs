@@ -196,7 +196,7 @@ namespace dexih.operations
         }
 
 
-		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, IEnumerable<DexihColumnBase> inputColumns, GlobalVariables globalVariables, bool previewMode)
+		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, ICollection<DexihColumnBase> inputColumns, GlobalVariables globalVariables, bool previewMode)
 		{
             try
             {
@@ -312,7 +312,7 @@ namespace dexih.operations
             
         }
 
-        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, IEnumerable<DexihColumnBase> inputColumns, GlobalVariables globalVariables, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null, bool previewMode = false) //Last datatransform key is used to preview the output of a specific transform in the series.
+        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, ICollection<DexihColumnBase> inputColumns, GlobalVariables globalVariables, long? maxDatalinkTransformKey, object maxIncrementalValue, bool truncateTargetTable = false, SelectQuery selectQuery = null, bool previewMode = false) //Last datatransform key is used to preview the output of a specific transform in the series.
         {
             try
             {

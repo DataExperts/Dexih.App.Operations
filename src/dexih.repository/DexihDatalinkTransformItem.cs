@@ -86,20 +86,19 @@ namespace dexih.repository
 		[NotMapped, CopyIgnore]
 		public EntityStatus EntityStatus { get; set; }
 
-		public virtual ICollection<DexihFunctionParameter> DexihFunctionParameters { get; set; }
+		public ICollection<DexihFunctionParameter> DexihFunctionParameters { get; set; }
 
 		[JsonIgnore, CopyIgnore]
 		public virtual DexihDatalinkTransform Dt { get; set; }
 
+		[CopyIgnore]
 		public virtual DexihDatalinkColumn SourceDatalinkColumn { get; set; }
-
+		[CopyIgnore]
 		public virtual DexihDatalinkColumn TargetDatalinkColumn { get; set; }
-
+		[CopyIgnore]
 		public virtual DexihDatalinkColumn JoinDatalinkColumn { get; set; }
-
+		[CopyIgnore]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
-
-        // public virtual DexihStandardFunction StandardFunction { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public virtual DexihCustomFunction CustomFunction { get; set; }
@@ -113,7 +112,7 @@ namespace dexih.repository
 			{
 				if (column != null)
 				{
-					return new ParameterColumn(parameter.ParameterName, parameter.DataType, column);
+					return new ParameterColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);
 				}
 				else
 				{
@@ -122,7 +121,7 @@ namespace dexih.repository
 			}
 			else
 			{
-				return new ParameterOutputColumn(parameter.ParameterName, parameter.DataType, column);				
+				return new ParameterOutputColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);				
 			}
 		}
 		
@@ -155,16 +154,23 @@ namespace dexih.repository
 				foreach (var parameter in DexihFunctionParameters.OrderBy(c=>c.Position))
 				{
 					Parameter newParameter;
-					if (parameter.IsArray)
+					if (parameter.Rank > 0)
 					{
-						var arrayParameters = new List<Parameter>();
-						
-						foreach (var arrayParameter in parameter.ArrayParameters)
+						if (parameter.ArrayParameters.Count > 0)
 						{
-							arrayParameters.Add(ConvertParameter(arrayParameter, arrayParameter.Direction));
+							var arrayParameters = new List<Parameter>();
+
+							foreach (var arrayParameter in parameter.ArrayParameters)
+							{
+								arrayParameters.Add(ConvertParameter(arrayParameter, arrayParameter.Direction));
+							}
+
+							newParameter = new ParameterArray(parameter.ParameterName, parameter.DataType, parameter.Rank, arrayParameters);
 						}
-						
-						newParameter = new ParameterArray(parameter.ParameterName, parameter.DataType, arrayParameters);
+						else
+						{
+							newParameter = ConvertParameter(parameter, parameter.Direction);
+						}
 					}
 					else
 					{
@@ -266,8 +272,8 @@ namespace dexih.repository
 
 							var mappingFunction = assembly.GetType("Program");
 							function.ObjectReference = Activator.CreateInstance(mappingFunction);
-							function.FunctionMethod = mappingFunction.GetMethod("CustomFunction");
-							function.ResetMethod = mappingFunction.GetMethod("Reset");
+							function.FunctionMethod = new TransformMethod(mappingFunction.GetMethod("CustomFunction"));
+							function.ResetMethod = new TransformMethod(mappingFunction.GetMethod("Reset"));
 							// function.ReturnType = ReturnType;
 						}
 					}
@@ -561,14 +567,14 @@ $FunctionCode
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Input))
 			{
 				var addArray = "";
-				if (t.IsArray) addArray = "[]";
+				if (t.Rank > 0) addArray = "[]";
 				parameterString += t.DataType + addArray + " " + t.ParameterName + ",";
 			}
 
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Output))
 			{
 				var addArray = "";
-				if (t.IsArray) addArray = "[]";
+				if (t.Rank > 0) addArray = "[]";
 				parameterString += "out " + t.DataType + addArray + " " + t.ParameterName + ",";
 			}
 

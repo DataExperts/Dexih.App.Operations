@@ -6,6 +6,7 @@ namespace dexih.repository
 {
     public class DexihFunctionParameterBase: DexihParameterBase
     {
+        [JsonIgnore]
         public long? DatalinkColumnKey { get; set; }
         
         public string Value { get; set; }
@@ -15,7 +16,7 @@ namespace dexih.repository
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
         
-        public virtual DexihDatalinkColumn DatalinkColumn { get; set; }
-
+        [CopyIgnore]
+        public DexihDatalinkColumn DatalinkColumn { get; set; }
     }
 }
