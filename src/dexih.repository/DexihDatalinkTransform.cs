@@ -179,7 +179,15 @@ namespace dexih.repository
                         case DexihDatalinkTransformItem.ETransformItemType.BuiltInFunction:
                         case DexihDatalinkTransformItem.ETransformItemType.CustomFunction:
                             var func = item.CreateFunctionMethod(hub, globalVariables, false, logger);
-                            mappings.Add(new MapFunction(func.function, func.parameters));
+                            if (TransformType == ETransformType.Validation)
+                            {
+                                mappings.Add(new MapValidation(func.function, func.parameters));
+                            }
+                            else
+                            {
+                                mappings.Add(new MapFunction(func.function, func.parameters));    
+                            }
+                            
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.Sort:
                             mappings.Add(new MapSort(sourceColumn, item.SortDirection ?? Sort.EDirection.Ascending));

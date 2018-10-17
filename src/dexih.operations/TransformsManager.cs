@@ -386,7 +386,7 @@ namespace dexih.operations
 
 							foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
 							{
-								var columnValidation = hub.DexihColumnValidations.SingleOrDefault(c => c.ColumnValidationKey == column.ColumnValidationKey);
+								var columnValidation = hub.DexihColumnValidations.Single(c => c.ColumnValidationKey == column.ColumnValidationKey);
 							    var validation =
 							        new ColumnValidationRun(_transformSettings, columnValidation, hub)
 							        {

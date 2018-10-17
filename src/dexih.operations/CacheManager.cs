@@ -221,6 +221,12 @@ namespace dexih.operations
             var columnValidationKeys = table.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
             await AddColumnValidations(columnValidationKeys, dbContext);
         }
+	    
+	    public void LoadTableColumns(DexihTable table, DexihHub hub)
+	    {
+		    var columnValidationKeys = table.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
+		    AddColumnValidations(columnValidationKeys, hub);
+	    }
 
         public async Task LoadDatalinkDependencies(DexihDatalink datalink, bool includeDependencies, DexihRepositoryContext dbContext)
         {
@@ -550,6 +556,8 @@ namespace dexih.operations
 				    {
 					    throw new CacheManagerException($"Could not find the table with the key {tableKey}.");
 				    }
+
+				    LoadTableColumns(table, hub);
 				    
 				    AddConnections(new long[] { table.ConnectionKey }, false, hub);
 				    var connection = Hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == table.ConnectionKey);

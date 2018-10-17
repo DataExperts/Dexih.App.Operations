@@ -37,60 +37,63 @@ namespace dexih.operations
         private readonly TransformSettings _transformSettings;
 
         private ConditionFunctions _conditionFunctions;
-        private Transform _lookup;
+        private HashSet<object> _lookupValues;
+        private Table _lookupTable;
         private TableColumn _lookupColumn;
 
         private int ValidationPassCount { get; set; }
         private int ValidationFailCount { get; set; }
 
         public Mapping GetValidationMapping(string columnName)
-        {
-//            var validationFunction = new TransformFunction(
-//                this, 
-//                this.GetType().GetMethod(nameof(Run)), 
-//                new TableColumn[] { new TableColumn(columnName) }, 
-//                new TableColumn(columnName), new TableColumn[] { new TableColumn(columnName), new TableColumn("RejectReason") },
-//                null
-//                )
-//            {
-//                InvalidAction = ColumnValidation.InvalidAction
-//            };
-//            
+        {    
             var parameters = new Parameters()
             {
                 Inputs = new Parameter[] {new ParameterColumn(columnName, ETypeCode.String)},
-                ReturnParameter = new ParameterColumn(columnName, ETypeCode.String),
-                Outputs = new Parameter[] {new ParameterColumn(columnName, ETypeCode.String), new ParameterColumn("RejectReason", ETypeCode.String), }
+                ReturnParameter = new ParameterOutputColumn(columnName, ETypeCode.String),
+                Outputs = new Parameter[] {new ParameterOutputColumn(columnName, ETypeCode.String), new ParameterOutputColumn("RejectReason", new TableColumn("RejectReason", TableColumn.EDeltaType.RejectedReason)) }
             };
+            
             var validationFunction = new TransformFunction(this, GetType().GetMethod(nameof(Run)), parameters, null);
-
-            var mapping = new MapFunction(validationFunction, parameters);
+            validationFunction.InitializeMethod = new TransformMethod(GetType().GetMethod(nameof(Initialize)));
+            var mapping = new MapValidation(validationFunction, parameters);
             return mapping;
+        }
+
+        public async Task Initialize(CancellationToken cancellationToken)
+        {
+            if (ColumnValidation.LookupColumnKey != null)
+            {
+                var dbColumn = Hub.GetColumnFromKey((long)ColumnValidation.LookupColumnKey);
+                if (dbColumn == null)
+                {
+                    throw new ColumnValidationException($"Error: The lookup table for column {ColumnValidation.LookupColumnKey} could not be found.");
+                }
+
+                var dbTable = Hub.GetTableFromKey(dbColumn.TableKey);
+                if (dbTable == null)
+                {
+                    throw new ColumnValidationException($"Error: The lookup table with key {dbColumn.TableKey} could not be found.");
+                }
+
+                var dbConnection = Hub.DexihConnections.Single(c => c.ConnectionKey == dbTable.ConnectionKey);
+                var connection = dbConnection.GetConnection(_transformSettings);
+                _lookupTable = dbTable.GetTable(connection, null, _transformSettings);
+                _lookupColumn = dbColumn.GetTableColumn(null);
+                _lookupValues = await connection.GetColumnValues(_lookupTable, _lookupColumn, cancellationToken);
+            }
         }
 
         public bool Run(object value, out object cleanedValue, out string rejectReason)
         {
-            var validateResult = ValidateClean(value, CancellationToken.None).Result;
+            var validateResult = ValidateClean(value);
             cleanedValue = validateResult.cleanedValue;
             rejectReason = validateResult.rejectReason;
             return validateResult.success;
         }
 
-        /// <summary>
-        /// Run method is used by the "Function" class to execute a validation call.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<(bool, object cleanedValue, string rejectReason)> RunAsync(object value, CancellationToken cancellationToken)
+        public (bool success, object cleanedValue, string rejectReason) ValidateClean(object value)
         {
-            var validateResult = await ValidateClean(value, cancellationToken);
-            return (validateResult.success, validateResult.cleanedValue, validateResult.rejectReason);
-        }
-
-        public async Task<(bool success, object cleanedValue, string rejectReason)> ValidateClean(object value, CancellationToken cancellationToken)
-        {
-            var validate = await Validate(value, cancellationToken);
+            var validate = Validate(value);
             //if validation passes, return true
             if (validate.success)
             {
@@ -140,7 +143,7 @@ namespace dexih.operations
 
         }
 
-        public async Task<(bool success, string reason)> Validate(object value, CancellationToken cancellationToken)
+        public (bool success, string reason) Validate(object value)
         {
             try
             {
@@ -157,114 +160,74 @@ namespace dexih.operations
                     }
                 }
 
-                var stringValue = value.ToString();
-                var basicDataType = GetBasicType(ColumnValidation.DataType);
-
                 //test for datatype
-                var result = TryParse(ColumnValidation.DataType, value);
+                var parsedValue = TryParse(ColumnValidation.DataType, value);
 
-                if (result == null)
+                if (parsedValue == null)
                 {
                     return (false, $"The value return a null when attempting to convert to datatype {ColumnValidation.DataType}.");
                 }
 
-                if (ColumnValidation.MaxLength != null && stringValue.Length > ColumnValidation.MaxLength)
+                if (parsedValue is string stringValue)
                 {
-                    return (false, "The value has a string length of " + stringValue.Length + " which exceeds the maximum length of " + ColumnValidation.MaxLength);
-                }
-                if (ColumnValidation.MinLength != null && stringValue.Length < ColumnValidation.MinLength)
-                {
-                    return (false, "The value has a string length of " + stringValue.Length + " which is below the minimum length of " + ColumnValidation.MinLength);
-                }
-
-                if (basicDataType == EBasicType.Date || basicDataType == EBasicType.Numeric)
-                {
-                    object compareValue;
-                    //convert to a double to enable compare routines to work
-                    try
+                    if (ColumnValidation.MaxLength != null && stringValue.Length > ColumnValidation.MaxLength)
                     {
-                        compareValue = TryParse(ETypeCode.Decimal, value);
-                    }
-                    catch (Exception ex)
-                    {
-                        return (false, $"The value failed to convert to a Decimal.  {ex.Message}.");
+                        return (false,
+                            "The value has a string length of " + stringValue.Length +
+                            " which exceeds the maximum length of " + ColumnValidation.MaxLength);
                     }
 
-                    if (ColumnValidation.MaxValue != null && (decimal)compareValue > ColumnValidation.MaxValue)
+                    if (ColumnValidation.MinLength != null && stringValue.Length < ColumnValidation.MinLength)
                     {
-                        return (false, "The value has a numerical value of " + stringValue + " which exceeds the maximum value of " + ColumnValidation.MaxValue);
+                        return (false,
+                            "The value has a string length of " + stringValue.Length +
+                            " which is below the minimum length of " + ColumnValidation.MinLength);
                     }
-                    if (ColumnValidation.MinValue != null && (decimal)compareValue < ColumnValidation.MinValue)
+                    
+                    if (ColumnValidation.PatternMatch != null)
                     {
-                        return (false, "The value has a numerical value of " + stringValue + " which is below the minimum Value of " + ColumnValidation.MinValue);
-                    }
-                }
-
-                if (ColumnValidation.PatternMatch != null)
-                {
-                    if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
-                    if (_conditionFunctions.IsPattern(stringValue, ColumnValidation.PatternMatch) == false)
-                    {
-                        return (false, "The value \"" + stringValue + "\" does not match the pattern " + ColumnValidation.PatternMatch);
-                    }
-                }
-
-                if (ColumnValidation.RegexMatch != null)
-                {
-                    if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
-                    if (_conditionFunctions.RegexMatch(stringValue, ColumnValidation.RegexMatch) == false)
-                    {
-                        return (false, "The value \"" + stringValue + "\" does not match the regular expression " + ColumnValidation.RegexMatch);
-                    }
-                }
-
-                if (ColumnValidation.ListOfValues != null && ColumnValidation.ListOfValues.Length > 0 && ColumnValidation.ListOfValues?.Contains(stringValue) == false)
-                {
-                    return (false, "The value \"" + stringValue + "\" was not found in the restricted list of values.");
-                }
-
-                if (ColumnValidation.ListOfNotValues != null && ColumnValidation.ListOfNotValues.Length > 0 && ColumnValidation.ListOfNotValues?.Contains(stringValue) == true)
-                {
-                    return (false, "The value \"" + stringValue + "\" was found in the excluded list of values.");
-                }
-
-
-                if (ColumnValidation.LookupColumnKey != null)
-                {
-                    DexihTableColumn dbColumn = null;
-                    DexihTable dbTable = null;
-
-                    if (_lookup == null)
-                    {
-                        dbColumn = Hub.GetColumnFromKey((long)ColumnValidation.LookupColumnKey);
-                        if (dbColumn == null)
+                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
+                        if (_conditionFunctions.IsPattern(stringValue, ColumnValidation.PatternMatch) == false)
                         {
-                            return (false, "Error: The lookup table could not be found.");
+                            return (false, "The value \"" + stringValue + "\" does not match the pattern " + ColumnValidation.PatternMatch);
                         }
-
-                        dbTable = Hub.GetTableFromKey(dbColumn.TableKey);
-                        if (dbTable == null)
-                        {
-                            return (false, "Error: The lookup table could not be found.");
-                        }
-
-                        var dbConnection = Hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == dbTable.ConnectionKey);
-                        var connection = dbConnection.GetConnection(_transformSettings);
-                        var table = dbTable.GetTable(connection, null, _transformSettings);
-                        _lookupColumn = dbColumn.GetTableColumn(null);
-
-                        _lookup = connection.GetTransformReader(table);
-                        await _lookup.Open(0, null, cancellationToken);
-                        _lookup.SetCacheMethod(Transform.ECacheMethod.OnDemandCache);
                     }
 
-                    var filter = new Filter(_lookupColumn.Name, Filter.ECompare.IsEqual, stringValue);
-                    var selectQuery = new SelectQuery();
-                    selectQuery.Filters.Add(filter);
-                    var lookupReturn = await _lookup.Lookup(selectQuery, Transform.EDuplicateStrategy.First, cancellationToken);
-                    if (lookupReturn == null || !lookupReturn.Any())
+                    if (ColumnValidation.RegexMatch != null)
                     {
-                        return (false, $"The validation lookup on table {dbTable?.Name} column {dbColumn?.Name}");
+                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
+                        if (_conditionFunctions.RegexMatch(stringValue, ColumnValidation.RegexMatch) == false)
+                        {
+                            return (false, "The value \"" + stringValue + "\" does not match the regular expression " + ColumnValidation.RegexMatch);
+                        }
+                    }
+                }
+
+                if (ColumnValidation.MaxValue != null && Compare(ColumnValidation.DataType, value, ColumnValidation.MaxValue) == ECompareResult.Greater)
+                {
+                    return (false, "The value is " + parsedValue + " which exceeds the maximum value of " + ColumnValidation.MaxValue);
+                }
+                if (ColumnValidation.MinValue != null  && Compare(ColumnValidation.DataType, value, ColumnValidation.MinValue) == ECompareResult.Less)
+                {
+                    return (false, "The value is " + parsedValue + " which is below the minimum Value of " + ColumnValidation.MinValue);
+                }
+
+                if (ColumnValidation.ListOfValues != null && ColumnValidation.ListOfValues.Length > 0 && ColumnValidation.ListOfValues?.Contains(value) == false)
+                {
+                    return (false, "The value \"" + value + "\" was not found in the restricted list of values.");
+                }
+
+                if (ColumnValidation.ListOfNotValues != null && ColumnValidation.ListOfNotValues.Length > 0 && ColumnValidation.ListOfNotValues?.Contains(value) == true)
+                {
+                    return (false, "The value \"" + value + "\" was found in the excluded list of values.");
+                }
+
+
+                if (ColumnValidation.LookupColumnKey != null && _lookupValues != null)
+                {
+                    if (!_lookupValues.Contains(value))
+                    {
+                        return (false, $"The value {value} could not be found on the lookup table {_lookupTable?.Name} column {_lookupColumn?.Name}");
                     }
                 }
 

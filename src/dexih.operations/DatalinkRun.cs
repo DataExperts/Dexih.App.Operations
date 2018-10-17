@@ -294,6 +294,12 @@ namespace dexih.operations
                 var targetReader = TargetConnection.GetTransformReader(targetTable);
                 var transformDelta = new TransformDelta(Reader.sourceTransform, targetReader,
                     Datalink.UpdateStrategy, surrogateKeyValue, Datalink.AddDefaultRow);
+
+                if (!await transformDelta.Open(WriterResult.AuditKey, null, cancellationToken))
+                {
+                    throw new DatalinkRunException("Failed to open the data reader.");
+                }
+                
                 transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, _globalVariables.EncryptionKey);
 
                 var writer = new TransformWriter();
