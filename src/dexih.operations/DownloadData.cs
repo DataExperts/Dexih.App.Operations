@@ -58,13 +58,13 @@ namespace dexih.operations
                                 }
                                 
                                 transform = connection.GetTransformReader(table, true);
-                                transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, cache.CacheEncryptionKey);
                                 transform = new TransformQuery(transform, downloadObject.Query);
                                 var openResult = await transform.Open(0, null, cancellationToken);
                                 if (!openResult)
                                 {
                                     throw new DownloadDataException($"The connection {connection.Name} with table {table.Name} failed to open for reading.");
                                 }
+                                transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, cache.CacheEncryptionKey);
                             }
                         }
                     }

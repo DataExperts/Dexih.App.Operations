@@ -1305,14 +1305,14 @@ namespace dexih.operations
                 }
 
                 // uncomment to check changes.
-//                var modifiedEntries = DbContext.ChangeTracker
-//                   .Entries()
-//                   .Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
-//                   .Select(x => x)
-//                   .ToList();
+                var modifiedEntries = DbContext.ChangeTracker
+                   .Entries()
+                   .Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
+                   .Select(x => x)
+                   .ToList();
 
                 //await DbContext.DexihUpdateStrategies.LoadAsync();
-				 return savedDatalinks.ToArray();
+                return savedDatalinks.ToArray();
 			}
             catch (Exception ex)
             {

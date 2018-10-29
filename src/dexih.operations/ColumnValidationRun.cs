@@ -53,7 +53,7 @@ namespace dexih.operations
                 Outputs = new Parameter[] {new ParameterOutputColumn(columnName, ETypeCode.String), new ParameterOutputColumn("RejectReason", new TableColumn("RejectReason", TableColumn.EDeltaType.RejectedReason)) }
             };
             
-            var validationFunction = new TransformFunction(this, GetType().GetMethod(nameof(Run)), parameters, null);
+            var validationFunction = new TransformFunction(this, GetType().GetMethod(nameof(Run)), null, parameters, null);
             validationFunction.InitializeMethod = new TransformMethod(GetType().GetMethod(nameof(Initialize)));
             var mapping = new MapValidation(validationFunction, parameters);
             return mapping;

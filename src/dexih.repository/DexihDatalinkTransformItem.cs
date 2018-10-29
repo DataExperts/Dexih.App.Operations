@@ -22,6 +22,7 @@ using dexih.functions.Parameter;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Serialization;
 using static dexih.functions.Query.SelectColumn;
+using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
@@ -60,6 +61,8 @@ namespace dexih.repository
 		public string FunctionClassName { get; set; }
 		public string FunctionAssemblyName { get; set; }
 		public string FunctionMethodName { get; set; }
+        public bool IsGeneric { get; set; }
+        public ETypeCode? GenericTypeCode { get; set; }
 
 		public long? CustomFunctionKey { get; set; }
 		
@@ -219,7 +222,8 @@ namespace dexih.repository
 
 				if (!string.IsNullOrEmpty(FunctionClassName))
 				{
-					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction(parameters, globalVariables);
+                    var genericType = GenericTypeCode == null ? null : DataType.GetType(GenericTypeCode.Value);
+					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction(genericType, parameters, globalVariables);
 				}
 				else
 				{

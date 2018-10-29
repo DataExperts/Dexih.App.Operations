@@ -26,6 +26,9 @@ namespace dexih.repository
         public string Description { get; set; }
         public DataType.ETypeCode? ReturnType { get; set; }
         public EFunctionType? FunctionType { get; set; }
+        public bool IsGeneric { get; set; }
+        public DataType.ETypeCode GenericTypeDefault { get; set; }
+
 
         public ICollection<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
 

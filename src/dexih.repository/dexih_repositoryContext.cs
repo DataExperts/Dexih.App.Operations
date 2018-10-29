@@ -164,7 +164,7 @@ namespace dexih.repository
                 entity.Property(e => e.PatternMatch).HasColumnName("pattern_match").HasMaxLength(250);
                 entity.Property(e => e.RegexMatch).HasColumnName("regex_match").HasMaxLength(250);
 
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
@@ -241,7 +241,12 @@ namespace dexih.repository
                 entity.Property(e => e.ResultCode).HasColumnName("result_code").HasMaxLength(8000);
                 entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-                
+
+                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
+                entity.Property(e => e.GenericTypeDefault).HasColumnName("generic_type_default").HasMaxLength(20).HasConversion(
+                    v => v.ToString(),
+                    v => (DataType.ETypeCode)Enum.Parse(typeof(DataType.ETypeCode), v));
+
                 entity.Property(e => e.FunctionType).HasColumnName("function_type").HasMaxLength(30)
                     .HasConversion(
                         v => v.ToString(),
@@ -273,8 +278,8 @@ namespace dexih.repository
                     .HasConversion(
                         v => v.ToString(),
                         v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
-                
-                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(10)
+                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
+                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
                         v => (DexihParameterBase.EParameterDirection) Enum.Parse(typeof(DexihParameterBase.EParameterDirection), v));
@@ -704,6 +709,14 @@ namespace dexih.repository
                 entity.Property(e => e.FunctionClassName).HasColumnName("function_class_name");
                 entity.Property(e => e.FunctionMethodName).HasColumnName("function_method_name");
                 entity.Property(e => e.FunctionAssemblyName).HasColumnName("function_assembly_name");
+
+                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
+                entity.Property(e => e.GenericTypeCode).HasColumnName("generic_type_code").HasMaxLength(20)
+                .HasConversion(
+                    v => v == null ? null : v.ToString(),
+                    v => string.IsNullOrEmpty(v) ? (DataType.ETypeCode?) null : Enum.Parse<DataType.ETypeCode>(v)
+                );
+
                 entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
                 entity.Property(e => e.TargetDatalinkColumnKey).HasColumnName("target_datalink_column_key");
 
@@ -928,7 +941,9 @@ namespace dexih.repository
                         v => v.ToString(),
                         v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
 
-                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(10)
+                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
+
+                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
                         v => (DexihParameterBase.EParameterDirection) Enum.Parse(typeof(DexihParameterBase.EParameterDirection), v));
@@ -974,8 +989,9 @@ namespace dexih.repository
                     .HasConversion(
                         v => v.ToString(),
                         v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
 
-                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(10)
+                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
                         v => (DexihParameterBase.EParameterDirection) Enum.Parse(typeof(DexihParameterBase.EParameterDirection), v));

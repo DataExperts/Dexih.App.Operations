@@ -12,7 +12,7 @@ namespace dexih.repository
         public string Value { get; set; }
         
         public string[] ListOfValues { get; set; }
-        
+
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
         

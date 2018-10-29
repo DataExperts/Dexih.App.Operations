@@ -25,6 +25,7 @@ namespace dexih.repository
         public EParameterDirection Direction { get; set; }
 
         public ETypeCode DataType { get; set; }
+        public bool IsGeneric { get; set; }
         
         public int Rank { get; set; } = 0;
     }
