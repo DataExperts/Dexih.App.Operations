@@ -98,7 +98,7 @@ namespace dexih.operations
                     {
                         case EDownloadFormat.Csv:
                             name = name + ".csv";
-                            fileStream = new TransformCsvStream(transform);
+                            fileStream = new StreamCsv(transform);
                             if (!zipFiles)
                             {
                                 return (name, fileStream);
@@ -106,7 +106,7 @@ namespace dexih.operations
                             break;
                         case EDownloadFormat.Json:
                             name = name + ".json";
-                            fileStream = new TransformJsonStream(name, transform);
+                            fileStream = new StreamJson(name, transform);
                             if (!zipFiles)
                             {
                                 return (name, fileStream);

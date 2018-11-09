@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using static dexih.functions.TableColumn;
 using Microsoft.Extensions.Logging;
@@ -13,7 +15,11 @@ using Dexih.Utils.CopyProperties;
 using System.Threading;
 using dexih.transforms;
 using dexih.transforms.Transforms;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace dexih.operations
 {
@@ -24,50 +30,52 @@ namespace dexih.operations
 	/// </summary>
 	public class RepositoryManager : IDisposable
 	{
-		private string SystemEncryptionKey { get; set; }
-		private ILogger Logger { get; set; }
+		
+		// Role descriptions used by RoleManager.
+		private const string AdministratorRole = "ADMINISTRATOR";
+		private const string ManagerRole = "MANAGER";
+		private const string UserRole = "USER";
+		private const string ViewerRole = "VIEWER";
+
+		private const string RemoteAgentProvider = "dexih-remote"; // name of the token provider used to recognise remote agent calls 
+		
+		
+		private string _systemEncryptionKey;
+		private ILogger _logger;
+		private readonly UserManager<ApplicationUser> _userManager;
 
 		public DexihRepositoryContext DbContext { get; set; }
 		public IMemoryCache MemoryCache { get; set; }
-
 		public readonly Func<Import, Task> HubChange;
-
-		private long _internalConnectionKey = 0;
 
 		public RepositoryManager(
 			 string systemEncryptionKey, 
              DexihRepositoryContext dbContext,
+			 UserManager<ApplicationUser> userManager,
 			 IMemoryCache memoryCache,
              ILoggerFactory loggerFactory,
 			 Func<Import, Task> hubChange
             )
 		{
-			SystemEncryptionKey = systemEncryptionKey;
+			_systemEncryptionKey = systemEncryptionKey;
+			_logger = loggerFactory.CreateLogger("RepositoryManager");
+			_userManager = userManager;
+
 			DbContext = dbContext;
-			MemoryCache = memoryCache;
-			Logger = loggerFactory.CreateLogger("RepositoryManager");
+			MemoryCache = memoryCache ?? new MemoryCache(new MemoryCacheOptions());
 			HubChange = hubChange;
-
-			if (memoryCache == null)
-			{
-				memoryCache = new MemoryCache(new MemoryCacheOptions());
-			}
-
 		}
 
 		public RepositoryManager(string systemEncryptionKey, 
 			DexihRepositoryContext dbContext,
+			UserManager<ApplicationUser> userManager,
 			IMemoryCache memoryCache
 		)
 		{
-			SystemEncryptionKey = systemEncryptionKey;
+			_systemEncryptionKey = systemEncryptionKey;
+			_userManager = userManager;
 			DbContext = dbContext;
-			MemoryCache = memoryCache;
-
-			if (memoryCache == null)
-			{
-				memoryCache = new MemoryCache(new MemoryCacheOptions());
-			}
+			MemoryCache = memoryCache ?? new MemoryCache(new MemoryCacheOptions());
 		}
 		
 		public void Dispose()
@@ -75,23 +83,196 @@ namespace dexih.operations
 			DbContext.Dispose();
 		}
 
+		#region User Functions
+
+		[JsonConverter(typeof(StringEnumConverter))]
+		public enum ELoginProvider
+		{
+			UserPass, Google, Microsoft    
+		}
+
+		public Task<ApplicationUser> GetUser(ClaimsPrincipal principal)
+		{
+			var id = _userManager.GetUserId(principal);
+			return GetUser(id);
+		}
+
+		private async Task AddUserRole(ApplicationUser user)
+		{
+			var roles = await _userManager.GetRolesAsync(user);
+			if (roles.Contains(AdministratorRole)) user.UserRole = ApplicationUser.EUserRole.Administrator;
+			else if (roles.Contains(ManagerRole)) user.UserRole = ApplicationUser.EUserRole.Manager;
+			else if (roles.Contains(UserRole)) user.UserRole = ApplicationUser.EUserRole.User;
+			else if (roles.Contains(ViewerRole)) user.UserRole = ApplicationUser.EUserRole.Viewer;
+			else user.UserRole = ApplicationUser.EUserRole.None;
+		}
+		
+		public async Task<ApplicationUser> GetUser(string id)
+		{
+			var user = await _userManager.FindByIdAsync(id);
+			if (user == null)
+			{
+				throw new RepositoryManagerException($"The user could not be found.");
+			}
+
+			await AddUserRole(user);
+
+			return user;
+		}
+
+		public async Task<ApplicationUser> GetUserFromEmail(string email)
+		{
+			var user = await _userManager.FindByEmailAsync(email);
+
+			if (user == null)
+			{
+				return null;
+			}
+
+			await AddUserRole(user);
+			return user;
+		}
+
+		public async Task<ApplicationUser> GetUserFromLogin(string provider, string providerKey)
+		{
+			var user = await _userManager.FindByLoginAsync(provider, providerKey);
+
+			if (user == null)
+			{
+				return null;
+			}
+			await AddUserRole(user);
+
+			return user;
+		}
+
+		/// <summary>
+		/// Throws an error when an identity result returns false.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="result"></param>
+		private void ThrowIdentityResult(string context, IdentityResult result)
+		{
+			if (!result.Succeeded)
+			{
+				throw new RepositoryManagerException($"Could not {context} due to: {string.Join(",", result.Errors.Select(e=>e.Description).ToArray())}");
+			}
+		}
+
+		public async Task CreateUserAsync(ApplicationUser user, string password = null)
+		{
+			if (password == null)
+			{
+				ThrowIdentityResult("create user", await _userManager.CreateAsync(user));
+			}
+			else
+			{
+				ThrowIdentityResult("create user", await _userManager.CreateAsync(user, password));
+			}
+
+			await CreateUserRoleAsync(user);
+		}
+		
+		public async Task UpdateUserAsync(ApplicationUser user)
+		{
+			ThrowIdentityResult("update user", await _userManager.UpdateAsync(user));
+			await CreateUserRoleAsync(user);
+		}
+
+		public async Task AddLoginAsync(ApplicationUser user, ELoginProvider provider, string providerKey)
+		{
+			var loginInfo = new UserLoginInfo(provider.ToString(), providerKey, provider.ToString());
+			ThrowIdentityResult("add user login", await _userManager.AddLoginAsync(user, loginInfo));
+		}
+
+		public async Task ConfirmEmailAsync(ApplicationUser user, string code)
+		{
+			ThrowIdentityResult("confirm email", await _userManager.ConfirmEmailAsync(user, code));
+			user.EmailConfirmed = true;
+			ThrowIdentityResult("update user", await _userManager.UpdateAsync(user));
+		}
+		
+		public async Task AddPasswordAsync(ApplicationUser user, string password) => ThrowIdentityResult("create user", await _userManager.AddPasswordAsync(user, password));
+		public Task<string> GenerateEmailConfirmationTokenAsync(ApplicationUser user) => _userManager.GenerateEmailConfirmationTokenAsync(user);
+		public Task<IList<UserLoginInfo>> GetLoginsAsync(ApplicationUser user) => _userManager.GetLoginsAsync(user);
+		public async Task RemoveLoginAsync(ApplicationUser user, string provider, string providerKey) => ThrowIdentityResult("remove user login", await _userManager.RemoveLoginAsync(user, provider, providerKey));
+		public Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user) => _userManager.GeneratePasswordResetTokenAsync(user);
+		public Task<bool> VerifyUserTokenAsync(ApplicationUser user, string remoteAgentId, string token) => _userManager.VerifyUserTokenAsync(user, RemoteAgentProvider, remoteAgentId, token);
+		public Task<string> GenerateRemoteUserToken(ApplicationUser user, string remoteAgentId) => _userManager.GenerateUserTokenAsync(user, RemoteAgentProvider, remoteAgentId);
+		public async Task ResetPasswordAsync(ApplicationUser user, string code, string password) => ThrowIdentityResult("reset password", await _userManager.ResetPasswordAsync(user, code, password));
+		public async Task ChangePasswordAsync(ApplicationUser user, string password, string newPassword) => ThrowIdentityResult("change password", await _userManager.ChangePasswordAsync(user, password, newPassword));
+		public async Task DeleteUserAsync(ApplicationUser user) => ThrowIdentityResult("delete user", await _userManager.DeleteAsync(user));
+
+		public async Task CreateUserRoleAsync(ApplicationUser user)
+		{
+			await _userManager.RemoveFromRolesAsync(user, new[] {AdministratorRole, ManagerRole, ViewerRole, UserRole});
+
+			switch (user.UserRole)
+			{
+				case ApplicationUser.EUserRole.Administrator:
+					await _userManager.AddToRoleAsync(user, AdministratorRole);
+					break;
+				case ApplicationUser.EUserRole.Manager:
+					await _userManager.AddToRoleAsync(user, ManagerRole);
+					break;
+				case ApplicationUser.EUserRole.User:
+					await _userManager.AddToRoleAsync(user, UserRole);
+					break;
+				case ApplicationUser.EUserRole.Viewer:
+					await _userManager.AddToRoleAsync(user, ViewerRole);
+					break;
+				case ApplicationUser.EUserRole.None:
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+
+		
+		
+		#endregion
+		
 		#region Hub Functions
 
+		/// <summary>
+		/// clears the cache for any permissions the user has.
+		/// </summary>
+		/// <param name="userId"></param>
 		public void ResetUserCache(string userId)
 		{
 			MemoryCache.Remove($"USERHUBS-{userId}");
 		}
 
+		/// <summary>
+		/// clears the hub cache.
+		/// </summary>
+		/// <param name="hubKey"></param>
 		public void ResetHubCache(long hubKey)
 		{
 			MemoryCache.Remove($"HUB-{hubKey}");
+		}
+
+		
+		/// <summary>
+		/// Clears the cache for any permissions associated with the hub.
+		/// </summary>
+		/// <param name="hubKey"></param>
+		/// <returns></returns>
+		public async Task ResetHubPermissions(long hubKey)
+		{
+			var hubUsers = await GetHubUsers(hubKey);
+			foreach (var hubUser in hubUsers)
+			{
+				ResetUserCache(hubUser.Id);
+			}
+			
+			MemoryCache.Remove($"ADMINHUBS");
 			MemoryCache.Remove($"HUBUSERIDS-{hubKey}");
 			MemoryCache.Remove($"HUBUSERS-{hubKey}");
-
 		}
 		
 		/// <summary>
-		/// Retrieves an array containing the hub and all depdendencies along with any dependent objects
+		/// Retrieves an array containing the hub and all dependencies along with any dependent objects
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
@@ -130,56 +311,59 @@ namespace dexih.operations
 		/// <summary>
 		/// Get hubs which the user is either authorized (Owner, User, FullReader) or an admin.
 		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="isAdmin"></param>
+		/// <param name="user"></param>
 		/// <returns></returns>
-		public Task<DexihHub[]> GetUserHubs(string userId, bool isAdmin)
+		public Task<DexihHub[]> GetUserHubs(ApplicationUser user)
 		{
-			return MemoryCache.GetOrCreateAsync($"USERHUBS-{userId}", async entry =>
+			if (user.IsAdmin)
 			{
-				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
-				
-				if (isAdmin)
+				return MemoryCache.GetOrCreateAsync($"ADMINHUBS", async entry =>
 				{
+					entry.SlidingExpiration = TimeSpan.FromMinutes(1);
+				
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
 						.Where(c => c.IsValid)
 						.ToArrayAsync();
 					return hubs;
-				}
-				else
+				});
+			}
+			else
+			{
+				return MemoryCache.GetOrCreateAsync($"USERHUBS-{user.Id}", async entry =>
 				{
+					entry.SlidingExpiration = TimeSpan.FromMinutes(1);
+				
 					var hubKeys = await DbContext.DexihHubUser
-						.Where(c => c.UserId == userId && c.Permission <= DexihHubUser.EPermission.FullReader && c.IsValid)
+						.Where(c => c.UserId == user.Id && c.Permission <= DexihHubUser.EPermission.FullReader && c.IsValid)
 						.Select(c => c.HubKey).ToArrayAsync();
-					
+				
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
 						.Where(c => hubKeys.Contains(c.HubKey) && c.IsValid).ToArrayAsync();
 					return hubs;
-				}
-			});
+				});
+				
+			}
 		}
 		
 		/// <summary>
 		/// Gets a list of hubs the user can access shared data in.
 		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="isAdmin"></param>
 		/// <returns></returns>
-		public async Task<DexihHub[]> GetSharedHubs(string userId, bool isAdmin)
+		public async Task<DexihHub[]> GetSharedHubs(ApplicationUser user)
 		{
 			// determine the hubs which can be shared data can be accessed from
-			if (isAdmin)
+			if (user.IsAdmin)
 			{
 				// admin user has access to all hubs
 				return await DbContext.DexihHubs.Where(c => c.IsValid).ToArrayAsync();
 			}
 			else
 			{
-				if (string.IsNullOrEmpty(userId))
+				if (string.IsNullOrEmpty(user.Id))
 				{
 					// no user can only see public hubs
 					return await DbContext.DexihHubs.Where(c => c.SharedAccess == DexihHub.ESharedAccess.Public && c.IsValid).ToArrayAsync();
@@ -187,7 +371,7 @@ namespace dexih.operations
 				else
 				{
 					// all hubs the user has reader access to.
-					var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == userId && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+					var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
 					
 					// all hubs the user has reader access to, or are public
 					return await DbContext.DexihHubs.Where(c => 
@@ -205,20 +389,19 @@ namespace dexih.operations
 		/// <summary>
 		/// Checks is the user can access shared objects in the hub.
 		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="isAdmin"></param>
+		/// <param name="user"></param>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public async Task<bool> CanAccessSharedObjects(string userId, bool isAdmin, long hubKey)
+		public async Task<bool> CanAccessSharedObjects(ApplicationUser user, long hubKey)
 		{
 			// determine the hubs which can be shared data can be accessed from
-			if (isAdmin)
+			if (user.IsAdmin)
 			{
 				return true;
 			}
 			else
 			{
-				if (string.IsNullOrEmpty(userId))
+				if (string.IsNullOrEmpty(user.Id))
 				{
 					// no user can only see public hubs
 					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.SharedAccess == DexihHub.ESharedAccess.Public && c.IsValid);
@@ -227,7 +410,7 @@ namespace dexih.operations
 				else
 				{
 					// all hubs the user has reader access to.
-					var readerHubKey = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid);
+					var readerHubKey = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid);
 
 					if (readerHubKey != null)
 					{
@@ -251,16 +434,15 @@ namespace dexih.operations
 		/// <summary>
 		/// Gets a list of all the shared datalinks/table available to the user.
 		/// </summary>
-		/// <param name="userId">User.Id</param>
-		/// <param name="isAdmin">Is user admin</param>
+		/// <param name="user">User</param>
 		/// <param name="searchString">Search string to restrict</param>
 		/// <param name="hubKeys">HubKeys to restrict search to (null/empty will use all available hubs)</param>
 		/// <param name="maxResults">Maximum results to return (0 for all).</param>
 		/// <returns></returns>
 		/// <exception cref="RepositoryException"></exception>
-		public async Task<IEnumerable<SharedData>> GetSharedDataIndex(string userId, bool isAdmin, string searchString, long[] hubKeys, int maxResults = 0)
+		public async Task<IEnumerable<SharedData>> GetSharedDataIndex(ApplicationUser user, string searchString, long[] hubKeys, int maxResults = 0)
 		{
-			var availableHubs = await GetSharedHubs(userId, isAdmin);
+			var availableHubs = await GetSharedHubs(user);
 
 			// check user has access to all the requested hub keys
 			if (hubKeys != null && hubKeys.Length > 0)
@@ -356,20 +538,13 @@ namespace dexih.operations
 	            x.State == EntityState.Modified ||
 	            x.State == EntityState.Deleted));
 
+	        // use the Import class to generate a list of hub changes that can be invoked by the HubChange event.
 	        var import = new Import(hubKey);
 
 	        foreach (var entity in entities)
 	        {
-		        var item = entity.Entity;
-
-		        // remote unwanted entries.
-//		        if (item is DexihSetting)
-//		        {
-//			        entity.State = EntityState.Unchanged;
-//			        continue;
-//		        }
-
 		        // other entries.  If the key value <=0 modify the state to added, otherwise modify existing entity.
+		        var item = entity.Entity;
 		        var properties = item.GetType().GetProperties();
 
 		        var importAction = EImportAction.Skip;
@@ -389,16 +564,17 @@ namespace dexih.operations
 		        		        
 		        foreach (var property in properties)
 		        {
-			        foreach (var attrib in property.GetCustomAttributes(true))
+			        foreach (var attr in property.GetCustomAttributes(true))
 			        {
-				        if (attrib is CopyCollectionKeyAttribute)
-				        {
-					        var value = (long) property.GetValue(item);
-					        entity.State = value <= 0 ? EntityState.Added : EntityState.Modified;
-				        }
+				        // this shouldn't be possible any longer.
+//				        if (attr is CopyCollectionKeyAttribute)
+//				        {
+//					        var value = (long) property.GetValue(item);
+//					        entity.State = value <= 0 ? EntityState.Added : EntityState.Modified;
+//				        }
 
 				        // if the isvalid = false, then set the import action to delete.
-				        if (attrib is CopyIsValidAttribute)
+				        if (attr is CopyIsValidAttribute)
 				        {
 					        var value = (bool) property.GetValue(item);
 					        if (value == false)
@@ -521,15 +697,15 @@ namespace dexih.operations
             public DexihHubUser.EPermission Permission { get; set; }
         }
 
-        public async Task<DexihHub> GetUserHub(long hubKey, string userId, bool isAdmin)
+        public async Task<DexihHub> GetUserHub(long hubKey, ApplicationUser user)
 		{
-			if (isAdmin)
+			if (user.IsAdmin)
 			{
 				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid);
 			}
 			else
 			{
-				var hub = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.IsValid);
+				var hub = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid);
 				if (hub == null)
 				{
 					throw new RepositoryManagerException($"A hub with key {hubKey} is not available to the current user.");
@@ -593,7 +769,7 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihHub[]> DeleteHubs(string userId, bool isAdmin, long[] hubKeys)
+        public async Task<DexihHub[]> DeleteHubs(ApplicationUser user, long[] hubKeys)
 		{
 			try
 			{
@@ -603,18 +779,22 @@ namespace dexih.operations
 
 				foreach (var dbHub in dbHubs)
 				{
-					if (!isAdmin)
+					if (!user.IsAdmin)
 					{
-						var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == dbHub.HubKey && c.UserId == userId && c.IsValid);
+						var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == dbHub.HubKey && c.UserId == user.Id && c.IsValid);
 						if (hubUser == null || hubUser.Permission != DexihHubUser.EPermission.Owner)
 						{
-							throw new RepositoryManagerException($"Failed to delete the hub with name {dbHub.Name} as user does not have owner permission on this  hub.");
+							throw new RepositoryManagerException($"Failed to delete the hub with name {dbHub.Name} as user does not have owner permission on this hub.");
 						}
 					}
 
 					dbHub.IsValid = false;
+
 					ResetHubCache(dbHub.HubKey);
+					ResetHubPermissions(dbHub.HubKey);
 				}
+				
+				ResetUserCache(user.Id);
 
                 await DbContext.SaveChangesAsync();
 				
@@ -656,8 +836,11 @@ namespace dexih.operations
 	                }
 
                     await DbContext.SaveChangesAsync();
-	                ResetHubCache(hubKey);
+	                ResetUserCache(userId);
                 }
+	            
+	            ResetHubPermissions(hubKey);
+
             }
             catch (Exception ex)
             {
@@ -673,9 +856,10 @@ namespace dexih.operations
 	            foreach (var userHub in usersHub)
 	            {
 		            userHub.IsValid = false;
+		            ResetUserCache(userHub.UserId);
 	            }
 	            await DbContext.SaveChangesAsync();
-	            ResetHubCache(hubKey);
+	            ResetHubPermissions(hubKey);
             }
             catch (Exception ex)
             {
@@ -709,10 +893,9 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="user"></param>
 		/// <param name="hubKey"></param>
-		/// <param name="isAdmin"></param>
 		/// <returns></returns>
 		/// <exception cref="ApplicationUserException"></exception>
-		public Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey, bool isAdmin = false)
+		public Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey)
 		{
 			var validate = MemoryCache.GetOrCreateAsync($"PERMISSION-USER-{user.Id}-HUB-{hubKey}", async entry =>
 			{
@@ -730,7 +913,7 @@ namespace dexih.operations
 					throw new ApplicationUserException("The hub with the key: " + hubKey + " could not be found.");
 				}
 
-				if (isAdmin)
+				if (user.IsAdmin)
 				{
 					return DexihHubUser.EPermission.Owner;
 				}
@@ -755,35 +938,6 @@ namespace dexih.operations
 		#endregion
 		
 		
-//		public string ApplyNamingStandard(string name, string param1)
-//		{
-//			if (_namingStandards.ContainsKey(name))
-//			{
-//				var setting = _namingStandards[name];
-//				return setting.Value.Replace("{0}", param1);
-//			}
-//			else
-//			{
-//				throw new RepositoryManagerException($"The naming standard for the name \"{name}\" with parameter \"{param1}\" could not be found.");
-//			}
-//		}
-//
-//		/// <summary>
-//		/// Cache the naming standards records.
-//		/// </summary>
-//		/// <returns></returns>
-//		private async Task LoadNamingStandards()
-//		{
-//			try
-//			{
-//				_namingStandards = await DbContext.DexihSettings.Where(c => c.Category == "Naming").ToDictionaryAsync(n => n.Name);
-//			}
-//            catch (Exception ex)
-//            {
-//                throw new RepositoryManagerException($"Loading naming standards failed.  {ex.Message}", ex);
-//            }
-//        }
-
         #region Connection Functions
         public async Task<DexihConnection> SaveConnection(long hubKey, DexihConnection connection)
 		{
@@ -849,6 +1003,12 @@ namespace dexih.operations
             }
         }
 
+		public async Task<DexihConnection> DeleteConnection(long hubKey, long connectionKey)
+		{
+			var connections = await DeleteConnections(hubKey, new long[] {connectionKey});
+			return connections[0];
+		}
+
         public async Task<DexihConnection[]> DeleteConnections(long hubKey, long[] connectionKeys)
 		{
             try
@@ -913,24 +1073,17 @@ namespace dexih.operations
 
         }
 
-        public async Task<long> GetInternalConnectionKey(long hubKey)
-		{
-			if (_internalConnectionKey == 0)
-			{
-				var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey);
-				if (dbConnection == null)
-				{
-					throw new RepositoryManagerException($"There is no internal connection in the hub with key {hubKey}.");
-				}
 
-				_internalConnectionKey = dbConnection.ConnectionKey;
-			}
-
-			return _internalConnectionKey;
-		} /**/
 		#endregion
 
 		#region Table Functions
+
+		public async Task<DexihTable> SaveTable(long hubKey,DexihTable table, bool includeColumns, bool includeFileFormat = false)
+		{
+			var tables = await SaveTables(hubKey, new[] {table}, includeColumns, includeFileFormat);
+			return tables[0];
+		}
+		
 		public async Task<DexihTable[]> SaveTables(long hubKey, IEnumerable<DexihTable> tables, bool includeColumns, bool includeFileFormat = false)
 		{
 			try
@@ -1032,6 +1185,12 @@ namespace dexih.operations
                 throw new RepositoryManagerException($"Save tables failed.  {ex.Message}", ex);
             }
         }
+
+		public async Task<DexihTable> DeleteTable(long hubKey, long tableKey)
+		{
+			var tables = await DeleteTables(hubKey, new long[] {tableKey});
+			return tables[0];
+		}
 
 
         public async Task<DexihTable[]> DeleteTables(long hubKey, long[] tableKeys)
@@ -1863,7 +2022,7 @@ namespace dexih.operations
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
 
-					var hubs = await GetUserHubs(remoteSettings.Runtime.UserId, remoteSettings.Runtime.IsAdmin);
+					var hubs = await GetUserHubs(remoteSettings.Runtime.User);
 			
 					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Where(c => 
 						c.RemoteAgent.RemoteAgentId == remoteSettings.AppSettings.RemoteAgentId &&
@@ -1881,14 +2040,14 @@ namespace dexih.operations
 		/// <param name="userId"></param>
 		/// <param name="isAdmin"></param>
 		/// <returns></returns>
-		public async Task<DexihRemoteAgentHub[]> AuthorizedUserRemoteAgentHubs(string userId, bool isAdmin)
+		public async Task<DexihRemoteAgentHub[]> AuthorizedUserRemoteAgentHubs(ApplicationUser user)
 		{
-			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-USER-HUBS-{userId}",
+			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-USER-HUBS-{user.Id}",
 				async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
 
-					var hubs = await GetUserHubs(userId, isAdmin);
+					var hubs = await GetUserHubs(user);
 			
 					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Include(c => c.RemoteAgent).Where(c => 
 						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
@@ -1904,13 +2063,13 @@ namespace dexih.operations
 			return DbContext.DexihRemoteAgentHubs.FirstOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentKey == remoteAgentKey && d.IsAuthorized && d.IsValid);
 		}
 
-		public async Task<DexihRemoteAgent[]> GetRemoteAgents(string userId, bool isAdmin)
+		public async Task<DexihRemoteAgent[]> GetRemoteAgents(ApplicationUser user)
 		{
-			var userHubs = (await GetUserHubs(userId, isAdmin)).Select(c=>c.HubKey);
+			var userHubs = (await GetUserHubs(user)).Select(c=>c.HubKey);
 			
 			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => 
 				c.IsValid && 
-				((isAdmin || c.UserId == userId) || c.DexihremoteAgentHubs.Any(d => userHubs.Contains(d.HubKey)))
+				((user.IsAdmin || c.UserId == user.Id) || c.DexihremoteAgentHubs.Any(d => userHubs.Contains(d.HubKey)))
 				).ToArrayAsync();
 			return remoteAgents;
 		}
@@ -3348,6 +3507,27 @@ namespace dexih.operations
                                     param.DatalinkColumn.DatalinkColumnKey = 0;
                                 }
                             }
+
+	                        if (param.ArrayParameters != null)
+	                        {
+		                        foreach (var arrayParam in param.ArrayParameters)
+		                        {
+			                        arrayParam.FunctionArrayParameterKey = 0;
+			                
+			                        if(arrayParam.Direction == DexihParameterBase.EParameterDirection.Input)
+			                        {
+				                        arrayParam.DatalinkColumn = arrayParam.DatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(arrayParam.DatalinkColumnKey.Value);
+			                        }
+			                        else
+			                        {
+				                        if(arrayParam.DatalinkColumn != null)
+				                        {
+					                        datalinkColumns.Add(arrayParam.DatalinkColumn.DatalinkColumnKey, arrayParam.DatalinkColumn);
+					                        arrayParam.DatalinkColumn.DatalinkColumnKey = 0;
+				                        }
+			                        }
+		                        }
+	                        }
                         }
 
                         if(item.TargetDatalinkColumn != null)

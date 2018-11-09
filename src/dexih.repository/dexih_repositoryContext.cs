@@ -183,8 +183,7 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihConnection>(entity =>
             {
-                entity.HasKey(e => e.ConnectionKey)
-                    .HasName("PK_dexih_connections");
+                entity.HasKey(e => e.ConnectionKey).HasName("PK_dexih_connections");
 
                 entity.ToTable("dexih_connections");
 

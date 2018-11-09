@@ -360,10 +360,8 @@ namespace dexih.repository
         public string ExternalIpAddress { get; set; }
         
         public string ProxyUrl { get; set; }
-
-        public string UserId { get; set; }
         
-        public bool IsAdmin { get; set; }
+        public ApplicationUser User { get; set; }
         
         public string UserHash { get; set; }
         

@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using dexih.functions.BuiltIn;
 using dexih.functions.Mappings;
 using dexih.functions.Parameter;
+using Dexih.Utils.DataType;
 using static dexih.repository.DexihColumnValidation;
 using static Dexih.Utils.DataType.DataType;
 
@@ -36,7 +37,7 @@ namespace dexih.operations
 
         private readonly TransformSettings _transformSettings;
 
-        private ConditionFunctions _conditionFunctions;
+        private ConditionFunctions<string> _conditionFunctions;
         private HashSet<object> _lookupValues;
         private Table _lookupTable;
         private TableColumn _lookupColumn;
@@ -161,7 +162,7 @@ namespace dexih.operations
                 }
 
                 //test for datatype
-                var parsedValue = TryParse(ColumnValidation.DataType, value);
+                var parsedValue = Operations.Parse(ColumnValidation.DataType, value);
 
                 if (parsedValue == null)
                 {
@@ -186,7 +187,7 @@ namespace dexih.operations
                     
                     if (ColumnValidation.PatternMatch != null)
                     {
-                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
+                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions<string>();
                         if (_conditionFunctions.IsPattern(stringValue, ColumnValidation.PatternMatch) == false)
                         {
                             return (false, "The value \"" + stringValue + "\" does not match the pattern " + ColumnValidation.PatternMatch);
@@ -195,7 +196,7 @@ namespace dexih.operations
 
                     if (ColumnValidation.RegexMatch != null)
                     {
-                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions();
+                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions<string>();
                         if (_conditionFunctions.RegexMatch(stringValue, ColumnValidation.RegexMatch) == false)
                         {
                             return (false, "The value \"" + stringValue + "\" does not match the regular expression " + ColumnValidation.RegexMatch);
@@ -203,11 +204,11 @@ namespace dexih.operations
                     }
                 }
 
-                if (ColumnValidation.MaxValue != null && Compare(ColumnValidation.DataType, value, ColumnValidation.MaxValue) == ECompareResult.Greater)
+                if (ColumnValidation.MaxValue != null && Operations.Compare(ColumnValidation.DataType, value, ColumnValidation.MaxValue) == 1)
                 {
                     return (false, "The value is " + parsedValue + " which exceeds the maximum value of " + ColumnValidation.MaxValue);
                 }
-                if (ColumnValidation.MinValue != null  && Compare(ColumnValidation.DataType, value, ColumnValidation.MinValue) == ECompareResult.Less)
+                if (ColumnValidation.MinValue != null  && Operations.Compare(ColumnValidation.DataType, value, ColumnValidation.MinValue) == -1)
                 {
                     return (false, "The value is " + parsedValue + " which is below the minimum Value of " + ColumnValidation.MinValue);
                 }

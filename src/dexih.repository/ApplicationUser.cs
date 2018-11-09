@@ -10,14 +10,18 @@ namespace dexih.repository
     // Add profile data for application users by adding properties to the ApplicationUser class
     public class ApplicationUser : IdentityUser
     {
-        [NotMapped]
-        public bool IsAdmin { get; set; }
-        [NotMapped]
-        public bool IsManager { get; set; }
-        [NotMapped]
-        public bool IsUser { get; set; }
-        [NotMapped]
-        public bool IsViewer {get;set;}
+    
+	    public enum EUserRole
+	    {
+		    Administrator, Manager, User, Viewer, None
+	    }
+
+	    [NotMapped] public EUserRole UserRole { get; set; } = EUserRole.None;
+
+	    [NotMapped] public bool IsAdmin => UserRole == EUserRole.Administrator;
+	    [NotMapped] public bool IsManager => UserRole == EUserRole.Manager;
+        [NotMapped] public bool IsUser => UserRole == EUserRole.User;
+	    [NotMapped] public bool IsViewer => UserRole == EUserRole.Viewer;
 
 		public bool IsInvited { get; set; }
 		public bool IsRegistered { get; set; }

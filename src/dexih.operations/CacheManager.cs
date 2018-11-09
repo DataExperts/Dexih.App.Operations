@@ -58,14 +58,20 @@ namespace dexih.operations
         public async Task<DexihHub> InitHub(DexihRepositoryContext dbContext)
         {
             Hub = await dbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.IsValid);
-            Hub.DexihHubVariables.Clear();
-            Hub.DexihColumnValidations.Clear();
-            Hub.DexihConnections.Clear();
-            Hub.DexihDatajobs.Clear();
-            Hub.DexihFileFormats.Clear();
-            Hub.DexihHubUsers.Clear();
-            Hub.DexihDatalinks.Clear();
-            Hub.DexihCustomFunctions.Clear();
+
+	        if (Hub == null)
+	        {
+		        throw new CacheManagerException($"The hub with the key {HubKey} no longer exists.");
+	        }
+	        
+//            Hub.DexihHubVariables.Clear();
+//            Hub.DexihColumnValidations.Clear();
+//            Hub.DexihConnections.Clear();
+//            Hub.DexihDatajobs.Clear();
+//            Hub.DexihFileFormats.Clear();
+//            Hub.DexihHubUsers.Clear();
+//            Hub.DexihDatalinks.Clear();
+//            Hub.DexihCustomFunctions.Clear();
 
             return Hub;
         }
