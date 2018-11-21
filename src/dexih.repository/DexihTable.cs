@@ -100,6 +100,18 @@ namespace dexih.repository
 	    [CopyReference]
         public virtual DexihFileFormat FileFormat { get; set; }
 
+
+	    public Table GetTable(Connection connection, TransformSettings transformSettings)
+	    {
+		    return GetTable(connection, (InputColumn[]) null, transformSettings);
+	    }
+	    
+	    public Table GetTable(Connection connection,  IEnumerable<DexihColumnBase> inputColumns, TransformSettings transformSettings)
+	    {
+		    var inputs = inputColumns.Select(c => c.ToInputColumn()).ToArray();
+		    return GetTable(connection, inputs, transformSettings);
+	    }
+
         public Table GetTable(Connection connection, InputColumn[] inputColumns, TransformSettings transformSettings)
         {
 	        Table table;
@@ -174,7 +186,7 @@ namespace dexih.repository
 
         public Table GetRejectedTable(Connection connection, TransformSettings transformSettings)
         {
-            var table = GetTable(connection, null, transformSettings);
+            var table = GetTable(connection, transformSettings);
             return table.GetRejectedTable(RejectedTableName);
         }
     }

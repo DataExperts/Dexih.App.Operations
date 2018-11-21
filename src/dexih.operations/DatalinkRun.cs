@@ -256,7 +256,7 @@ namespace dexih.operations
                     throw new DatalinkRunException($"Failed to set run status.");
                 }
 
-                var targetTable = _targetTable.GetTable(TargetConnection, null, _transformSettings);
+                var targetTable = _targetTable.GetTable(TargetConnection, _transformSettings);
                 var rejectTable = targetTable.GetRejectedTable(_targetTable.RejectedTableName);
                 var profileTable = Reader.sourceTransform.GetProfileTable(Datalink.ProfileTableName);
 
