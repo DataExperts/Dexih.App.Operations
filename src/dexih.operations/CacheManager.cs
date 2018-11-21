@@ -186,6 +186,7 @@ namespace dexih.operations
 				Hub.DexihColumnValidations = await dbContext.DexihColumnValidation.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 			    Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
+				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 
 				return Hub;
 			} catch(Exception ex)
@@ -232,6 +233,32 @@ namespace dexih.operations
 	    {
 		    var columnValidationKeys = table.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
 		    AddColumnValidations(columnValidationKeys, hub);
+	    }
+
+	    public async Task LoadViewDependencies(DexihView view, DexihRepositoryContext dbContext)
+	    {
+		    switch (view.SourceType)
+		    {
+			    case ESourceType.Datalink:
+				    await AddDatalinks(new [] {view.SourceDatalinkKey.Value}, dbContext );
+				    break;
+			    case ESourceType.Table:
+				    await AddTables(new[] {view.SourceTableKey.Value}, dbContext);
+				    break;
+		    }
+	    }
+	    
+	    public void LoadViewDependencies(DexihView view, DexihHub hub)
+	    {
+		    switch (view.SourceType)
+		    {
+			    case ESourceType.Datalink:
+				    AddDatalinks(new [] {view.SourceDatalinkKey.Value}, hub );
+				    break;
+			    case ESourceType.Table:
+				    AddTables(new[] {view.SourceTableKey.Value}, hub);
+				    break;
+		    }
 	    }
 
         public async Task LoadDatalinkDependencies(DexihDatalink datalink, bool includeDependencies, DexihRepositoryContext dbContext)
@@ -612,7 +639,7 @@ namespace dexih.operations
 	    /// <param name="hub"></param>
 	    public void AddDatalink(DexihDatalink datalink, DexihHub hub)
 	    {
-		    if (datalink.SourceDatalinkTable.SourceType == DexihDatalinkTable.ESourceType.Table && datalink.SourceDatalinkTable.SourceTableKey != null)
+		    if (datalink.SourceDatalinkTable.SourceType == ESourceType.Table && datalink.SourceDatalinkTable.SourceTableKey != null)
 		    {
 			    AddTables(new[] { datalink.SourceDatalinkTable.SourceTableKey.Value }, hub);
 		    }
@@ -635,7 +662,7 @@ namespace dexih.operations
 		    {
 			    if (datalinkTransform.JoinDatalinkTable != null)
 			    {
-				    if (datalinkTransform.JoinDatalinkTable.SourceType == DexihDatalinkTable.ESourceType.Table && datalinkTransform.JoinDatalinkTable.SourceTableKey != null)
+				    if (datalinkTransform.JoinDatalinkTable.SourceType == ESourceType.Table && datalinkTransform.JoinDatalinkTable.SourceTableKey != null)
 				    {
 					    AddTables(new[] { datalinkTransform.JoinDatalinkTable.SourceTableKey.Value }, hub);
 				    }

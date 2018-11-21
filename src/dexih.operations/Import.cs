@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using dexih.repository;
 using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;
@@ -26,6 +27,7 @@ namespace dexih.operations
         public ImportObjects<DexihCustomFunction> CustomFunctions { get; set; }
         public ImportObjects<DexihRemoteAgentHub> RemoteAgentHubs { get; set; }
         public ImportObjects<DexihDatalinkTest> DatalinkTests { get; set; }
+        public ImportObjects<DexihView> Views { get; set; }
 
         public Import(long hubKey)
         {
@@ -41,6 +43,7 @@ namespace dexih.operations
             FileFormats = new ImportObjects<DexihFileFormat>();
             RemoteAgentHubs = new ImportObjects<DexihRemoteAgentHub>();
             DatalinkTests = new ImportObjects<DexihDatalinkTest>();
+            Views = new ImportObjects<DexihView>();
         }
 
         /// <summary>
@@ -85,6 +88,9 @@ namespace dexih.operations
                     case DexihDatalinkTest a:
                         DatalinkTests.Add(a, operation);
                         break;
+                    case DexihView a:
+                        Views.Add(a, operation);
+                        break;
                     default:
                         return false;
                 }
@@ -98,8 +104,17 @@ namespace dexih.operations
 
         public bool Any()
         {
-            return HubVariables.Any() || Datajobs.Any() || Datalinks.Any() || Connections.Any() || Tables.Any() ||
-                   ColumnValidations.Any() || CustomFunctions.Any() || FileFormats.Any() || RemoteAgentHubs.Any() || DatalinkTests.Any();
+            return HubVariables.Any() || 
+                   Datajobs.Any() || 
+                   Datalinks.Any() || 
+                   Connections.Any() || 
+                   Tables.Any() ||
+                   ColumnValidations.Any() || 
+                   CustomFunctions.Any() || 
+                   FileFormats.Any() || 
+                   RemoteAgentHubs.Any() || 
+                   DatalinkTests.Any() ||
+                    Views.Any();
         }
     }
 

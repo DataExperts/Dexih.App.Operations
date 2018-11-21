@@ -2,6 +2,7 @@
 using dexih.repository;
 using dexih.transforms;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -52,7 +53,7 @@ namespace dexih.operations
                                         var column = table.Columns.SingleOrDefault(c => c.Name == inputColumn.Name);
                                         if (column != null)
                                         {
-                                            column.DefaultValue = inputColumn.DefaultValue;
+                                            column.DefaultValue = inputColumn.Value;
                                         }
                                     }
                                 }
@@ -144,7 +145,7 @@ namespace dexih.operations
             public SharedData.EObjectType ObjectType { get; set; }
             public long ObjectKey { get; set; }
             public SelectQuery Query { get; set; }
-            public DexihColumnBase[] InputColumns { get; set; }
+            public InputColumn[] InputColumns { get; set; }
 
             // used when downloading data from a specific a transform data.
             public long? DatalinkTransformKey { get; set; }

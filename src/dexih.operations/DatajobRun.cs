@@ -190,7 +190,7 @@ namespace dexih.operations
 				foreach (var step in Datajob.DexihDatalinkSteps)
 				{
 					var datalink = _hub.DexihDatalinks.Single(c => c.DatalinkKey == step.DatalinkKey);
-					var datalinkRun = new DatalinkRun(_transformSettings, _logger, datalink, _hub, _globalVariables, "Datalink", datalink.DatalinkKey, WriterResult.AuditKey, ETriggerMethod.Manual, "Triggered by datajob " + Datajob.Name, _truncateTarget, _resetIncremental, _resetIncrementalValue, null, step.DexihDatalinkStepColumns.Select(c => (DexihColumnBase)c).ToArray());
+					var datalinkRun = new DatalinkRun(_transformSettings, _logger, datalink, _hub, _globalVariables, "Datalink", datalink.DatalinkKey, WriterResult.AuditKey, ETriggerMethod.Manual, "Triggered by datajob " + Datajob.Name, _truncateTarget, _resetIncremental, _resetIncrementalValue, null, null);
 					DatalinkSteps.Add(datalinkRun);
 
 					//start datalinks that have no dependencies.

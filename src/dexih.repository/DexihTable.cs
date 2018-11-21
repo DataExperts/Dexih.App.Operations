@@ -100,7 +100,7 @@ namespace dexih.repository
 	    [CopyReference]
         public virtual DexihFileFormat FileFormat { get; set; }
 
-        public Table GetTable(Connection connection, IEnumerable<DexihColumnBase> inputColumns, TransformSettings transformSettings)
+        public Table GetTable(Connection connection, InputColumn[] inputColumns, TransformSettings transformSettings)
         {
 	        Table table;
 

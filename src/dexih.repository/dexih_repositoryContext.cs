@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
@@ -12,6 +13,7 @@ using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
+using Newtonsoft.Json;
 
 namespace dexih.repository
 {
@@ -400,7 +402,7 @@ namespace dexih.repository
                 entity.Property(e => e.SourceType).HasColumnName("source_type").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DexihDatalinkTable.ESourceType) Enum.Parse(typeof(DexihDatalinkTable.ESourceType), v));
+                        v => (ESourceType) Enum.Parse(typeof(ESourceType), v));
 
                 entity.Property(e => e.RowsStartAt).HasColumnName("rows_start_at");
                 entity.Property(e => e.RowsEndAt).HasColumnName("rows_end_at");
@@ -1294,6 +1296,49 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_triggers_dexih_datajobs");
             });
+            
+            modelBuilder.Entity<DexihView>(entity =>
+            {
+                entity.HasKey(e => e.ViewKey).HasName("PK_dexih_view");
+
+                entity.ToTable("dexih_views");
+
+                entity.Property(e => e.ViewKey).HasColumnName("view_key");
+                entity.Property(e => e.HubKey).IsRequired().HasColumnName("hub_key");
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description");
+                entity.Property(e => e.ViewType).IsRequired().HasColumnName("view_type").HasMaxLength(20)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (DexihView.EViewType) Enum.Parse(typeof(DexihView.EViewType), v));
+                entity.Property(e => e.SourceType).IsRequired().HasColumnName("source_type").HasMaxLength(20)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (ESourceType) Enum.Parse(typeof(ESourceType), v));
+                entity.Property(e => e.SourceDatalinkKey).IsRequired().HasColumnName("source_datalink_key");
+                entity.Property(e => e.SourceTableKey).IsRequired().HasColumnName("source_table_key");
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
+
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query")
+                    .HasConversion(
+                        v => v == null ? null : JsonConvert.SerializeObject(v),
+                        v => v == null ? null : JsonConvert.DeserializeObject<SelectQuery>(v));
+                
+                entity.Property(e => e.ChartConfig).HasColumnName("chart_config")
+                    .HasConversion(
+                        v => v == null ? null : JsonConvert.SerializeObject(v),
+                        v => v == null ? null : JsonConvert.DeserializeObject<ChartConfig>(v));
+                
+                entity.Property(e => e.InputValues).HasColumnName("input_values")
+                    .HasConversion(
+                        v => v == null ? null : JsonConvert.SerializeObject(v),
+                        v => v == null ? null : JsonConvert.DeserializeObject<InputColumn[]>(v));
+
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+            });
 
         }
 
@@ -1324,5 +1369,6 @@ namespace dexih.repository
         public virtual DbSet<DexihTableColumn> DexihTableColumns { get; set; }
         public virtual DbSet<DexihTable> DexihTables { get; set; }
         public virtual DbSet<DexihTrigger> DexihTriggers { get; set; }
+	    public virtual DbSet<DexihView> DexihViews { get; set; }
     }
 }

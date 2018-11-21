@@ -22,25 +22,8 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
 
-//	    private long _datalinkColumnKey;
-	    
-	    [CopyCollectionKey(0L, true)]
+	    [CopyCollectionKey(0L, false)]
 	    public long DatalinkColumnKey { get; set; }
-//        public long DatalinkColumnKey {
-//		    get => _datalinkColumnKey;
-//		    set
-//		    {
-//			    if (value == 0)
-//			    {
-//			    }
-//			    if (value != 0)
-//			    {
-//				    OldDatalinkColumnKey = value;
-//			    }
-//
-//			    _datalinkColumnKey = value;
-//		    } 
-//	    }
 
 	    [CopyParentCollectionKey]
         public long? DatalinkTableKey { get; set; }
@@ -66,19 +49,16 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
-		public TableColumn GetTableColumn(IEnumerable<DexihColumnBase> inputColumns)
+		public TableColumn GetTableColumn(InputColumn[] inputColumns)
 		{
 			var tableColumn = new TableColumn();
 			this.CopyProperties(tableColumn, false);
 			tableColumn.ReferenceTable = DatalinkTableKey.ToString();
 
-			if (inputColumns != null)
+			var column = inputColumns?.SingleOrDefault(c => c.Name == tableColumn.Name);
+			if (column != null)
 			{
-				var inputColumn = inputColumns.SingleOrDefault(c => c.Name == tableColumn.Name);
-				if (inputColumn != null)
-				{
-					tableColumn.DefaultValue = inputColumn.DefaultValue;
-				}
+				tableColumn.DefaultValue = column.Value;
 			}
 			return tableColumn;
 		}

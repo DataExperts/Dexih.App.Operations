@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using dexih.functions.Query;
 using dexih.repository;
 
@@ -21,7 +22,7 @@ namespace dexih.operations
         public string Description { get; set; }
         public DateTime UpdateDate { get; set; }
         
-        public DexihColumnBase[] InputColumns { get; set; }
+        public InputColumn[] InputColumns { get; set; }
         public SelectQuery Query { get; set; }
         public DexihColumnBase[] OutputColumns { get; set; }
     }

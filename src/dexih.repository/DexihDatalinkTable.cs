@@ -11,14 +11,7 @@ namespace dexih.repository
 {
     public class DexihDatalinkTable: DexihBaseEntity
     {
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum ESourceType
-        {
-            Datalink,
-            Table,
-	        Rows,
-            Function
-        }
+
 
         public DexihDatalinkTable()
         {
@@ -65,8 +58,8 @@ namespace dexih.repository
         /// Converts the datalinkTable to a base "Table" class.
         /// </summary>
         /// <returns></returns>
-		public Table GetTable(Table sourceTable, ICollection<DexihColumnBase> inputColumns)
-        {
+		public Table GetTable(Table sourceTable, InputColumn[] inputColumns)
+        { 
 			Table table;
 
 	        if (sourceTable == null)
@@ -86,6 +79,5 @@ namespace dexih.repository
 
             return table;
         }
-
     }
 }

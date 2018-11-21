@@ -32,19 +32,16 @@ namespace dexih.repository
 	    [JsonIgnore, CopyIgnore]
 	    public virtual ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }
 	    
-	    public TableColumn GetTableColumn(IEnumerable<DexihColumnBase> inputColumns)
+	    public TableColumn GetTableColumn(InputColumn[] inputColumns)
 	    {
 		    var tableColumn = new TableColumn();
 		    this.CopyProperties(tableColumn, false);
 		    tableColumn.ReferenceTable = TableKey.ToString();
 
-		    if (inputColumns != null)
+		    var column = inputColumns?.SingleOrDefault(c => c.Name == tableColumn.Name);
+		    if (column != null)
 		    {
-			    var inputColumn = inputColumns.SingleOrDefault(c => c.Name == tableColumn.Name);
-			    if (inputColumn != null)
-			    {
-				    tableColumn.DefaultValue = inputColumn.DefaultValue;
-			    }
+			    tableColumn.DefaultValue = column.Value;
 		    }
 		    return tableColumn;
 	    }

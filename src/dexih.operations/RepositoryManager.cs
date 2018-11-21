@@ -484,8 +484,7 @@ namespace dexih.operations
 							LogicalName = table.LogicalName,
 							Description = table.Description,
 							UpdateDate = table.UpdateDate,
-							InputColumns = table.DexihTableColumns.Where(c => c.IsInput).Select(c => (DexihColumnBase) c)
-								.ToArray(),
+							InputColumns = table.DexihTableColumns.Where(c => c.IsInput).Select(c=>c.ToInputColumn()).ToArray(),
 							OutputColumns = table.DexihTableColumns.Select(c => (DexihColumnBase) c).ToArray()
 						});
 
@@ -508,7 +507,7 @@ namespace dexih.operations
 						LogicalName =  datalink.Name,
 						Description =  datalink.Description,
 						UpdateDate =  datalink.UpdateDate,
-						InputColumns = datalink.SourceDatalinkTable?.DexihDatalinkColumns?.Select(c => (DexihColumnBase)c).Where(c => c.IsInput).ToArray(),
+						InputColumns = datalink.SourceDatalinkTable?.DexihDatalinkColumns?.Where(c => c.IsInput).Select(c=>c.ToInputColumn()).ToArray(),
 						OutputColumns = datalink.GetOutputTable().DexihDatalinkColumns.Select(c => (DexihColumnBase)c).ToArray()
 					});
 
@@ -1308,7 +1307,30 @@ namespace dexih.operations
                 throw new RepositoryManagerException($"Get table with key {tableKey} failed.  {ex.Message}", ex);
             }
         }
-        #endregion
+
+		public async Task<DexihView> GetView(long hubKey, long viewKey)
+		{
+			try
+			{
+				var dbView = await DbContext.DexihViews
+					.SingleOrDefaultAsync(c => c.ViewKey == viewKey && c.HubKey == hubKey && c.IsValid);
+
+				if (dbView == null)
+				{
+					throw new RepositoryManagerException($"The view with the key {viewKey} could not be found.");
+				}
+
+				return dbView;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get table with key {viewKey} failed.  {ex.Message}", ex);
+			}
+		}
+
+		
+		
+		#endregion
 
         #region Datalink Functions
 		
@@ -1346,7 +1368,6 @@ namespace dexih.operations
             }
 
         }
-
 
         public async Task<DexihDatalink[]> SaveDatalinks(long hubKey, DexihDatalink[] datalinks, bool includeTargetTable)
 		{
@@ -1646,7 +1667,7 @@ namespace dexih.operations
 						IsValid = true,
 						SourceDatalinkTable = new DexihDatalinkTable()
 						{
-							SourceType = DexihDatalinkTable.ESourceType.Table,
+							SourceType = ESourceType.Table,
 							SourceTableKey = sourceTable?.TableKey,
 							SourceTable = sourceTable,
 							Name = sourceTable?.Name
@@ -2605,6 +2626,75 @@ namespace dexih.operations
             }
         }
 
+	   public async Task<DexihView[]> DeleteHViews(long hubKey, long[] viewKeys)
+        {
+            try
+            {
+                var dbViews = await DbContext.DexihViews
+                    .Where(c => c.HubKey == hubKey && viewKeys.Contains(c.ViewKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var view in dbViews)
+                {
+	                view.IsValid = false;
+                }
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbViews;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete views failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihView> SaveView(long hubKey, DexihView view)
+        {
+            try
+            {
+                DexihView dbView;
+
+                //check there are no connections with the same name
+                var sameName = await DbContext.DexihViews.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == view.Name && c.ViewKey != view.ViewKey && c.IsValid);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A view with the name {view.Name} already exists in the repository.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (view.ViewKey > 0)
+                {
+                    dbView = await DbContext.DexihViews.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.ViewKey == view.ViewKey);
+                    if (dbView != null)
+                    {
+	                    view.CopyProperties(dbView, true);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The view could not be saved as it contains the view_key {view.ViewKey} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+                    dbView = new DexihView();
+                    view.CopyProperties(dbView, true);
+                    DbContext.DexihViews.Add(dbView);
+                }
+
+
+                dbView.IsValid = true;
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbView;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save view {view.Name} failed.  {ex.Message}", ex);
+            }
+        }
 		
 		public async Task<DexihDatalinkTest[]> DeleteDatalinkTests(long hubKey, long[] datalinkTestKeys)
         {

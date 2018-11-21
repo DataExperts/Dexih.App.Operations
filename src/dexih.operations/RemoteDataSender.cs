@@ -34,7 +34,7 @@ namespace dexih.operations
             _url = url;
         }
 
-        public async Task SendDatalinkData(DexihHub hub, DexihDatalink datalink, ICollection<DexihColumnBase> inputColumns, GlobalVariables globalVariables, SelectQuery selectQuery, BufferBlock<object> buffer, CancellationToken cancellationToken)
+        public async Task SendDatalinkData(DexihHub hub, DexihDatalink datalink, InputColumn[] inputColumns, GlobalVariables globalVariables, SelectQuery selectQuery, BufferBlock<object> buffer, CancellationToken cancellationToken)
         {
             try
             {

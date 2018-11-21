@@ -113,6 +113,18 @@ namespace dexih.repository
             return false;
         }
 
+        public InputColumn ToInputColumn()
+        {
+            return new InputColumn()
+            {
+                Name = Name,
+                LogicalName = LogicalName,
+                Rank = Rank,
+                DataType = DataType,
+                Value = DefaultValue
+            };
+        }
+
         /// <summary>
         /// Updates the delta property of the table when creating a target table for a current source table.  
         /// SurrogateKey is translated to SourceSurrogateKey
