@@ -109,7 +109,7 @@ namespace dexih.repository
             return columns;
         }
 
-        public Transform GetTransform(DexihHub hub, GlobalVariables globalVariables, ILogger logger = null)
+        public Transform GetTransform(DexihHub hub, GlobalVariables globalVariables, TransformSettings transformSettings, ILogger logger = null)
         {
             try
             {
@@ -140,6 +140,33 @@ namespace dexih.repository
                 foreach (var item in DexihDatalinkTransformItems.OrderBy(c => c.Position))
                 {
                     logger?.LogTrace($"GetTransform {Name}, get item.  Elapsed: {timer.Elapsed}");
+
+                    if (transformSettings.HasVariables())
+                    {
+                        if (!string.IsNullOrEmpty(item.FilterValue))
+                            item.FilterValue = transformSettings.InsertHubVariables(item.FilterValue, false);
+                        if (!string.IsNullOrEmpty(item.JoinValue))
+                            item.JoinValue = transformSettings.InsertHubVariables(item.JoinValue, false);
+                        if (!string.IsNullOrEmpty(item.SourceValue))
+                            item.SourceValue = transformSettings.InsertHubVariables(item.SourceValue, false);
+                        if (!string.IsNullOrEmpty(item.SeriesStart))
+                            item.SeriesStart = transformSettings.InsertHubVariables(item.SeriesStart, false);
+                        if (!string.IsNullOrEmpty(item.SeriesFinish))
+                            item.SeriesFinish = transformSettings.InsertHubVariables(item.SeriesFinish, false);
+
+
+                        foreach (var param in item.DexihFunctionParameters)
+                        {
+                            if (!string.IsNullOrEmpty(param.Value))
+                                param.Value = transformSettings.InsertHubVariables(param.Value, false);
+
+                            foreach (var arrayParam in param.ArrayParameters)
+                            {
+                                if (!string.IsNullOrEmpty(arrayParam.Value))
+                                    arrayParam.Value = transformSettings.InsertHubVariables(arrayParam.Value, false);
+                            }
+                        }
+                    }
 
                     var sourceColumn = item.SourceDatalinkColumn?.GetTableColumn(null);
 					var targetColumn = item.TargetDatalinkColumn?.GetTableColumn(null);
@@ -196,7 +223,12 @@ namespace dexih.repository
                             mappings.Add(new MapGroup(sourceColumn));
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.Series:
-                            mappings.Add(new MapSeries(sourceColumn, item.SeriesGrain??ESeriesGrain.Day, item.SeriesFill, item.SeriesStart, item.SeriesFinish));
+                            mappings.Add(new MapSeries(
+                                sourceColumn, 
+                                item.SeriesGrain??ESeriesGrain.Day, 
+                                item.SeriesFill, 
+                                item.SeriesStart, 
+                                item.SeriesFinish));
                             break;
                     }
                 }

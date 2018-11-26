@@ -67,7 +67,7 @@ namespace dexih.operations
         public string RemoteAgentId { get; set; }
         public long? TimeOut { get; set; }
 
-        public IEnumerable<DexihHubVariable> HubVariables { get; set; }
+        public DexihHubVariable[] HubVariables { get; set; }
 
         public string GetParameter(string key)
         {

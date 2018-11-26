@@ -289,7 +289,7 @@ namespace dexih.operations
 			return hubReturn;
 		}
 		
-		public async Task<IEnumerable<DexihHubVariable>> GetHubVariables(long hubKey)
+		public async Task<DexihHubVariable[]> GetHubVariables(long hubKey)
 		{
 			var hubVariables = await DbContext.DexihHubVariable.Where(c => c.HubKey == hubKey && c.IsValid).ToArrayAsync();
 			return hubVariables;

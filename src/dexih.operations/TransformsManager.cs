@@ -24,6 +24,7 @@ namespace dexih.operations
     public class TransformsManager
     {
         private readonly TransformSettings _transformSettings;
+        private readonly DexihHub _hub;
         private readonly ILogger _logger;
 
         public TransformsManager(TransformSettings transformSettings)
@@ -37,8 +38,9 @@ namespace dexih.operations
             _logger = logger;
         }
 
+
         /// <summary>
-        /// Converts a table to DexihTalble.  If an originalTable is included, TableKeys and ColumnKeys will be preserved where possible.
+        /// Converts a table to DexihTable.  If an originalTable is included, TableKeys and ColumnKeys will be preserved where possible.
         /// </summary>
         /// <param name="table"></param>
         /// <param name="originalTable"></param>
@@ -75,7 +77,6 @@ namespace dexih.operations
 				dbTable.RowPath = restFunction.RowPath;
 			}
 
-
             if (originalTable != null)
             {
                 var position = 1;
@@ -107,8 +108,6 @@ namespace dexih.operations
             return dbTable;
         }
         
-
-
 
         /// Searches all the tables in a datalink for a particular columnKey
         public DexihDatalinkColumn GetDatalinkColumn(DexihHub hub, DexihDatalink datalink, long? datalinkColumnKey)
@@ -357,7 +356,7 @@ namespace dexih.operations
                 //loop through the transforms to create the chain.
                 foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
                 {
-                    var transform = datalinkTransform.GetTransform(hub, globalVariables, _logger);
+                    var transform = datalinkTransform.GetTransform(hub, globalVariables, _transformSettings, _logger);
 
                     _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 

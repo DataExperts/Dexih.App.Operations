@@ -148,27 +148,23 @@ namespace dexih.repository
 	        {
 				case FlatFile flatFile:
                 
-					if (transformSettings.HubVariables != null && hubVariablesArray.Any())
+					if (transformSettings.HasVariables())
 					{
-						var hubVariablesManager = new HubVariablesManager(transformSettings, hubVariablesArray);
-
-						flatFile.FileIncomingPath = hubVariablesManager.InsertHubVariables(flatFile.FileIncomingPath, false);
-						flatFile.FileMatchPattern = hubVariablesManager.InsertHubVariables(flatFile.FileMatchPattern, false);
-						flatFile.FileOutgoingPath = hubVariablesManager.InsertHubVariables(flatFile.FileOutgoingPath, false);
-						flatFile.FileProcessedPath = hubVariablesManager.InsertHubVariables(flatFile.FileProcessedPath, false);
-						flatFile.FileRejectedPath = hubVariablesManager.InsertHubVariables(flatFile.FileRejectedPath, false);
-						flatFile.FileRootPath = hubVariablesManager.InsertHubVariables(flatFile.FileRootPath, false);
+						flatFile.FileIncomingPath = transformSettings.InsertHubVariables(flatFile.FileIncomingPath, false);
+						flatFile.FileMatchPattern = transformSettings.InsertHubVariables(flatFile.FileMatchPattern, false);
+						flatFile.FileOutgoingPath = transformSettings.InsertHubVariables(flatFile.FileOutgoingPath, false);
+						flatFile.FileProcessedPath = transformSettings.InsertHubVariables(flatFile.FileProcessedPath, false);
+						flatFile.FileRejectedPath = transformSettings.InsertHubVariables(flatFile.FileRejectedPath, false);
+						flatFile.FileRootPath = transformSettings.InsertHubVariables(flatFile.FileRootPath, false);
 					}
 
 					break;
 			   case WebService restFunction:
                 
-				   if (transformSettings.HubVariables != null && hubVariablesArray.Any())
+				   if (transformSettings.HasVariables())
 				   {
-					   var hubVariablesManager = new HubVariablesManager(transformSettings, hubVariablesArray);
-
-					   restFunction.RestfulUri = hubVariablesManager.InsertHubVariables(restFunction.RestfulUri, false);
-					   restFunction.RowPath = hubVariablesManager.InsertHubVariables(restFunction.RowPath, false);
+					   restFunction.RestfulUri = transformSettings.InsertHubVariables(restFunction.RestfulUri, false);
+					   restFunction.RowPath = transformSettings.InsertHubVariables(restFunction.RowPath, false);
 				   }
 
 				   break;

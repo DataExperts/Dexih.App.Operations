@@ -7,6 +7,7 @@ using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
+using dexih.functions;
 
 namespace dexih.repository
 {
@@ -142,23 +143,17 @@ namespace dexih.repository
                 connection.Password = GetPassword(transformSettings.RemoteSettings.AppSettings.EncryptionKey, transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
                 connection.ConnectionString = GetConnectionString(transformSettings.RemoteSettings.AppSettings.EncryptionKey, transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
 
-                // shift to array to avoid multiple enumerations.
-                var hubVariablesArray = transformSettings.HubVariables as DexihHubVariable[] ?? transformSettings.HubVariables.ToArray();
-                
-                if (transformSettings.HubVariables != null && hubVariablesArray.Any())
+                if (transformSettings.HasVariables())
                 {
-                    var hubVariablesManager = new HubVariablesManager(transformSettings, hubVariablesArray);
-
-                    connection.ConnectionString = hubVariablesManager.InsertHubVariables(connection.ConnectionString, true);
-                    connection.Server = hubVariablesManager.InsertHubVariables(connection.Server, false);
-                    connection.Password = hubVariablesManager.InsertHubVariables(connection.Password, true);
-                    connection.Username = hubVariablesManager.InsertHubVariables(connection.Username, false);
-                    connection.DefaultDatabase = hubVariablesManager.InsertHubVariables(connection.DefaultDatabase, false);
-                    connection.Filename = hubVariablesManager.InsertHubVariables(connection.Filename, false);
+                    connection.ConnectionString = transformSettings.InsertHubVariables(connection.ConnectionString, true);
+                    connection.Server = transformSettings.InsertHubVariables(connection.Server, false);
+                    connection.Password = transformSettings.InsertHubVariables(connection.Password, true);
+                    connection.Username = transformSettings.InsertHubVariables(connection.Username, false);
+                    connection.DefaultDatabase = transformSettings.InsertHubVariables(connection.DefaultDatabase, false);
+                    connection.Filename = transformSettings.InsertHubVariables(connection.Filename, false);
                 }
 
-                connection.AllowAllPaths = transformSettings.RemoteSettings.Permissions.AllowAllPaths;
-                connection.AllowedPaths = transformSettings.RemoteSettings.Permissions.AllowedPaths;
+                connection.FilePermissions = transformSettings.RemoteSettings.Permissions.GetFilePermissions();
 
                 return connection;
             }

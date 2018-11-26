@@ -1,14 +1,11 @@
 using dexih.functions;
-using dexih.functions.Query;
 using dexih.repository;
-using dexih.transforms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using dexih.functions.BuiltIn;
 using dexih.functions.Mappings;
 using dexih.functions.Parameter;
 using Dexih.Utils.DataType;
@@ -37,7 +34,6 @@ namespace dexih.operations
 
         private readonly TransformSettings _transformSettings;
 
-        private ConditionFunctions<string> _conditionFunctions;
         private HashSet<object> _lookupValues;
         private Table _lookupTable;
         private TableColumn _lookupColumn;
@@ -187,8 +183,7 @@ namespace dexih.operations
                     
                     if (ColumnValidation.PatternMatch != null)
                     {
-                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions<string>();
-                        if (_conditionFunctions.IsPattern(stringValue, ColumnValidation.PatternMatch) == false)
+                        if (stringValue.IsPattern(ColumnValidation.PatternMatch) == false)
                         {
                             return (false, "The value \"" + stringValue + "\" does not match the pattern " + ColumnValidation.PatternMatch);
                         }
@@ -196,8 +191,7 @@ namespace dexih.operations
 
                     if (ColumnValidation.RegexMatch != null)
                     {
-                        if (_conditionFunctions == null) _conditionFunctions = new ConditionFunctions<string>();
-                        if (_conditionFunctions.RegexMatch(stringValue, ColumnValidation.RegexMatch) == false)
+                        if (Regex.Match(stringValue, ColumnValidation.RegexMatch).Success == false)
                         {
                             return (false, "The value \"" + stringValue + "\" does not match the regular expression " + ColumnValidation.RegexMatch);
                         }

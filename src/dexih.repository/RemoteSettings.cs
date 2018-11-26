@@ -228,6 +228,15 @@ namespace dexih.repository
         /// </summary>
         public long[] AllowedHubs { get; set; }
 
+        public FilePermissions GetFilePermissions()
+        {
+            return new FilePermissions()
+            {
+                AllowedPaths = AllowedPaths,
+                AllowAllPaths = AllowAllPaths,
+                AllowLocalFiles = AllowLocalFiles
+            };
+        }
     }
 
     public class NetworkSection
@@ -267,7 +276,7 @@ namespace dexih.repository
         /// </summary>
         public string CertificateFilename { get; set; }
 
-        public string CerfificateFilePath()
+        public string CertificateFilePath()
         {
             if (string.IsNullOrEmpty(CertificateFilename))
             {
