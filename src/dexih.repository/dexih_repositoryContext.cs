@@ -710,6 +710,10 @@ namespace dexih.repository
                 entity.Property(e => e.FunctionClassName).HasColumnName("function_class_name");
                 entity.Property(e => e.FunctionMethodName).HasColumnName("function_method_name");
                 entity.Property(e => e.FunctionAssemblyName).HasColumnName("function_assembly_name");
+                entity.Property(e => e.FunctionCaching).HasColumnName("function_caching").HasMaxLength(50)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (MapFunction.EFunctionCaching) Enum.Parse(typeof(MapFunction.EFunctionCaching), v));
 
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.GenericTypeCode).HasColumnName("generic_type_code").HasMaxLength(20)

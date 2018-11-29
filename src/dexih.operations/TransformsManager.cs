@@ -185,7 +185,7 @@ namespace dexih.operations
                     Inputs = new Parameter[] {new ParameterColumn("value", new TableColumn(columnName))}
                 };
                 var profileFunction = new TransformFunction(profileObject, functionMethodName, null, parameters, globalVariables);
-                var mapFunction = new MapFunction(profileFunction, parameters);
+                var mapFunction = new MapFunction(profileFunction, parameters, MapFunction.EFunctionCaching.NoCache);
                 return mapFunction;
             }
             catch (Exception ex)

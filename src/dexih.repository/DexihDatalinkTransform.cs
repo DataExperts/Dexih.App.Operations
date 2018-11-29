@@ -212,7 +212,7 @@ namespace dexih.repository
                             }
                             else
                             {
-                                mappings.Add(new MapFunction(func.function, func.parameters));    
+                                mappings.Add(new MapFunction(func.function, func.parameters, item.FunctionCaching));    
                             }
                             
                             break;

@@ -46,7 +46,7 @@ namespace dexih.operations
             var parameters = new Parameters()
             {
                 Inputs = new Parameter[] {new ParameterColumn(columnName, ETypeCode.String)},
-                ReturnParameter = new ParameterOutputColumn(columnName, ETypeCode.String),
+                ReturnParameters = new Parameter[] { new ParameterOutputColumn(columnName, ETypeCode.String)},
                 Outputs = new Parameter[] {new ParameterOutputColumn(columnName, ETypeCode.String), new ParameterOutputColumn("RejectReason", new TableColumn("RejectReason", TableColumn.EDeltaType.RejectedReason)) }
             };
             

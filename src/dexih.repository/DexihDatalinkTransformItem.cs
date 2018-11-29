@@ -63,6 +63,7 @@ namespace dexih.repository
 		public string FunctionMethodName { get; set; }
         public bool IsGeneric { get; set; }
         public ETypeCode? GenericTypeCode { get; set; }
+		public MapFunction.EFunctionCaching FunctionCaching { get; set; }
 
 		public long? CustomFunctionKey { get; set; }
 		
@@ -150,9 +151,8 @@ namespace dexih.repository
 				var outputs = new List<Parameter>();
 				var resultInputs = new List<Parameter>();
 				var resultOutputs = new List<Parameter>();
-				Parameter returnParameter = null;
-				Parameter resultReturnParameter = null;
-				
+				var returnParameters = new List<Parameter>();
+				var resultReturnParameters = new List<Parameter>();
 				
 
 				foreach (var parameter in DexihFunctionParameters.OrderBy(c=>c.Position))
@@ -196,10 +196,10 @@ namespace dexih.repository
 							resultOutputs.Add(newParameter);
 							break;
 						case DexihParameterBase.EParameterDirection.ReturnValue:
-							returnParameter = newParameter;
+							returnParameters.Add(newParameter);
 							break;
 						case DexihParameterBase.EParameterDirection.ResultReturnValue:
-							resultReturnParameter = newParameter;
+							resultReturnParameters.Add(newParameter);
 							break;
 							
 					}
@@ -212,8 +212,8 @@ namespace dexih.repository
 					Outputs = outputs, 
 					ResultInputs = resultInputs, 
 					ResultOutputs = resultOutputs, 
-					ReturnParameter = returnParameter,
-					ResultReturnParameter = resultReturnParameter
+					ReturnParameters = returnParameters,
+					ResultReturnParameters = resultReturnParameters
 				};
 				
 //				var inputsArray = inputs.ToArray();
@@ -437,7 +437,7 @@ $FunctionCode
 	        var tabbedCode = "\t\t" + functionCode.Replace("\n", "\n\t\t");
 	        
             code.Replace("$FunctionCode", tabbedCode);
-            code.Replace("$FunctionReturn", parameters.ReturnParameter.DataType.ToString());
+            code.Replace("$FunctionReturn", parameters.ReturnParameters[0].DataType.ToString());
 
             if (createConsoleSample)
             {
@@ -538,7 +538,7 @@ $FunctionCode
                 var outputParameters = new StringBuilder();
                 var writeResults = new StringBuilder();
 
-				outputParameters.AppendLine("\t\t" + parameters.ReturnParameter.DataType + " " + returnName + ";");
+				outputParameters.AppendLine("\t\t" + parameters.ReturnParameters[0].DataType + " " + returnName + ";");
 				writeResults.AppendLine("\t\tConsole.WriteLine(\"" + returnName + " = {0}\", " + returnName + ");");
 
                 foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
