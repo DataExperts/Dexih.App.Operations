@@ -4,7 +4,6 @@ using System.Linq;
 using Newtonsoft.Json;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace dexih.repository
 {
@@ -17,6 +16,7 @@ namespace dexih.repository
 	        DexihDatalinkTransformItemsJoinColumn = new HashSet<DexihDatalinkTransformItem>();
             DexihFunctionParameterColumn = new HashSet<DexihFunctionParameter>();
             DexihDatalinkTransforms = new HashSet<DexihDatalinkTransform>();
+	        ChildColumns = new HashSet<DexihDatalinkColumn>();
         }
 
         [JsonIgnore, CopyIgnore]
@@ -27,9 +27,17 @@ namespace dexih.repository
 
 	    [CopyParentCollectionKey]
         public long? DatalinkTableKey { get; set; }
+	    
+	    [JsonIgnore, CopyIgnore]
+	    public DexihDatalinkColumn ParentColumn { get; set; }
+	    
+	    public long? ParentDatalinkColumnKey { get; set; }
+	    
+	    public ICollection<DexihDatalinkColumn> ChildColumns { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public DexihDatalinkTable DatalinkTable { get; set; }
+
 
         [JsonIgnore, CopyIgnore]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemsSourceColumn { get; set; }

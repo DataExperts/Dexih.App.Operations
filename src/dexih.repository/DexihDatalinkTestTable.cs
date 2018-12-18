@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 

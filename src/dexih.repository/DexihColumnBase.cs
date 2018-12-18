@@ -1,8 +1,4 @@
-﻿using Dexih.Utils.CopyProperties;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using System;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using static dexih.functions.TableColumn;
 using static Dexih.Utils.DataType.DataType;
 
@@ -18,6 +14,8 @@ namespace dexih.repository
         public string Name { get; set; }
 
         public string LogicalName { get; set; }
+        
+        public string ColumnGroup { get; set; }
 
         public string Description { get; set; }
 

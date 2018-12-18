@@ -8,10 +8,9 @@ using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
 using dexih.functions;
-using dexih.functions.Mappings;
 using dexih.functions.Query;
+using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using static dexih.transforms.Transforms.TransformAttribute;
 
@@ -48,13 +47,13 @@ namespace dexih.repository
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        public virtual ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
+        public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihDatalink Datalink { get; set; }
+        public DexihDatalink Datalink { get; set; }
 
-        public virtual DexihDatalinkTable JoinDatalinkTable { get; set; }
-        public virtual DexihDatalinkColumn JoinSortDatalinkColumn { get; set; }
+        public DexihDatalinkTable JoinDatalinkTable { get; set; }
+        public DexihDatalinkColumn JoinSortDatalinkColumn { get; set; }
 
         /// <summary>
         /// Gets all the mapped output columns for this transform.
@@ -229,6 +228,15 @@ namespace dexih.repository
                                 item.SeriesFill, 
                                 item.SeriesStart, 
                                 item.SeriesFinish));
+                            break;
+                        case DexihDatalinkTransformItem.ETransformItemType.Node:
+                            if (targetColumn == null)
+                            {
+                                throw new RepositoryException("The node column with the key " + item.TargetDatalinkColumnKey + " had an error.  Please review the mappings and fix any errors.");
+                            }
+
+                            var joinTable = JoinDatalinkTable.GetTable(null, null);
+                            mappings.Add(new MapJoinNode(targetColumn, joinTable));
                             break;
                     }
                 }

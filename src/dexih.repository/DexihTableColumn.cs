@@ -9,15 +9,28 @@ namespace dexih.repository
 {
     public partial class DexihTableColumn : DexihColumnBase
     {
+	    public DexihTableColumn()
+	    {
+		    ChildColumns = new HashSet<DexihTableColumn>();
+	    }
+	    
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
 
         [CopyCollectionKey((long)0, true)]
         public long ColumnKey { get; set; }
 		
-	    [CopyParentCollectionKey]
-		public long TableKey { get; set; }
-        
+	    [CopyParentCollectionKey(nameof(DexihTable.TableKey))]
+		public long? TableKey { get; set; }
+	    
+	    [CopyParentCollectionKey(nameof(ParentColumnKey))]
+	    public long? ParentColumnKey { get; set; }
+	    
+	    [JsonIgnore, CopyIgnore]
+	    public DexihTableColumn ParentColumn { get; set; }
+	    
+	    public ICollection<DexihTableColumn> ChildColumns { get; set; }
+
 	    public long? ColumnValidationKey { get; set; }
 
         [NotMapped]
@@ -46,5 +59,9 @@ namespace dexih.repository
 		    return tableColumn;
 	    }
 
+	    public long GetParentTableKey()
+	    {
+		    return ParentColumnKey ?? ParentColumn.GetParentTableKey();
+	    }
     }
 }

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
-using dexih.functions.Query;
 using dexih.repository;
 using dexih.transforms;
 using Dexih.Utils.CopyProperties;
@@ -21,7 +20,6 @@ namespace dexih.operations
 
         public event ProgressUpdate OnProgressUpdate;
         public event StatusUpdate OnStatusUpdate;
-        public event DatalinkTestFinish OnFinish;
 
         #endregion
         

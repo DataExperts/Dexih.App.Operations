@@ -9,7 +9,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Dexih.Utils.CopyProperties;
-using static dexih.repository.DexihDatalinkTable;
 
 namespace dexih.operations
 {
@@ -126,7 +125,6 @@ namespace dexih.operations
                     .LoadAsync();
 
 				await dbContext.DexihDatalinkTransformItems
-                    // .Include(c => c.StandardFunction)
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .OrderBy(c => c.Dt.Datalink.HubKey).ThenBy(c => c.Dt.DatalinkTransformKey).ThenBy(c => c.DatalinkTransformItemKey)
 					.LoadAsync();
@@ -438,7 +436,7 @@ namespace dexih.operations
             if(columnValidation.LookupColumnKey != null)
             {
                 var column = await dbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.ColumnKey == columnValidation.LookupColumnKey);
-                await AddTables(new[] { column.TableKey }, dbContext);
+                await AddTables(new[] { column.GetParentTableKey() }, dbContext);
             }
         }
 	    
@@ -447,7 +445,7 @@ namespace dexih.operations
 		    if(columnValidation.LookupColumnKey != null)
 		    {
 			    var column = hub.GetColumnFromKey(columnValidation.LookupColumnKey.Value);
-			    AddTables(new[] { column.TableKey }, hub);
+			    AddTables(new[] { column.GetParentTableKey() }, hub);
 		    }
 	    }
 

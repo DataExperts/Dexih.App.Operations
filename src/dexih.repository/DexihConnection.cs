@@ -6,8 +6,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
-using System.Linq;
-using dexih.functions;
 
 namespace dexih.repository
 {

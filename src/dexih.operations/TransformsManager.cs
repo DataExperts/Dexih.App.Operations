@@ -2,29 +2,21 @@
 using dexih.repository;
 using dexih.transforms;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using dexih.functions.Mappings;
 using dexih.functions.Parameter;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.Query;
 using dexih.transforms.Exceptions;
+using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Serialization;
-using static dexih.repository.DexihDatalinkTable;
 
 namespace dexih.operations
 {
     public class TransformsManager
     {
         private readonly TransformSettings _transformSettings;
-        private readonly DexihHub _hub;
         private readonly ILogger _logger;
 
         public TransformsManager(TransformSettings transformSettings)

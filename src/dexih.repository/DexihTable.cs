@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
-using System;
 using dexih.transforms;
 using static Dexih.Utils.DataType.DataType;
 
@@ -87,18 +86,18 @@ namespace dexih.repository
         public string FileSample {get;set;}
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalink> DexihTargetTables { get; set; }
+        public ICollection<DexihDatalink> DexihTargetTables { get; set; }
 
 	    [JsonIgnore, CopyIgnore]
-	    public virtual ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
+	    public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
 
-        public virtual ICollection<DexihTableColumn> DexihTableColumns { get; set; }
+        public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihConnection Connection { get; set; }
+        public DexihConnection Connection { get; set; }
 
 	    [CopyReference]
-        public virtual DexihFileFormat FileFormat { get; set; }
+        public DexihFileFormat FileFormat { get; set; }
 
 
 	    public Table GetTable(Connection connection, TransformSettings transformSettings)

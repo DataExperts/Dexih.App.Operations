@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations.Schema;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.File;
 

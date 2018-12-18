@@ -2,13 +2,12 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
-using dexih.functions.Mappings;
 using dexih.functions.Query;
 using dexih.transforms;
+using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.AspNetCore.Identity;
@@ -345,6 +344,7 @@ namespace dexih.repository
                 entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
+                entity.Property(e => e.ParentDatalinkColumnKey).HasColumnName("parent_datalink_column_key");
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
@@ -361,7 +361,8 @@ namespace dexih.repository
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
                 entity.Property(e => e.IsUnique).HasColumnName("is_unique");
-                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);            
+                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);   
+                entity.Property(e => e.ColumnGroup).HasColumnName("column_group").HasMaxLength(250);
                 entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasMaxLength(1024);
                 entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
                 entity.Property(e => e.MaxLength).HasColumnName("max_length");
@@ -385,6 +386,12 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkTableKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalinktable_columns_dexih_datalinktables");
+                
+                entity.HasOne(d => d.ParentColumn)
+                    .WithMany(p => p.ChildColumns)
+                    .HasForeignKey(d => d.ParentDatalinkColumnKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_table_child_columns");
 
             });
 
@@ -539,7 +546,8 @@ namespace dexih.repository
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
                 entity.Property(e => e.IsUnique).HasColumnName("is_unique");
-                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);            
+                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);    
+                entity.Property(e => e.ColumnGroup).HasColumnName("column_group").HasMaxLength(250);
                 entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasMaxLength(1024);
                 entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
                 entity.Property(e => e.MaxLength).HasColumnName("max_length");
@@ -1174,7 +1182,10 @@ namespace dexih.repository
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
                 entity.Property(e => e.IsUnique).HasColumnName("is_unique");
 
+                entity.Property(e => e.ParentColumnKey).HasColumnName("parent_column_key");
+
                 entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);
+                entity.Property(e => e.ColumnGroup).HasColumnName("column_group").HasMaxLength(250);
                 entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasMaxLength(1024);
                 entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
                 entity.Property(e => e.MaxLength).HasColumnName("max_length");
@@ -1204,6 +1215,13 @@ namespace dexih.repository
                     .HasForeignKey(d => d.ColumnValidationKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_table_columns_dexih_column_validations");
+                
+                entity.HasOne(d => d.ParentColumn)
+                    .WithMany(p => p.ChildColumns)
+                    .HasForeignKey(d => d.ParentColumnKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_table_child_columns");
+                
             });
 
             modelBuilder.Entity<DexihTable>(entity =>

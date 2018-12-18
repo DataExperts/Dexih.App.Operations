@@ -15,12 +15,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections;
 using System.Diagnostics;
-using System.Security.Authentication;
-using System.Threading;
-using dexih.functions.Mappings;
 using dexih.functions.Parameter;
+using dexih.transforms.Mapping;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Serialization;
 using static dexih.functions.Query.SelectColumn;
 using Dexih.Utils.DataType;
 
@@ -31,7 +28,7 @@ namespace dexih.repository
 		[JsonConverter(typeof(StringEnumConverter))]
 		public enum ETransformItemType
 		{
-			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair, Series
+			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair, Series, Node
 		}
 
 		public DexihDatalinkTransformItem() => DexihFunctionParameters = new HashSet<DexihFunctionParameter>();

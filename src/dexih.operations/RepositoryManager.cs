@@ -3,9 +3,7 @@ using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using static dexih.functions.TableColumn;
@@ -16,7 +14,6 @@ using System.Threading;
 using dexih.transforms;
 using dexih.transforms.Transforms;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -790,7 +787,7 @@ namespace dexih.operations
 					dbHub.IsValid = false;
 
 					ResetHubCache(dbHub.HubKey);
-					ResetHubPermissions(dbHub.HubKey);
+					await ResetHubPermissions(dbHub.HubKey);
 				}
 				
 				ResetUserCache(user.Id);
@@ -838,7 +835,7 @@ namespace dexih.operations
 	                ResetUserCache(userId);
                 }
 	            
-	            ResetHubPermissions(hubKey);
+	            await ResetHubPermissions(hubKey);
 
             }
             catch (Exception ex)
@@ -858,7 +855,7 @@ namespace dexih.operations
 		            ResetUserCache(userHub.UserId);
 	            }
 	            await DbContext.SaveChangesAsync();
-	            ResetHubPermissions(hubKey);
+	            await ResetHubPermissions(hubKey);
             }
             catch (Exception ex)
             {
@@ -1162,8 +1159,23 @@ namespace dexih.operations
 							savedTables.Add(dbTable);
 						}
 					}
+					
+					void SetTableKeys(IEnumerable<DexihTableColumn> columns)
+					{
+						foreach (var col in columns)
+						{
+							col.TableKey = null;
+							if(col.ChildColumns != null && col.ChildColumns.Count > 0) SetTableKeys(col.ChildColumns);
+						}
+						
+					}
 
-					// if (dbTable.TableKey < 0) dbTable.TableKey = 0;
+					// set all table keys in child columns to null.
+					// this is a workaround as the copyProperties cascades the tableKeys to the child columns.
+					foreach (var col in dbTable.DexihTableColumns.Where(c=>c.ChildColumns != null && c.ChildColumns.Any()))
+					{
+						SetTableKeys(col.ChildColumns);
+					}
 
 					dbTable.IsValid = true;
 					dbTable.HubKey = hubKey;
@@ -1262,7 +1274,8 @@ namespace dexih.operations
 				if (includeColumns)
 				{
 					await DbContext.DexihTableColumns
-		               .Where(c => c.IsValid && c.HubKey == hubKey && tableKeys.Contains(c.TableKey))
+						.Where(c => c.TableKey != null && c.IsValid && c.HubKey == hubKey && tableKeys.Contains(c.TableKey.Value))
+						.Include(c=>c.ChildColumns)
 						.LoadAsync();
 				}
 
@@ -1297,7 +1310,8 @@ namespace dexih.operations
                 if (includeColumns)
                 {
                     await DbContext.Entry(dbTable).Collection(a => a.DexihTableColumns).Query()
-					               .Where(c => c.HubKey == hubKey && c.IsValid && dbTable.TableKey == c.TableKey).LoadAsync();
+						.Where(c => c.HubKey == hubKey && c.IsValid && dbTable.TableKey == c.TableKey)
+						.Include(c=>c.ChildColumns).LoadAsync();
                 }
 
                 return dbTable;
@@ -1610,7 +1624,7 @@ namespace dexih.operations
                 long tempColumnKeys = -1;
 
 				var sourceTables = await DbContext.DexihTables.Where(c => c.HubKey == hubKey && sourceTableKeys.Contains(c.TableKey) && c.IsValid).ToDictionaryAsync(c => c.TableKey);
-				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && sourceTables.Keys.Contains(c.TableKey) && c.IsValid).LoadAsync();
+				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && c.TableKey != null && sourceTables.Keys.Contains(c.TableKey.Value) && c.IsValid).Include(c => c.ChildColumns).LoadAsync();
 				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.TableKey == targetTableKey);
 				var targetCon = targetConnectionKey == null ? null : await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnectionKey);
 
@@ -3716,8 +3730,8 @@ namespace dexih.operations
 			// get all columns from the repository that need to be removed.
 			var allColumnKeys = tables.Values.SelectMany(t => t.DexihTableColumns).Select(c=>c.ColumnKey).Where(c => c > 0);
 			var deletedColumns = DbContext.DexihTableColumns.Where(c =>
-			                                                       c.HubKey == import.HubKey &&
-				tables.Values.Select(t => t.TableKey).Contains(c.TableKey) && !allColumnKeys.Contains(c.ColumnKey));
+				c.HubKey == import.HubKey &&  c.TableKey != null &&
+				tables.Values.Select(t => t.TableKey).Contains(c.TableKey.Value) && !allColumnKeys.Contains(c.ColumnKey)).Include(c=>c.ChildColumns);
 
 			foreach (var column in deletedColumns)
 			{

@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
 using System.Linq;

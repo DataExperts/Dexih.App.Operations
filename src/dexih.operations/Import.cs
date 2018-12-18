@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using dexih.repository;
 using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;

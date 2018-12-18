@@ -3,13 +3,11 @@ using dexih.functions.Query;
 using dexih.repository;
 using dexih.transforms;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using static dexih.repository.DexihDatalinkTable;
 using static dexih.transforms.Transform;
 using static dexih.transforms.TransformWriterResult;
 

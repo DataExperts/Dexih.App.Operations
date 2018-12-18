@@ -6,8 +6,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using dexih.functions.Mappings;
 using dexih.functions.Parameter;
+using dexih.transforms.Mapping;
 using Dexih.Utils.DataType;
 using static dexih.repository.DexihColumnValidation;
 using static Dexih.Utils.DataType.DataType;
@@ -66,7 +66,7 @@ namespace dexih.operations
                     throw new ColumnValidationException($"Error: The lookup table for column {ColumnValidation.LookupColumnKey} could not be found.");
                 }
 
-                var dbTable = Hub.GetTableFromKey(dbColumn.TableKey);
+                var dbTable = Hub.GetTableFromKey(dbColumn.GetParentTableKey());
                 if (dbTable == null)
                 {
                     throw new ColumnValidationException($"Error: The lookup table with key {dbColumn.TableKey} could not be found.");

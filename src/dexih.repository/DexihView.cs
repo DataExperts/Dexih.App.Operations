@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Security.Permissions;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
