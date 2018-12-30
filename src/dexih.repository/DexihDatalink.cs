@@ -231,7 +231,7 @@ namespace dexih.repository
             {
                 foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
                 {
-                    columns[column.DatalinkColumnKey] = column;
+                    AddColumns(column, columns);
                 }
             }
 
@@ -242,10 +242,7 @@ namespace dexih.repository
                 {
                     foreach (var column in datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns)
                     {
-                        if(!columns.ContainsKey(column.DatalinkColumnKey))
-                        {
-                            columns[column.DatalinkColumnKey] = column;
-                        }
+                        AddColumns(column, columns);
                     }
                 }
 
@@ -253,42 +250,27 @@ namespace dexih.repository
                 foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
                 {
                     item.SourceDatalinkColumnKey = item.SourceDatalinkColumn?.DatalinkColumnKey;
-                    if (item.SourceDatalinkColumn != null && !columns.ContainsKey(item.SourceDatalinkColumn.DatalinkColumnKey))
-                    {
-                        columns[item.SourceDatalinkColumn.DatalinkColumnKey] = item.SourceDatalinkColumn;
-                    }
+                    AddColumns(item.SourceDatalinkColumn, columns);
                     item.SourceDatalinkColumn = null;
 
                     item.JoinDatalinkColumnKey = item.JoinDatalinkColumn?.DatalinkColumnKey;
-                    if (item.JoinDatalinkColumn != null && !columns.ContainsKey(item.JoinDatalinkColumn.DatalinkColumnKey))
-                    {
-                        columns[item.JoinDatalinkColumn.DatalinkColumnKey] = item.JoinDatalinkColumn;
-                    }
+                    AddColumns(item.JoinDatalinkColumn, columns);
                     item.JoinDatalinkColumn = null;
 
                     item.TargetDatalinkColumnKey = item.TargetDatalinkColumn?.DatalinkColumnKey;
-                    if (item.TargetDatalinkColumn != null && !columns.ContainsKey(item.TargetDatalinkColumn.DatalinkColumnKey))
-                    {
-                        columns[item.TargetDatalinkColumn.DatalinkColumnKey] = item.TargetDatalinkColumn;
-                    }
+                    AddColumns(item.TargetDatalinkColumn, columns);
                     item.TargetDatalinkColumn = null;
 
                     foreach (var param in item.DexihFunctionParameters)
                     {
                         param.DatalinkColumnKey = param.DatalinkColumn?.DatalinkColumnKey;
-                        if (param.DatalinkColumn != null && !columns.ContainsKey(param.DatalinkColumn.DatalinkColumnKey))
-                        {
-                            columns[param.DatalinkColumn.DatalinkColumnKey] = param.DatalinkColumn;
-                        }
+                        AddColumns(param.DatalinkColumn, columns);
                         param.DatalinkColumn = null;
 
                         foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null))
                         {
                             paramArray.DatalinkColumnKey = paramArray.DatalinkColumn?.DatalinkColumnKey;
-                            if (paramArray.DatalinkColumn != null && !columns.ContainsKey(paramArray.DatalinkColumn.DatalinkColumnKey))
-                            {
-                                columns[paramArray.DatalinkColumn.DatalinkColumnKey] = paramArray.DatalinkColumn;
-                            }
+                            AddColumns(paramArray.DatalinkColumn, columns);
                             paramArray.DatalinkColumn = null;
                         }
                     }
@@ -296,6 +278,51 @@ namespace dexih.repository
             }
 
             return columns;
+        }
+
+        /// <summary>
+        /// Adds the column and child columns into the columns collection.
+        /// </summary>
+        /// <param name="column"></param>
+        /// <param name="columns"></param>
+        private void AddColumns(DexihDatalinkColumn column, IDictionary<long, DexihDatalinkColumn> columns)
+        {
+            if (column != null && !columns.ContainsKey(column.DatalinkColumnKey))
+            {
+                columns[column.DatalinkColumnKey] = column;
+
+                foreach (var childColumn in column.ChildColumns)
+                {
+                    AddColumns(childColumn, columns);
+                }
+            }
+        }
+
+        
+        /// <summary>
+        /// Resets the childcolumns of a column with unique column instances.
+        /// </summary>
+        /// <param name="column"></param>
+        /// <param name="columns"></param>
+        private void ResetChildColumns(DexihDatalinkColumn column, IReadOnlyDictionary<long, DexihDatalinkColumn> columns)
+        {
+            if (column.ChildColumns != null && column.ChildColumns.Any())
+            {
+                var childColumns = new HashSet<DexihDatalinkColumn>();
+                foreach (var childColumn in column.ChildColumns)
+                {
+                    if (columns.ContainsKey(childColumn.DatalinkColumnKey))
+                    {
+                        childColumns.Add(columns[childColumn.DatalinkColumnKey]);
+                    }
+                    else
+                    {
+                        childColumns.Add(childColumn);
+                    }
+                    ResetChildColumns(childColumn, columns);
+                }
+                column.ChildColumns = childColumns;
+            }
         }
 
         /// <summary>
@@ -310,7 +337,13 @@ namespace dexih.repository
             }
 
             var newColumns = new HashSet<DexihDatalinkColumn>();
-
+            
+            //reset any child columns
+            foreach (var column in columns.Values)
+            {
+                ResetChildColumns(column, columns);
+            }
+            
             if (SourceDatalinkTable != null)
             {
                 foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
@@ -324,6 +357,13 @@ namespace dexih.repository
 
             foreach (var datalinkTransform in DexihDatalinkTransforms.OrderBy(c=>c.Position))
             {
+                if (datalinkTransform.NodeDatalinkColumnKey != null &&
+                    columns.ContainsKey(datalinkTransform.NodeDatalinkColumnKey.Value))
+                {
+                    datalinkTransform.NodeDatalinkColumn = columns[datalinkTransform.NodeDatalinkColumnKey.Value];
+                    if (datalinkTransform.NodeDatalinkColumnKey < 0) datalinkTransform.NodeDatalinkColumnKey = 0;
+                }
+                
                 foreach(var item in datalinkTransform.DexihDatalinkTransformItems)
                 {
                     // track any join columns for the transform.

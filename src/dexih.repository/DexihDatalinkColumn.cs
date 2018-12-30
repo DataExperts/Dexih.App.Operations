@@ -15,7 +15,8 @@ namespace dexih.repository
             DexihDatalinkTransformItemsTargetColumn = new HashSet<DexihDatalinkTransformItem>();
 	        DexihDatalinkTransformItemsJoinColumn = new HashSet<DexihDatalinkTransformItem>();
             DexihFunctionParameterColumn = new HashSet<DexihFunctionParameter>();
-            DexihDatalinkTransforms = new HashSet<DexihDatalinkTransform>();
+            DexihDatalinkTransformsJoinSortColumn = new HashSet<DexihDatalinkTransform>();
+            DexihDatalinkTransformsNodeColumn = new HashSet<DexihDatalinkTransform>();
 	        ChildColumns = new HashSet<DexihDatalinkColumn>();
         }
 
@@ -25,7 +26,7 @@ namespace dexih.repository
 	    [CopyCollectionKey(0L, false)]
 	    public long DatalinkColumnKey { get; set; }
 
-	    [CopyParentCollectionKey]
+	    [CopyParentCollectionKey(nameof(DexihDatalinkTable.DatalinkTableKey))]
         public long? DatalinkTableKey { get; set; }
 	    
 	    [JsonIgnore, CopyIgnore]
@@ -55,13 +56,20 @@ namespace dexih.repository
         public ICollection<DexihFunctionParameter> DexihFunctionParameterColumn { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
+        public ICollection<DexihDatalinkTransform> DexihDatalinkTransformsJoinSortColumn { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public ICollection<DexihDatalinkTransform> DexihDatalinkTransformsNodeColumn { get; set; }
 
 		public TableColumn GetTableColumn(InputColumn[] inputColumns)
 		{
 			var tableColumn = new TableColumn();
 			this.CopyProperties(tableColumn, false);
-			tableColumn.ReferenceTable = DatalinkTableKey.ToString();
+
+			var topParent = this;
+			if (topParent.ParentColumn != null) topParent = topParent.ParentColumn;
+			
+			tableColumn.ReferenceTable = topParent.DatalinkTableKey.ToString();
 
 			var column = inputColumns?.SingleOrDefault(c => c.Name == tableColumn.Name);
 			if (column != null)

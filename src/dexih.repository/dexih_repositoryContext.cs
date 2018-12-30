@@ -799,6 +799,8 @@ namespace dexih.repository
                 entity.Property(e => e.PassThroughColumns).HasColumnName("pass_through_columns");
 
                 entity.Property(e => e.JoinDatalinkTableKey).HasColumnName("join_datalink_table_key");
+                
+                entity.Property(e => e.NodeDatalinkColumnKey).HasColumnName("node_datalink_column_key");
 
                 entity.Property(e => e.JoinDuplicateStrategy).HasColumnName("join_duplicate_strategy").HasMaxLength(50)
                     .HasConversion(
@@ -825,10 +827,16 @@ namespace dexih.repository
                     .HasConstraintName("FK_dexih_datalink_transforms_datalink_join_table");
 
                 entity.HasOne(d => d.JoinSortDatalinkColumn)
-                    .WithMany(p => p.DexihDatalinkTransforms)
+                    .WithMany(p => p.DexihDatalinkTransformsJoinSortColumn)
                     .HasForeignKey(d => d.JoinSortDatalinkColumnKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_transforms_datalink_join_sort_column");
+                
+                entity.HasOne(d => d.NodeDatalinkColumn)
+                    .WithMany(p => p.DexihDatalinkTransformsNodeColumn)
+                    .HasForeignKey(d => d.NodeDatalinkColumnKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_transforms_datalink_node_column");
             });
 
             modelBuilder.Entity<DexihDatalink>(entity =>

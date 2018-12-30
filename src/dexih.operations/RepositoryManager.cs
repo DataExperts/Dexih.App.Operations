@@ -563,11 +563,11 @@ namespace dexih.operations
 			        foreach (var attr in property.GetCustomAttributes(true))
 			        {
 				        // this shouldn't be possible any longer.
-//				        if (attr is CopyCollectionKeyAttribute)
-//				        {
-//					        var value = (long) property.GetValue(item);
-//					        entity.State = value <= 0 ? EntityState.Added : EntityState.Modified;
-//				        }
+				        if (attr is CopyCollectionKeyAttribute)
+				        {
+					        var value = (long) property.GetValue(item);
+					        entity.State = value <= 0 ? EntityState.Added : EntityState.Modified;
+				        }
 
 				        // if the isvalid = false, then set the import action to delete.
 				        if (attr is CopyIsValidAttribute)
@@ -1493,17 +1493,19 @@ namespace dexih.operations
 //	                    existingDatalink.UpdateDate = DateTime.Now;
 //                        savedDatalinks.Add(existingDatalink);
 //                    }
+
+					// uncomment to check changes.
+					var modifiedEntries = DbContext.ChangeTracker
+						.Entries()
+						.Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
+						.Select(x => x)
+						.ToList();
 					
 					await SaveHubChangesAsync(hubKey);
 
                 }
 
-                // uncomment to check changes.
-                var modifiedEntries = DbContext.ChangeTracker
-                   .Entries()
-                   .Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
-                   .Select(x => x)
-                   .ToList();
+  
 
                 //await DbContext.DexihUpdateStrategies.LoadAsync();
                 return savedDatalinks.ToArray();

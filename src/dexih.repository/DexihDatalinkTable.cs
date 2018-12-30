@@ -1,4 +1,5 @@
-﻿using dexih.functions;
+﻿using System;
+using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 using System.Collections.Generic;
@@ -75,6 +76,38 @@ namespace dexih.repository
             }
 
             return table;
+        }
+
+        /// <summary>
+        /// Gets an array containing all the parent-child nodes to a particular column.
+        /// </summary>
+        /// <param name="columnKey"></param>
+        /// <returns></returns>
+        public List<DexihDatalinkColumn> GetNodePath(long columnKey, ICollection<DexihDatalinkColumn> childColumns = null)
+        {
+	        var columns = childColumns ?? DexihDatalinkColumns;
+	        if (columns == null)
+	        {
+		        foreach (var column in columns)
+		        {
+			        if (columnKey == column.DatalinkColumnKey)
+			        {
+				        return new List<DexihDatalinkColumn> {column};
+			        }
+
+			        if (column.ChildColumns != null)
+			        {
+				        var path = GetNodePath(columnKey, column.ChildColumns);
+				        if (path != null)
+				        {
+					        path.Insert(0, column);
+					        return path;
+				        }
+			        }
+		        }
+	        }
+
+	        return null;
         }
     }
 }

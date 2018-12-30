@@ -2,6 +2,8 @@
 using dexih.repository;
 using dexih.transforms;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using dexih.functions.Parameter;
@@ -399,6 +401,38 @@ namespace dexih.operations
 						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, null, globalVariables, previewMode);
 						referenceTransform = joinTransformResult.sourceTransform;
 					}
+					
+					// if transform uses a different node level add a node mapping
+                    if (datalinkTransform.NodeDatalinkColumn != null)
+                    {
+                        var table = primaryTransform.CacheTable;
+
+                        // create a path from the parent to the child column.
+                        var columnPath = new Queue<DexihDatalinkColumn>();
+                        var currentColumn = datalinkTransform.NodeDatalinkColumn;
+                        while (currentColumn != null)
+                        {
+                            columnPath.Enqueue(currentColumn);
+                            currentColumn = currentColumn.ParentColumn;
+                        }
+
+                        currentColumn = columnPath.Dequeue();
+                        var nodeColumn = table.Columns[currentColumn.Name, currentColumn.ColumnGroup];
+                        
+                        while(columnPath.Any())
+                        {
+                            currentColumn = columnPath.Dequeue();
+                            nodeColumn = nodeColumn.ChildColumns[currentColumn.Name, currentColumn.ColumnGroup];
+                        }
+                        
+                        var mapNode = new MapNode(nodeColumn, table);
+                        var nodeTransform = mapNode.Transform;
+                        var nodeMapping = new TransformMapping(nodeTransform, transform.Mappings);
+                        mapNode.OutputTransform = nodeMapping;
+                        
+                        var mappings = new Mappings {mapNode};
+                        transform.Mappings = mappings;
+                    }
                     
                     _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}, added joins.  Elapsed: {timer.Elapsed}");
 

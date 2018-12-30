@@ -36,6 +36,8 @@ namespace dexih.repository
 
         public long? JoinDatalinkTableKey { get; set; }
         public long? JoinSortDatalinkColumnKey { get; set; }
+        
+        public long? NodeDatalinkColumnKey { get; set; }
 
         public ETransformType TransformType { get; set; }
 
@@ -54,6 +56,8 @@ namespace dexih.repository
 
         public DexihDatalinkTable JoinDatalinkTable { get; set; }
         public DexihDatalinkColumn JoinSortDatalinkColumn { get; set; }
+        
+        public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
 
         /// <summary>
         /// Gets all the mapped output columns for this transform.
@@ -229,7 +233,7 @@ namespace dexih.repository
                                 item.SeriesStart, 
                                 item.SeriesFinish));
                             break;
-                        case DexihDatalinkTransformItem.ETransformItemType.Node:
+                        case DexihDatalinkTransformItem.ETransformItemType.JoinNode:
                             if (targetColumn == null)
                             {
                                 throw new RepositoryException("The node column with the key " + item.TargetDatalinkColumnKey + " had an error.  Please review the mappings and fix any errors.");
