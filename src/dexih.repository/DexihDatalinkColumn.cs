@@ -32,6 +32,7 @@ namespace dexih.repository
 	    [JsonIgnore, CopyIgnore]
 	    public DexihDatalinkColumn ParentColumn { get; set; }
 	    
+	    [JsonIgnore, CopyParentCollectionKey(nameof(ParentDatalinkColumnKey))]
 	    public long? ParentDatalinkColumnKey { get; set; }
 	    
 	    public ICollection<DexihDatalinkColumn> ChildColumns { get; set; }

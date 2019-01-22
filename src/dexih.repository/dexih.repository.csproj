@@ -27,4 +27,9 @@
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.functions\dexih.functions.csproj" />
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.transforms\dexih.transforms.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="dexih.operations, Version=0.2.4.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\..\dexih.application\src\dexih.api\bin\Debug\netcoreapp2.1\dexih.operations.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

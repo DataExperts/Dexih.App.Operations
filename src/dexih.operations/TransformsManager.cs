@@ -344,16 +344,18 @@ namespace dexih.operations
                     primaryTransform = filterTransform;
                 }
 
+                DexihTable targetTable = null;
+                if (datalink.TargetTableKey != null)
+                {
+                    targetTable = hub.GetTableFromKey((long) datalink.TargetTableKey);
+                }
+
                 _logger?.LogTrace($"CreateRunPlan {datalink.Name}.  Added incremental filter.  Elapsed: {timer.Elapsed}");
 
                 
                 //loop through the transforms to create the chain.
                 foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
                 {
-                    var transform = datalinkTransform.GetTransform(hub, globalVariables, _transformSettings, _logger);
-
-                    _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
-
                     //if this is an empty transform, then ignore it.
                     if (datalinkTransform.DexihDatalinkTransformItems.Count == 0)
                     {
@@ -365,80 +367,18 @@ namespace dexih.operations
                             continue;
                         }
                     }
-
-                    //if this is a validation transform. add the column validations also.
-                    if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Validation)
+                    
+                    //if contains a join table, then add it in.
+                    Transform referenceTransform = null;
+                    if(datalinkTransform.JoinDatalinkTable != null) 
                     {
-						if (!datalink.VirtualTargetTable && datalink.TargetTableKey != null)
-						{
-							var targetTable = hub.GetTableFromKey(datalink.TargetTableKey.Value);
-							if(targetTable == null)
-							{
-								throw new TransformManagerException($"The target table with the key {datalink.TargetTableKey} was not found.");
-							}
-
-							foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
-							{
-								var columnValidation = hub.DexihColumnValidations.Single(c => c.ColumnValidationKey == column.ColumnValidationKey);
-							    var validation =
-							        new ColumnValidationRun(_transformSettings, columnValidation, hub)
-							        {
-							            DefaultValue = column.DefaultValue
-							        };
-							    var function = validation.GetValidationMapping(column.Name);
-                                transform.Mappings.Add(function);
-							}
-						}
-
-                        _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding validation.  Elapsed: {timer.Elapsed}");
-
-                    }
-
-					//if contains a jointable, then add it in.
-					Transform referenceTransform = null;
-					if(datalinkTransform.JoinDatalinkTable != null) 
-					{
-						var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, null, globalVariables, previewMode);
-						referenceTransform = joinTransformResult.sourceTransform;
-					}
-					
-					// if transform uses a different node level add a node mapping
-                    if (datalinkTransform.NodeDatalinkColumn != null)
-                    {
-                        var table = primaryTransform.CacheTable;
-
-                        // create a path from the parent to the child column.
-                        var columnPath = new Queue<DexihDatalinkColumn>();
-                        var currentColumn = datalinkTransform.NodeDatalinkColumn;
-                        while (currentColumn != null)
-                        {
-                            columnPath.Enqueue(currentColumn);
-                            currentColumn = currentColumn.ParentColumn;
-                        }
-
-                        currentColumn = columnPath.Dequeue();
-                        var nodeColumn = table.Columns[currentColumn.Name, currentColumn.ColumnGroup];
-                        
-                        while(columnPath.Any())
-                        {
-                            currentColumn = columnPath.Dequeue();
-                            nodeColumn = nodeColumn.ChildColumns[currentColumn.Name, currentColumn.ColumnGroup];
-                        }
-                        
-                        var mapNode = new MapNode(nodeColumn, table);
-                        var nodeTransform = mapNode.Transform;
-                        var nodeMapping = new TransformMapping(nodeTransform, transform.Mappings);
-                        mapNode.OutputTransform = nodeMapping;
-                        
-                        var mappings = new Mappings {mapNode};
-                        transform.Mappings = mappings;
+                        var joinTransformResult = GetSourceTransform(hub, datalinkTransform.JoinDatalinkTable, null, globalVariables, previewMode);
+                        referenceTransform = joinTransformResult.sourceTransform;
                     }
                     
-                    _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}, added joins.  Elapsed: {timer.Elapsed}");
+                    var transform = datalinkTransform.GetTransform(hub, globalVariables, _transformSettings, primaryTransform, referenceTransform, targetTable, _logger);
 
-                    transform.SetInTransform(primaryTransform, referenceTransform);
-
-                    _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  set Inbound Transforms  Elapsed: {timer.Elapsed}");
+                    _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 
                     primaryTransform = transform;
 
@@ -449,7 +389,7 @@ namespace dexih.operations
                 //if the maxDatalinkTransformKey is null (i.e. we are not doing a preview), and there are profiles add a profile transform.
                 if (maxDatalinkTransformKey == null && datalink.DexihDatalinkProfiles != null && datalink.DexihDatalinkProfiles.Count > 0 && datalink.TargetTableKey != null)
                 {
-					var targetTable = hub.GetTableFromKey((long)datalink.TargetTableKey);
+					
 
                     var profileRules = new Mappings();
                     foreach (var profile in datalink.DexihDatalinkProfiles)

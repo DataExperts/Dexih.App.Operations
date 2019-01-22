@@ -246,6 +246,10 @@ namespace dexih.repository
                     }
                 }
 
+                datalinkTransform.NodeDatalinkColumnKey = datalinkTransform.NodeDatalinkColumn?.DatalinkColumnKey;
+                AddColumns(datalinkTransform.NodeDatalinkColumn, columns);
+                datalinkTransform.NodeDatalinkColumn = null;
+
                 // for any source mappings for the transform, copy the tracked instance.
                 foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
                 {
@@ -362,6 +366,12 @@ namespace dexih.repository
                 {
                     datalinkTransform.NodeDatalinkColumn = columns[datalinkTransform.NodeDatalinkColumnKey.Value];
                     if (datalinkTransform.NodeDatalinkColumnKey < 0) datalinkTransform.NodeDatalinkColumnKey = 0;
+                }
+                
+                if (datalinkTransform.NodeDatalinkColumnKey != null && columns.ContainsKey(datalinkTransform.NodeDatalinkColumnKey.Value))
+                {
+                    datalinkTransform.NodeDatalinkColumn = columns[datalinkTransform.NodeDatalinkColumnKey.Value];
+                    if(datalinkTransform.NodeDatalinkColumnKey < 0) datalinkTransform.NodeDatalinkColumnKey = 0;
                 }
                 
                 foreach(var item in datalinkTransform.DexihDatalinkTransformItems)

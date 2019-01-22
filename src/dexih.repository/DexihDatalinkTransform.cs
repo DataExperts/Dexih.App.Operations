@@ -7,8 +7,11 @@ using System.Diagnostics;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using dexih.functions;
 using dexih.functions.Query;
+using dexih.operations;
 using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
 using Microsoft.Extensions.Logging;
@@ -112,7 +115,7 @@ namespace dexih.repository
             return columns;
         }
 
-        public Transform GetTransform(DexihHub hub, GlobalVariables globalVariables, TransformSettings transformSettings, ILogger logger = null)
+        public Transform GetTransform(DexihHub hub, GlobalVariables globalVariables, TransformSettings transformSettings, Transform primaryTransform, Transform referenceTransform, DexihTable targetTable, ILogger logger = null)
         {
             try
             {
@@ -242,16 +245,83 @@ namespace dexih.repository
                             var joinTable = JoinDatalinkTable.GetTable(null, null);
                             mappings.Add(new MapJoinNode(targetColumn, joinTable));
                             break;
+                        case DexihDatalinkTransformItem.ETransformItemType.UnGroup:
+                            var columns = item.DexihFunctionParameters.Select(c => c.DatalinkColumn.GetTableColumn(null)).ToArray();
+                            mappings.Add(new MapUnGroup(sourceColumn, columns));
+                            break;
                     }
                 }
-
-                transform.Mappings = mappings;
-
+                
+                
                 // transform.PassThroughColumns = PassThroughColumns;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;
                 
                 var joinSortColumn = JoinSortDatalinkColumn?.GetTableColumn(null);
                 transform.JoinSortField = joinSortColumn;
+
+                //if this is a validation transform. add the column validations also.
+                if (TransformType == ETransformType.Validation)
+                {
+                        if(targetTable == null)
+                        {
+                            throw new RepositoryException($"The validation transform failed, as a valid target table was not set.");
+                        }
+
+                        foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
+                        {
+                            var columnValidation = hub.DexihColumnValidations.Single(c => c.ColumnValidationKey == column.ColumnValidationKey);
+                            var validation =
+                                new ColumnValidationRun(transformSettings, columnValidation, hub)
+                                {
+                                    DefaultValue = column.DefaultValue
+                                };
+                            var function = validation.GetValidationMapping(column.Name);
+                            transform.Mappings.Add(function);
+                        }
+
+                    logger?.LogTrace($"Adding validation.  Elapsed: {timer.Elapsed}");
+                }
+
+                if (NodeDatalinkColumn != null)
+                {
+                    var parentTransform = primaryTransform;
+                    var parentTable = primaryTransform.CacheTable;
+
+                    // create a path through hierarchy from the parent to the child column.
+                    var columnPath = FindNodeColumnPath(NodeDatalinkColumn, parentTable.Columns);
+
+                    var currentColumn = columnPath[0];
+                    var nodeColumn = parentTable.Columns[currentColumn.Name, currentColumn.ColumnGroup];
+                    
+                        
+//                            // create a new node mapping
+//                            var mapNode = new MapNode(nodeColumn, parentTable);
+//                            var nodeTransform = mapNode.Transform;
+//
+//                            // set the transform mappings
+//                            transform.Mappings = mappings;
+//
+//                            // set the transform mappings, using the transform from the new node
+//                            transform.SetInTransform(nodeTransform, referenceTransform);
+//
+//                            // the mapNode output transform contains 
+//                            mapNode.OutputTransform = transform;
+//
+//                            // create a final mapping, to map the top level node to the top transform.
+//                            transform = new TransformMapping();
+//                            var nodeMappings = new Mappings {mapNode};
+//                            transform.Mappings = nodeMappings;
+//                            transform.SetInTransform(parentTransform);
+
+                    transform = transform.CreateNodeMapping(parentTransform, referenceTransform, mappings, columnPath);
+                }
+                else
+                {
+                    transform.Mappings = mappings;    
+                    transform.SetInTransform(primaryTransform, referenceTransform);
+                }
+
+                
 
                 logger?.LogTrace($"GetTransform {Name}, finished.  Elapsed: {timer.Elapsed}");
 
@@ -263,7 +333,30 @@ namespace dexih.repository
 				throw new RepositoryException($"Failed to construct the transform {Name}.  {ex.Message}", ex);
             }
         }
+        
+        // used to find a node column within a node structure.
+        private TableColumn[] FindNodeColumnPath(DexihDatalinkColumn column, TableColumns columns) {
+            if (column == null || columns == null || !columns.Any()) {
+                return null;
+            }
 
+            var nodeColumn = columns[column.Name, column.ColumnGroup];
+            if (nodeColumn != null)
+            {
+                return new [] { nodeColumn };
+            }
+            
+            foreach(var col in columns) {
+                if (col.ChildColumns != null) {
+                    var returnCol = FindNodeColumnPath(column, col.ChildColumns);
+                    if (returnCol != null) {
+                        return returnCol.Prepend(col).ToArray();
+                    }
+                }
+            }
+
+            return null;
+        }
 
     }
 }
