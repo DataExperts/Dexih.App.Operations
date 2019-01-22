@@ -339,6 +339,7 @@ namespace dexih.operations
                 var newEx = new DatalinkRunException(message, ex);
                 await WriterResult.SetRunStatus(ERunStatus.Abended, message, newEx, CancellationToken.None);
                 WriterResult.RunStatus = ERunStatus.Abended;
+
                 throw new DatalinkRunException(message, ex);
             }
             finally
