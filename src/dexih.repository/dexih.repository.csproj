@@ -3,7 +3,7 @@
     <Description>dexih_repository Class Library</Description>
     <VersionPrefix>0.2.1</VersionPrefix>
     <Authors>Gary</Authors>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
     <AssemblyName>dexih.repository</AssemblyName>
     <OutputType>Library</OutputType>
     <PackageId>dexih.repository</PackageId>
@@ -16,20 +16,15 @@
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.1.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="2.1.3" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.9.0" />
     <PackageReference Include="Microsoft.Extensions.PlatformAbstractions" Version="1.1.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.10.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.functions\dexih.functions.csproj" />
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.transforms\dexih.transforms.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="dexih.operations, Version=0.2.4.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\dexih.application\src\dexih.api\bin\Debug\netcoreapp2.1\dexih.operations.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>

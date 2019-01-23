@@ -292,27 +292,6 @@ namespace dexih.repository
 
                     var currentColumn = columnPath[0];
                     var nodeColumn = parentTable.Columns[currentColumn.Name, currentColumn.ColumnGroup];
-                    
-                        
-//                            // create a new node mapping
-//                            var mapNode = new MapNode(nodeColumn, parentTable);
-//                            var nodeTransform = mapNode.Transform;
-//
-//                            // set the transform mappings
-//                            transform.Mappings = mappings;
-//
-//                            // set the transform mappings, using the transform from the new node
-//                            transform.SetInTransform(nodeTransform, referenceTransform);
-//
-//                            // the mapNode output transform contains 
-//                            mapNode.OutputTransform = transform;
-//
-//                            // create a final mapping, to map the top level node to the top transform.
-//                            transform = new TransformMapping();
-//                            var nodeMappings = new Mappings {mapNode};
-//                            transform.Mappings = nodeMappings;
-//                            transform.SetInTransform(parentTransform);
-
                     transform = transform.CreateNodeMapping(parentTransform, referenceTransform, mappings, columnPath);
                 }
                 else
@@ -320,8 +299,6 @@ namespace dexih.repository
                     transform.Mappings = mappings;    
                     transform.SetInTransform(primaryTransform, referenceTransform);
                 }
-
-                
 
                 logger?.LogTrace($"GetTransform {Name}, finished.  Elapsed: {timer.Elapsed}");
 

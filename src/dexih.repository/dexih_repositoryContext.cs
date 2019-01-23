@@ -1345,8 +1345,8 @@ namespace dexih.repository
                     .HasConversion(
                         v => v.ToString(),
                         v => (ESourceType) Enum.Parse(typeof(ESourceType), v));
-                entity.Property(e => e.SourceDatalinkKey).IsRequired().HasColumnName("source_datalink_key");
-                entity.Property(e => e.SourceTableKey).IsRequired().HasColumnName("source_table_key");
+                entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
+                entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
 
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query")
