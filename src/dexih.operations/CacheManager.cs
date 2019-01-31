@@ -21,6 +21,7 @@ namespace dexih.operations
 
         public string GoogleClientId { get; set; }
         public string MicrosoftClientId { get; set; }
+        public string GoogleMapsAPIKey { get; set; }
 
         public RemoteLibraries DefaultRemoteLibraries { get; set; }
 

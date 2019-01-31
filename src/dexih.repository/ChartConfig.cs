@@ -30,7 +30,8 @@ namespace dexih.repository
             HeatMap,
             TreeMap,
             Cards,
-            Gauge
+            Gauge,
+            Map
         }
         
         public EChartType ChartType { get; set; }
@@ -57,6 +58,8 @@ namespace dexih.repository
         public string MinColumn { get; set; }
         public string MaxColumn { get; set; }
         public string RadiusColumn { get; set; }
+        public string LatitudeColumn { get; set; }
+        public string LongitudeColumn { get; set; }
 
         // pie charts only
         public bool ExplodeSlices { get; set; }

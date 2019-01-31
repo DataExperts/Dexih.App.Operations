@@ -8,7 +8,15 @@ namespace dexih.repository
         public string LogicalName { get; set; }
         public DataType.ETypeCode DataType { get; set; }
         public int Rank { get; set; }
-        
-        public object Value { get; set; }
+
+        private object _value;
+
+        public object Value
+        {
+            get => _value ?? DefaultValue;
+            set => _value = value;
+        } 
+
+        public object DefaultValue { get; set; }
     }
 }
