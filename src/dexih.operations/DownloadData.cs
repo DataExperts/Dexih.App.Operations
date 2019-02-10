@@ -153,7 +153,7 @@ namespace dexih.operations
 
         public enum EDownloadFormat
         {
-            Csv, Excel, Pdf, Raw, Json
+            Csv, Json
         }
     }
 }

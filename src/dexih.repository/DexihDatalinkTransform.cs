@@ -245,6 +245,13 @@ namespace dexih.repository
                             var joinTable = JoinDatalinkTable.GetTable(null, null);
                             mappings.Add(new MapJoinNode(targetColumn, joinTable));
                             break;
+                        case DexihDatalinkTransformItem.ETransformItemType.GroupNode:
+                            if (targetColumn == null)
+                            {
+                                throw new RepositoryException("The node column with the key " + item.TargetDatalinkColumnKey + " had an error.  Please review the mappings and fix any errors.");
+                            }
+                            mappings.Add(new MapGroupNode(targetColumn));
+                            break;
                         case DexihDatalinkTransformItem.ETransformItemType.UnGroup:
                             var columns = item.DexihFunctionParameters.Select(c => c.DatalinkColumn.GetTableColumn(null)).ToArray();
                             mappings.Add(new MapUnGroup(sourceColumn, columns));

@@ -28,7 +28,7 @@ namespace dexih.repository
 		[JsonConverter(typeof(StringEnumConverter))]
 		public enum ETransformItemType
 		{
-			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair, Series, JoinNode, Node, UnGroup
+			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair, Series, JoinNode, GroupNode, Node, UnGroup
 		}
 
 		public DexihDatalinkTransformItem() => DexihFunctionParameters = new HashSet<DexihFunctionParameter>();

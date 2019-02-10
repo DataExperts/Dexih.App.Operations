@@ -44,7 +44,7 @@ namespace dexih.repository
         public long? TargetTableKey { get; set; }
         public long? AuditConnectionKey { get; set; }
 
-        public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; }
+        public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; } = TransformDelta.EUpdateStrategy.Reload;
 
         public bool VirtualTargetTable { get; set; }
 
