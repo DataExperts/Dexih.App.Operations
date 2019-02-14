@@ -25,6 +25,18 @@ namespace dexih.repository
         public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         /// <summary>
+        /// Indicates if more user input is required.
+        /// </summary>
+        /// <returns></returns>
+        public bool RequiresUserInput()
+        {
+            if (AppSettings.UserPrompt) return true;
+            if (string.IsNullOrEmpty(AppSettings.User) || string.IsNullOrEmpty(AppSettings.UserToken)) return true;
+            
+            return false;
+        }
+
+        /// <summary>
         /// Gets a list of download urls in sequence of priority
         /// </summary>
         /// <returns></returns>
@@ -154,7 +166,7 @@ namespace dexih.repository
         /// <summary>
         /// Indicates the remote agent is running for the first time, which will prompt user to enter settings.
         /// </summary>
-        public bool FirstRun { get; set; } = true;
+        public bool UserPrompt { get; set; } = true;
         
         /// <summary>
         /// Unique ID for the remote agent.
