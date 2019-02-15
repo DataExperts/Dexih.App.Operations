@@ -286,7 +286,7 @@ namespace dexih.operations
                 if (surrogateKey != null)
                 {
                     surrogateKeyValue =
-                        await TargetConnection.GetIncrementalKey(targetTable, surrogateKey, cancellationToken);
+                        await TargetConnection.GetNextKey(targetTable, surrogateKey, cancellationToken);
                 }
 
                 var targetReader = TargetConnection.GetTransformReader(targetTable);
@@ -300,7 +300,7 @@ namespace dexih.operations
                 
                 transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, _globalVariables.EncryptionKey);
 
-                var writer = new TransformWriter();
+                var writer = new TransformWriterBulk();
                 if (Datalink.RowsPerCommit > 0)
                 {
                     writer.CommitSize = Datalink.RowsPerCommit;

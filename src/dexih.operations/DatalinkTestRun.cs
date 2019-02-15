@@ -448,7 +448,7 @@ namespace dexih.operations
             }
 
             // copy the test data across.
-            var writer = new TransformWriter();
+            var writer = new TransformWriterBulk();
             var writerResult = new TransformWriterResult();
             var finished = await writer.WriteAllRecords(writerResult, sourceConnection.GetTransformReader(sourceTable), testTable, testConnection, cancellationToken);
 
