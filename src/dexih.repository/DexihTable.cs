@@ -15,7 +15,7 @@ namespace dexih.repository
         public DexihTable()
         {
             DexihTableColumns = new HashSet<DexihTableColumn>();
-            DexihTargetTables = new HashSet<DexihDatalink>();
+            DexihTargetTables = new HashSet<DexihDatalinkTarget>();
             EntityStatus = new EntityStatus();
         }
 
@@ -86,7 +86,7 @@ namespace dexih.repository
         public string FileSample {get;set;}
 
         [JsonIgnore, CopyIgnore]
-        public ICollection<DexihDatalink> DexihTargetTables { get; set; }
+        public ICollection<DexihDatalinkTarget> DexihTargetTables { get; set; }
 
 	    [JsonIgnore, CopyIgnore]
 	    public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }

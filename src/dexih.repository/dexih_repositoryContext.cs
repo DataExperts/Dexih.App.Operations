@@ -573,6 +573,40 @@ namespace dexih.repository
 
             });
             
+            modelBuilder.Entity<DexihDatalinkTarget>(entity =>
+            {
+                entity.HasKey(e => e.DatalinkTargetKey).HasName("PK_dexih_datalink_target");
+
+                entity.ToTable("dexih_datalink_target");
+
+                entity.Property(e => e.DatalinkTargetKey).HasColumnName("datalink_target_key");
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
+                entity.Property(e => e.NodeDatalinkColumnKey).HasColumnName("node_datalink_column_key");
+                entity.Property(e => e.TableKey).HasColumnName("table_key");
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                
+                entity.HasOne(d => d.Datalink)
+                    .WithMany(p => p.DexihDatalinkTargets)
+                    .HasForeignKey(d => d.DatalinkKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_target_datalink");
+                
+                entity.HasOne(d => d.NodeDatalinkColumn)
+                    .WithMany(p => p.DexihDatalinkTargetNodeColumn)
+                    .HasForeignKey(d => d.NodeDatalinkColumnKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_target_datalink_node_column");
+                
+                entity.HasOne(d => d.Table)
+                    .WithMany(p => p.DexihTargetTables)
+                    .HasForeignKey(d => d.TableKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_target_table");
+            });
+            
             modelBuilder.Entity<DexihDatalinkTest>(entity =>
             {
                 entity.HasKey(e => e.DatalinkTestKey).HasName("PK_dexih_datalink_tests");
@@ -856,7 +890,7 @@ namespace dexih.repository
                         v => (DexihDatalink.EDatalinkType) Enum.Parse(typeof(DexihDatalink.EDatalinkType), v));
                 
                 entity.Property(e => e.SourceDatalinkTableKey).HasColumnName("source_datalink_table_key");
-                entity.Property(e => e.TargetTableKey).HasColumnName("target_table_key");
+                // entity.Property(e => e.TargetTableKey).HasColumnName("target_table_key");
                 entity.Property(e => e.AuditConnectionKey).HasColumnName("audit_connection_key");
 
                 entity.Property(e => e.MaxRows).HasColumnName("max_rows");
@@ -865,7 +899,12 @@ namespace dexih.repository
                 entity.Property(e => e.RollbackOnFail).HasColumnName("rollback_on_fail");
                 entity.Property(e => e.RowsPerCommit).HasColumnName("rows_per_commit");
                 entity.Property(e => e.RowsPerProgress).HasColumnName("rows_per_progress");
-				entity.Property(e => e.VirtualTargetTable).HasColumnName("virtual_target_table");
+
+                entity.Property(e => e.LoadStrategy).HasColumnName("load_strategy").HasMaxLength(50)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (TransformWriterTarget.ETransformWriterMethod) Enum.Parse(typeof(TransformWriterTarget.ETransformWriterMethod), v));
+                
                 entity.Property(e => e.UpdateStrategy).HasColumnName("update_strategy").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
@@ -890,11 +929,11 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalinks_dexih_hubs");
 
-                entity.HasOne(d => d.TargetTable)
-                    .WithMany(p => p.DexihTargetTables)
-                    .HasForeignKey(d => d.TargetTableKey)
-                    .OnDelete(DeleteBehavior.Restrict)
-                    .HasConstraintName("FK_dexih_target_tables");
+//                entity.HasOne(d => d.TargetTable)
+//                    .WithMany(p => p.DexihTargetTables)
+//                    .HasForeignKey(d => d.TargetTableKey)
+//                    .OnDelete(DeleteBehavior.Restrict)
+//                    .HasConstraintName("FK_dexih_target_tables");
 
                 entity.HasOne(d => d.AuditConnection)
                     .WithMany(p => p.DexihDatalinkAuditConnections)
@@ -1382,6 +1421,7 @@ namespace dexih.repository
         public virtual DbSet<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
         public virtual DbSet<DexihDatalinkStep> DexihDatalinkStep { get; set; }
 	    public virtual DbSet<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
+        public virtual DbSet<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
 	    public virtual DbSet<DexihDatalinkTest> DexihDatalinkTests { get; set; }
 	    public virtual DbSet<DexihDatalinkTestStep> DexihDatalinkTestSteps { get; set; }
 	    public virtual DbSet<DexihDatalinkTestTable> DexihDatalinkTestTables { get; set; }

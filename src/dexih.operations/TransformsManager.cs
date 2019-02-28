@@ -345,10 +345,16 @@ namespace dexih.operations
                 }
 
                 DexihTable targetTable = null;
-                if (datalink.TargetTableKey != null)
+                var target = datalink.DexihDatalinkTargets.FirstOrDefault(c => c.NodeDatalinkColumnKey == null);
+                if (target != null)
                 {
-                    targetTable = hub.GetTableFromKey((long) datalink.TargetTableKey);
+                    targetTable = hub.GetTableFromKey(target.TableKey);
                 }
+                
+//                if (datalink.TargetTableKey != null)
+//                {
+//                    targetTable = hub.GetTableFromKey((long) datalink.TargetTableKey);
+//                }
 
                 _logger?.LogTrace($"CreateRunPlan {datalink.Name}.  Added incremental filter.  Elapsed: {timer.Elapsed}");
 
@@ -387,7 +393,7 @@ namespace dexih.operations
                 }
 
                 //if the maxDatalinkTransformKey is null (i.e. we are not doing a preview), and there are profiles add a profile transform.
-                if (maxDatalinkTransformKey == null && datalink.DexihDatalinkProfiles != null && datalink.DexihDatalinkProfiles.Count > 0 && datalink.TargetTableKey != null)
+                if (maxDatalinkTransformKey == null && datalink.DexihDatalinkProfiles != null && datalink.DexihDatalinkProfiles.Count > 0 && datalink.LoadStrategy != TransformWriterTarget.ETransformWriterMethod.None)
                 {
 					
 

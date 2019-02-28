@@ -61,6 +61,9 @@ namespace dexih.repository
 
         [JsonIgnore, CopyIgnore]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransformsNodeColumn { get; set; }
+        
+        [JsonIgnore, CopyIgnore]
+        public ICollection<DexihDatalinkTarget> DexihDatalinkTargetNodeColumn { get; set; }
 
 		public TableColumn GetTableColumn(InputColumn[] inputColumns)
 		{

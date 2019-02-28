@@ -113,6 +113,10 @@ namespace dexih.operations
                 var datalinks = dbContext.DexihDatalinks
                     .Where(c => c.IsValid && c.HubKey == HubKey);
 
+                await dbContext.DexihDatalinkTargets
+	                .Where(c => c.IsValid && c.HubKey == HubKey)
+	                .LoadAsync();
+
                 await dbContext.DexihDatalinkTables
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .LoadAsync();
@@ -273,10 +277,13 @@ namespace dexih.operations
 					await AddDatalinks(new[] { datalink.SourceDatalinkTable.SourceDatalinkKey.Value }, dbContext);
 				}
 
-                if (datalink.TargetTableKey != null)
-                {
-                    await AddTables(new[] {(long)datalink.TargetTableKey}, dbContext);
-                }
+//                if (datalink.TargetTableKey != null)
+//                {
+//                    await AddTables(new[] {(long)datalink.TargetTableKey}, dbContext);
+//                }
+                
+                var tableKeys = datalink.DexihDatalinkTargets.Select(c => c.TableKey);
+                await AddTables(tableKeys, dbContext);
 
                 if (datalink.AuditConnectionKey != null)
                 {
@@ -354,10 +361,13 @@ namespace dexih.operations
 				AddDatalinks(new[] { datalink.SourceDatalinkTable.SourceDatalinkKey.Value }, hub);
 			}
 
-			if (datalink.TargetTableKey != null)
-			{
-				AddTables(new[] {(long)datalink.TargetTableKey}, hub);
-			}
+//			if (datalink.TargetTableKey != null)
+//			{
+//				AddTables(new[] {(long)datalink.TargetTableKey}, hub);
+//			}
+
+			var tableKeys = datalink.DexihDatalinkTargets.Select(c => c.TableKey);
+			AddTables(tableKeys, hub);
 
 			if (datalink.AuditConnectionKey != null)
 			{
@@ -647,15 +657,19 @@ namespace dexih.operations
 			    AddDatalinks(new[] { datalink.SourceDatalinkTable.SourceDatalinkKey.Value }, hub);
 		    }
 
-		    if (datalink.TargetTableKey != null)
-		    {
-			    AddTables(new[] {(long)datalink.TargetTableKey}, hub);
-		    }
+//		    if (datalink.TargetTableKey != null)
+//		    {
+//			    AddTables(new[] {(long)datalink.TargetTableKey}, hub);
+//		    }
 
 		    if (datalink.AuditConnectionKey != null)
 		    {
 			    AddConnections(new[] {datalink.AuditConnectionKey.Value}, false, hub);
 		    }
+
+		    var tableKeys = datalink.DexihDatalinkTargets.Select(c => c.TableKey);
+		    AddTables(tableKeys, hub);
+		    
 		    
 		    foreach (var datalinkTransform in datalink.DexihDatalinkTransforms)
 		    {
@@ -793,6 +807,10 @@ namespace dexih.operations
 		            .Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
 		            .LoadAsync();
 
+	            await dbContext.DexihDatalinkTargets
+		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .ToArrayAsync();
+		            
 	            var transforms = await dbContext.DexihDatalinkTransforms
 		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
 		            .ToArrayAsync();

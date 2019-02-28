@@ -26,11 +26,13 @@ namespace dexih.repository
             Query
         }
 
+
         public DexihDatalink()
         {
             DexihDatalinkProfiles = new HashSet<DexihDatalinkProfile>();
             DexihDatalinkSteps = new HashSet<DexihDatalinkStep>();
             DexihDatalinkTransforms = new HashSet<DexihDatalinkTransform>();
+            DexihDatalinkTargets = new HashSet<DexihDatalinkTarget>();
             EntityStatus = new EntityStatus();
         }
 
@@ -41,12 +43,13 @@ namespace dexih.repository
         public string Name { get; set; }
         public string Description { get; set; }
         public long SourceDatalinkTableKey { get; set; }
-        public long? TargetTableKey { get; set; }
+        // public long? TargetTableKey { get; set; }
         public long? AuditConnectionKey { get; set; }
 
         public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; } = TransformDelta.EUpdateStrategy.Reload;
+        
+        public TransformWriterTarget.ETransformWriterMethod LoadStrategy { get; set; }
 
-        public bool VirtualTargetTable { get; set; }
 
         public EDatalinkType DatalinkType { get; set; }
 
@@ -67,7 +70,9 @@ namespace dexih.repository
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
+        public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
+        
+        public ICollection<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
 
 
         /// <summary>
@@ -81,11 +86,12 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public DexihHub Hub { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public DexihTable TargetTable { get; set; }
+        //[JsonIgnore, CopyIgnore]
+        // public DexihTable TargetTable { get; set; }
         
 	    [JsonIgnore, CopyReference]
         public DexihConnection AuditConnection { get; set; }
+
 
         /// <summary>
         /// Gets the output columns (including join/passthrough columns for a transform).

@@ -280,7 +280,7 @@ namespace dexih.operations
 				else if (writerResult.RunStatus == ERunStatus.Finished || Datajob.FailAction == EFailAction.Continue)
 				{
 					//see if any of the pending jobs, should be started or abended
-					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterResult == null || c.WriterResult.RunStatus == ERunStatus.Initialised))
+					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterTargets.WriterResult == null || c.WriterTargets.WriterResult.RunStatus == ERunStatus.Initialised))
 					{
 						var dbStep = Datajob.DexihDatalinkSteps.SingleOrDefault(c => c.DatalinkStepKey == datalinkStep.ReferenceKey);
 						if (dbStep.DexihDatalinkDependencies.Any(c => c.DatalinkStepKey == writerResult.ReferenceKey))
@@ -291,7 +291,7 @@ namespace dexih.operations
 							{
 								var dependentStep = DatalinkSteps.SingleOrDefault(c => c.ReferenceKey == dbDependentStep.DatalinkStepKey);
 
-								if (dependentStep.WriterResult.RunStatus != ERunStatus.Finished)
+								if (dependentStep.WriterTargets.WriterResult.RunStatus != ERunStatus.Finished)
 								{
 									allFinished = false;
 									break;
@@ -322,7 +322,7 @@ namespace dexih.operations
 			var finished = true;
 			foreach (var step in DatalinkSteps)
 			{
-				var result = step.WriterResult;
+				var result = step.WriterTargets.WriterResult;
 				if (result != null) //this can sometimes be null as some datalinks have progressed whilst others are still inializing.
 				{
 					switch (result.RunStatus)

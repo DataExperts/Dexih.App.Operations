@@ -87,7 +87,7 @@ namespace dexih.repository
                     case EDeltaType.UpdateAuditKey:
                     case EDeltaType.CreateDate:
                     case EDeltaType.UpdateDate:
-                    case EDeltaType.SurrogateKey:
+                    case EDeltaType.AutoIncrement:
                     case EDeltaType.ValidationStatus:
                         return true;
                 }
@@ -134,7 +134,7 @@ namespace dexih.repository
         {
             switch (DeltaType)
             {
-                case EDeltaType.SurrogateKey:
+                case EDeltaType.AutoIncrement:
                     DeltaType = EDeltaType.SourceSurrogateKey;
                     break;
                 case EDeltaType.CreateDate:
