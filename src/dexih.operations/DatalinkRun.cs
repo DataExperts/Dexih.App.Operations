@@ -27,8 +27,6 @@ namespace dexih.operations
 
         #endregion
 
-        public long ReferenceKey; //used to track the datalink.  this can be the datalinkKey or the datalinkStep key depending on where it is run from
-        
         public TransformWriterTargets WriterTargets { get; set; }
         
         private (Transform sourceTransform, Table SourceTable) Reader { get; set; }
@@ -37,88 +35,84 @@ namespace dexih.operations
         
         // private DexihTable _targetTable;
         private readonly DexihHub _hub;
-        private readonly SelectQuery _selectQuery;
 		private readonly TransformSettings _transformSettings;
         private readonly InputColumn[] _inputColumns;
-
-        private readonly GlobalVariables _globalVariables;
-
-        private readonly long _parentAuditKey;
-
         private readonly ILogger _logger;
+        
+        public long ParentAuditKey { get; }
+
+        private readonly TransformWriterOptions _transformWriterOptions;
 
 
-        public DatalinkRun(TransformSettings transformSettings, ILogger logger, DexihDatalink datalink, DexihHub hub, GlobalVariables globalVariables, string auditType, long referenceKey, long parentAuditKey, ETriggerMethod triggerMethod, string triggerInfo, bool truncateTarget, bool resetIncremental, object resetIncrementalValue, SelectQuery selectQuery, InputColumn[] inputColumns)
+        public DatalinkRun(TransformSettings transformSettings, ILogger logger, long parentAuditKey, DexihDatalink datalink, DexihHub hub, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions)
         {
+            ParentAuditKey = parentAuditKey;
             _transformSettings = transformSettings;
             _logger = logger;
             _hub = hub;
             Datalink = datalink;
-            _selectQuery = selectQuery;
             _inputColumns = inputColumns;
-            _globalVariables = globalVariables;
-
-            ReferenceKey = referenceKey;
-            _parentAuditKey = parentAuditKey;
+            _transformWriterOptions = transformWriterOptions;
             
-            var primaryWriterResult = new TransformWriterResult
-            {
-                HubKey = hub.HubKey,
-                AuditConnectionKey = datalink.AuditConnectionKey ?? 0,
-                AuditType = auditType,
-                ReferenceName = datalink.Name,
-                ReferenceKey = referenceKey,
-                SourceTableKey = datalink.SourceDatalinkTable.SourceTable?.TableKey??0,
-                SourceTableName = datalink.SourceDatalinkTable.Name,
-                TargetTableKey = 0,
-                TargetTableName = "",
-                TriggerInfo = triggerInfo,
-                TriggerMethod =  triggerMethod,
-                ResetIncremental = resetIncremental,
-                ResetIncrementalValue = resetIncrementalValue,
-                TruncateTarget = truncateTarget
-            };
+            Connection auditConnection;
 
-            WriterTargets = new TransformWriterTargets()
-            {
-                WriterResult = primaryWriterResult
-            };
+                if (Datalink.AuditConnectionKey > 0)
+                {
+                    var dbAuditConnection =
+                        _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == Datalink.AuditConnectionKey);
 
-            foreach (var target in datalink.DexihDatalinkTargets)
-            {
-                var writerResult = new TransformWriterResult
-                {
-                    HubKey = hub.HubKey,
-                    AuditConnectionKey = datalink.AuditConnectionKey ?? 0,
-                    AuditType = auditType,
-                    ReferenceName = datalink.Name,
-                    ReferenceKey = referenceKey,
-                    TriggerInfo = triggerInfo,
-                    TriggerMethod =  triggerMethod,
-                    SourceTableKey = datalink.SourceDatalinkTable.SourceTable?.TableKey??0,
-                    SourceTableName = datalink.SourceDatalinkTable.Name,
-                    TargetTableKey = target.TableKey,
-                    TargetTableName = target.Table?.Name,
-                    ResetIncremental = resetIncremental,
-                    ResetIncrementalValue = resetIncrementalValue,
-                    TruncateTarget = truncateTarget
-                };
-                
-                var dbTargetTable = _hub.GetTableFromKey(target.TableKey);
-                if (dbTargetTable == null)
-                {
-                    throw new DatalinkRunException($"A target table with the key {target.TableKey} could not be found.");
+                    if (dbAuditConnection == null)
+                    {
+                        throw new DatalinkRunException(
+                            $"Audit connection with key {Datalink.AuditConnectionKey} was not found.");
+                    }
+
+                    auditConnection = dbAuditConnection.GetConnection(_transformSettings);
                 }
-                
-                var dbTargetConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == dbTargetTable.ConnectionKey);
-                var targetConnection = dbTargetConnection.GetConnection(_transformSettings);
-                var targetTable = dbTargetTable.GetTable(targetConnection, transformSettings);
+                else
+                {
+                    auditConnection = new ConnectionMemory();
+                }
 
-                var rejectTable = dbTargetTable.GetRejectedTable(targetConnection, transformSettings);
 
-                var writerTarget = new TransformWriterTarget(datalink.LoadStrategy, writerResult, targetConnection, targetTable, targetConnection, rejectTable, datalink.RowsPerCommit);
-                WriterTargets.Add(writerTarget);
-            }
+                var primaryWriterResult = new TransformWriterResult(_hub.HubKey,
+                    Datalink.AuditConnectionKey ?? 0, "Datalink", datalink.DatalinkKey,
+                    ParentAuditKey, Datalink.Name, Datalink.SourceDatalinkTable.SourceTable?.TableKey ?? 0,
+                    Datalink.SourceDatalinkTable.Name, 0, "", auditConnection, _transformWriterOptions);
+
+
+                WriterTargets = new TransformWriterTargets()
+                {
+                    WriterResult = primaryWriterResult
+                };
+
+                foreach (var target in Datalink.DexihDatalinkTargets)
+                {
+                    var table = hub.GetTableFromKey(target.TableKey);
+                    
+                    var writerResult = new TransformWriterResult(_hub.HubKey,
+                        Datalink.AuditConnectionKey ?? 0, "Table", target.TableKey,
+                        ParentAuditKey, Datalink.Name, Datalink.SourceDatalinkTable.SourceTable?.TableKey ?? 0,
+                        Datalink.SourceDatalinkTable.Name, target.TableKey, table?.Name ?? "", auditConnection, _transformWriterOptions);
+                    
+                    var dbTargetTable = _hub.GetTableFromKey(target.TableKey);
+                    if (dbTargetTable == null)
+                    {
+                        throw new DatalinkRunException(
+                            $"A target table with the key {target.TableKey} could not be found.");
+                    }
+
+                    var dbTargetConnection =
+                        _hub.DexihConnections.Single(c => c.ConnectionKey == dbTargetTable.ConnectionKey);
+                    var targetConnection = dbTargetConnection.GetConnection(_transformSettings);
+                    var targetTable = dbTargetTable.GetTable(targetConnection, _transformSettings);
+
+                    var rejectTable = dbTargetTable.GetRejectedTable(targetConnection, _transformSettings);
+
+                    var writerTarget = new TransformWriterTarget(Datalink.LoadStrategy, writerResult, targetConnection,
+                        targetTable, targetConnection, rejectTable, Datalink.RowsPerCommit);
+                    WriterTargets.Add(writerTarget);
+                }
         }
 
         private void ResetEvents()
@@ -131,68 +125,37 @@ namespace dexih.operations
         /// <summary>
         /// Initializes properties required to run the datalink.  Also adds new row to the audit table.
         /// </summary>
-        /// <param name="parentAuditKey"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="DatalinkRunException"></exception>
-        public async Task Initialize(long parentAuditKey, CancellationToken cancellationToken)
+        public async Task Initialize(CancellationToken cancellationToken)
         {
             try
             {
                 var timer = Stopwatch.StartNew();
                 _logger.LogTrace($"Initialize datalink {Datalink.Name} started.");
-                
-//                if(Datalink.TargetTableKey == null)
-//                {
-//                    throw new DatalinkRunException("No target table specified.");
-//                }
-//                _targetTable = _hub.GetTableFromKey((long)Datalink.TargetTableKey);
-//                if (_targetTable == null)
-//                {
-//                    throw new DatalinkRunException($"A target table with the key {Datalink.TargetTableKey} could not be found.");
-//                }
-//                
-//                var dbConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == _targetTable.ConnectionKey);
-//                TargetConnection = dbConnection.GetConnection(_transformSettings);
-
 
                 ResetEvents();
-                
+
                 WriterTargets.OnStatusUpdate += Datalink_OnStatusUpdate;
                 WriterTargets.OnProgressUpdate += Datalink_OnProgressUpdate;
 
-                Connection auditConnection;
+                string sourceName = null;
+                long sourceKey = 0;
 
-                if (Datalink.AuditConnectionKey > 0)
-                {
-
-                    var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == Datalink.AuditConnectionKey);
-
-                    if (dbAuditConnection == null)
-                    {
-                        throw new DatalinkRunException($"Audit connection with key {Datalink.AuditConnectionKey} was not found.");
-                    }
-                    auditConnection = dbAuditConnection.GetConnection(_transformSettings);
-                }
-                else
-                {
-                    auditConnection = new ConnectionMemory();
-                }
-
-				string sourceName = null;
-				long sourceKey = 0;
-
-                switch(Datalink.SourceDatalinkTable.SourceType)
+                switch (Datalink.SourceDatalinkTable.SourceType)
                 {
                     case ESourceType.Table:
                         if (Datalink.SourceDatalinkTable.SourceTableKey == null)
                         {
                             throw new DatalinkRunException("No source table specified.");
                         }
+
                         var sourceTable = _hub.GetTableFromKey(Datalink.SourceDatalinkTable.SourceTableKey.Value);
                         if (sourceTable == null)
                         {
-                            throw new DatalinkRunException($"A source table with the key {Datalink.SourceDatalinkTable.SourceTableKey.Value} could not be found.");
+                            throw new DatalinkRunException(
+                                $"A source table with the key {Datalink.SourceDatalinkTable.SourceTableKey.Value} could not be found.");
                         }
 
                         sourceKey = Datalink.SourceDatalinkTable.SourceTableKey.Value;
@@ -203,11 +166,15 @@ namespace dexih.operations
                         {
                             throw new DatalinkRunException("No source datalink specified.");
                         }
-                        var sourceDatalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == Datalink.SourceDatalinkTable.SourceDatalinkKey);
+
+                        var sourceDatalink = _hub.DexihDatalinks.SingleOrDefault(c =>
+                            c.DatalinkKey == Datalink.SourceDatalinkTable.SourceDatalinkKey);
                         if (sourceDatalink == null)
                         {
-                            throw new DatalinkRunException($"A source datalink with the key {Datalink.SourceDatalinkTable.SourceDatalinkKey.Value} could not be found.");
+                            throw new DatalinkRunException(
+                                $"A source datalink with the key {Datalink.SourceDatalinkTable.SourceDatalinkKey.Value} could not be found.");
                         }
+
                         sourceKey = Datalink.SourceDatalinkTable.SourceDatalinkKey.Value;
                         sourceName = Datalink?.Name;
                         break;
@@ -220,10 +187,12 @@ namespace dexih.operations
                         {
                             throw new DatalinkRunException("No source function specified.");
                         }
+
                         var sourceFunction = _hub.GetTableFromKey(Datalink.SourceDatalinkTable.SourceTableKey.Value);
                         if (sourceFunction == null)
                         {
-                            throw new DatalinkRunException($"A source function with the key {Datalink.SourceDatalinkTable.SourceTableKey.Value} could not be found.");
+                            throw new DatalinkRunException(
+                                $"A source function with the key {Datalink.SourceDatalinkTable.SourceTableKey.Value} could not be found.");
                         }
 
                         sourceKey = Datalink.SourceDatalinkTable.SourceTableKey.Value;
@@ -231,11 +200,12 @@ namespace dexih.operations
                         break;
                 }
 
-                await WriterTargets.Initialize(parentAuditKey, auditConnection, cancellationToken);
+                await WriterTargets.Initialize(cancellationToken);
                 WriterTargets.OnProgressUpdate += Datalink_OnProgressUpdate;
                 WriterTargets.OnStatusUpdate += Datalink_OnStatusUpdate;
 
-                _logger.LogTrace($"Initialize datalink {Datalink.Name} audit table initialized.  Elapsed: {timer.Elapsed}.");
+                _logger.LogTrace(
+                    $"Initialize datalink {Datalink.Name} audit table initialized.  Elapsed: {timer.Elapsed}.");
 
             }
             catch (Exception ex)
@@ -258,7 +228,7 @@ namespace dexih.operations
             {
                 var transformManager = new TransformsManager(_transformSettings, _logger);
                 //Get the last Transform that will load the target table.
-                Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, _globalVariables, null, WriterTargets.WriterResult?.LastMaxIncrementalValue, WriterTargets.WriterResult?.TruncateTarget??false, _selectQuery);
+                Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, null, WriterTargets.WriterResult?.LastMaxIncrementalValue, _transformWriterOptions);
             }
             catch (Exception ex)
             {
@@ -286,50 +256,61 @@ namespace dexih.operations
 
                 var sourceTransform = Reader.sourceTransform;
 
-                switch (Datalink.UpdateStrategy)
+                var writeTasks = new List<Task<bool>>();
+
+                foreach (var target in WriterTargets.Items)
                 {
-                    case TransformDelta.EUpdateStrategy.AppendUpdate:
-                    case TransformDelta.EUpdateStrategy.AppendUpdateDelete:
-                    case TransformDelta.EUpdateStrategy.AppendUpdatePreserve:
-                    case TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve:
-                        if (WriterTargets.Items.Count != 1)
-                        {
-                            //TODO allow multiple delta targets.
-                            throw new DatalinkRunException("The delta strategies require just one target at the top node level.");
-                        }
+                    var targetReader = target.TargetConnection.GetTransformReader(target.TargetTable);
 
-                        var target = WriterTargets.Items[0];
-                        var targetReader = target.TargetConnection.GetTransformReader(target.TargetTable);
-                        var transformDelta = new TransformDelta(Reader.sourceTransform, targetReader,
-                            Datalink.UpdateStrategy, target.CurrentAutoIncrementKey, Datalink.AddDefaultRow);
-
-                        if (!await transformDelta.Open(target.WriterResult?.AuditKey??0, null, cancellationToken))
-                        {
-                            throw new DatalinkRunException("Failed to open the data reader.");
-                        }
-                
-                        transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, _globalVariables.EncryptionKey);
-                        sourceTransform = transformDelta;
-                        break;
-                }
-
-                var writer = new TransformWriter();
-                
-                var runJob = await writer.WriteRecordsAsync(sourceTransform, WriterTargets, cancellationToken);
-
-                if (!runJob)
-                {
-                    if (WriterTargets.WriterResult.RunStatus != ERunStatus.Abended )
+                    Transform sourceReader;
+                    if (WriterTargets.Items.Count > 1)
                     {
-                        throw new DatalinkRunException($"Running datalink failed.");
+                        sourceReader = Reader.sourceTransform.GetThread();
                     }
-
-                    if (WriterTargets.WriterResult.RunStatus != ERunStatus.Cancelled)
+                    else
                     {
-                        throw new DatalinkRunException($"Running datalink was cancelled.");
+                        sourceReader = Reader.sourceTransform;
                     }
                     
-                    return false;
+                    var transformDelta = new TransformDelta(sourceReader, targetReader,
+                        Datalink.UpdateStrategy, target.CurrentAutoIncrementKey, Datalink.AddDefaultRow);
+
+                    transformDelta.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields,
+                        _transformWriterOptions.GlobalVariables?.EncryptionKey);
+
+                    if (!await transformDelta.Open(target.WriterResult?.AuditKey ?? 0, null, cancellationToken))
+                    {
+                        throw new DatalinkRunException("Failed to open the data reader.");
+                    }
+
+                    var writer = new TransformWriter();
+                    var targets = new TransformWriterTargets {WriterResult = WriterTargets.WriterResult};
+                    targets.Add(target);
+
+                    writeTasks.Add(writer.WriteRecordsAsync(transformDelta, targets, cancellationToken));
+                }
+
+                await Task.WhenAll(writeTasks);
+
+                foreach (var task in writeTasks)
+                {
+                    var runJob = task.Result;
+
+                    if (!runJob)
+                    {
+
+                        if (WriterTargets.WriterResult.RunStatus == ERunStatus.Abended)
+                        {
+                            throw new DatalinkRunException($"Running datalink failed.");
+                        }
+
+                        if (WriterTargets.WriterResult.RunStatus == ERunStatus.Cancelled)
+                        {
+                            throw new DatalinkRunException($"Running datalink was cancelled.");
+                        }
+
+                        throw new DatalinkRunException("Datalink ended unexpectedly.");
+                    }
                 }
 
                 return true;

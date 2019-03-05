@@ -1402,31 +1402,13 @@ namespace dexih.operations
 
 					DexihDatalink existingDatalink;
 
+					var tables = new Dictionary<long, DexihTable>();
+					
 					// get the existing datalink so we save over existing data.
 					// if there is no existing datalink, create a new one.
 					if (datalink.DatalinkKey <= 0)
 					{
 						existingDatalink = new DexihDatalink();
-
-//						if (includeTargetTable && datalink.TargetTable != null)
-//						{
-//							existingDatalink.TargetTable = datalink.TargetTable;
-//						}
-
-						if (includeTargetTable)
-						{
-							foreach (var target in datalink.DexihDatalinkTargets)
-							{
-								var existingTarget =
-									existingDatalink.DexihDatalinkTargets.SingleOrDefault(c =>
-										c.DatalinkTargetKey == target.DatalinkTargetKey);
-								if (existingTarget != null && target.Table != null)
-								{
-									existingTarget.Table = target.Table;
-								}
-							}
-						}
-
 						DbContext.Add(existingDatalink);
 					}
 					else
@@ -1438,6 +1420,19 @@ namespace dexih.operations
 					// get columns from the repository instance, and merge the tracked instances into the new one.
 					var columns = existingDatalink.GetAllDatalinkColumns();
 					var newColumns = datalink.GetAllDatalinkColumns();
+
+					// cache all the target tables.
+					if (includeTargetTable)
+					{
+						foreach (var target in datalink.DexihDatalinkTargets)
+						{
+							if (target.Table != null)
+							{
+								target.TableKey = target.Table.TableKey;
+								tables.Add(target.TableKey, target.Table);
+							}
+						}
+					}
 
 					// copy newColumns over existing column instances
 					foreach (var newColumn in newColumns.Values)
@@ -1466,16 +1461,20 @@ namespace dexih.operations
 					{
 						foreach (var target in existingDatalink.DexihDatalinkTargets)
 						{
-							if (target.Table != null)
+							if (tables.TryGetValue(target.TableKey, out var table))
 							{
-								target.TableKey = target.Table.TableKey;
+								target.Table = table;
 							}
 						}
 					}
 
+					if (existingDatalink.SourceDatalinkTable != null)
+					{
+						existingDatalink.SourceDatalinkTableKey = existingDatalink.SourceDatalinkTable.DatalinkTableKey;
+					}
+
 					existingDatalink.UpdateDate = DateTime.Now;
 					savedDatalinks.Add(existingDatalink);
-
 
 //                    if (datalink.DatalinkKey <= 0)
 //                    {
@@ -1524,11 +1523,11 @@ namespace dexih.operations
 //                    }
 
 					// uncomment to check changes.
-					var modifiedEntries = DbContext.ChangeTracker
-						.Entries()
-						.Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
-						.Select(x => x)
-						.ToList();
+//					var modifiedEntries = DbContext.ChangeTracker
+//						.Entries()
+//						.Where(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted)
+//						.Select(x => x)
+//						.ToList();
 					
 					await SaveHubChangesAsync(hubKey);
 
@@ -1738,7 +1737,7 @@ namespace dexih.operations
 	                    else
 	                    {
 		                    targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns, namingStandards);
-		                    var target = new DexihDatalinkTarget {Table = targetTable};
+		                    var target = new DexihDatalinkTarget {Table = targetTable, IsValid = true};
 		                    datalink.DexihDatalinkTargets.Add(target);
 //		                    datalink.TargetTable = targetTable;
 		                    datalink.LoadStrategy = TransformWriterTarget.ETransformWriterMethod.Bulk;

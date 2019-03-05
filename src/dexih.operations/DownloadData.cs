@@ -76,9 +76,14 @@ namespace dexih.operations
                         {
                             throw new DownloadDataException($"The datalink with key {downloadObject.ObjectKey} could not be found in the cache.");
                         }
+
+                        var transformWriterOptions = new TransformWriterOptions()
+                        {
+                            PreviewMode = true
+                        };
                         
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(cache.Hub, dbDatalink, downloadObject.InputColumns, null, downloadObject.DatalinkTransformKey, false, previewMode: true);
+                        var runPlan = transformManager.CreateRunPlan(cache.Hub, dbDatalink, downloadObject.InputColumns, null, downloadObject.DatalinkTransformKey, transformWriterOptions);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)

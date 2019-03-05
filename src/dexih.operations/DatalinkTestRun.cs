@@ -23,48 +23,62 @@ namespace dexih.operations
 
         #endregion
         
-        public long ReferenceKey; //used to track the datalink.  this can be the datalinkKey or the datalinkStep key depending on where it is run from
-        public TransformWriterResult WriterResult { get; }
+        public TransformWriterResult WriterResult { get; set; }
         
         private readonly DexihDatalinkTest _datalinkTest;
         private readonly DexihHub _hub;
         private readonly TransformSettings _transformSettings;
-        private readonly GlobalVariables _globalVariables;
+        private readonly TransformWriterOptions _transformWriterOptions;
 
         public List<TestResult> TestResults;
 
         private readonly ILogger _logger;
-        
+
         public DatalinkTestRun(
             TransformSettings transformSettings,
             ILogger logger, 
             DexihDatalinkTest datalinkTest, 
             DexihHub hub, 
-            GlobalVariables globalVariables,
-            long referenceKey)
+            TransformWriterOptions transformWriterOptions
+            )
         {
             _transformSettings = transformSettings;
+            _transformWriterOptions = transformWriterOptions;
             _logger = logger;
             
             // create a copy of the hub as the test run will update objects.
             _hub = hub.CloneProperties<DexihHub>();
             
             _datalinkTest = datalinkTest;
-            _globalVariables = globalVariables;
             
-            ReferenceKey = referenceKey;
+            Connection auditConnection;
+            
+            if (datalinkTest.AuditConnectionKey > 0)
+            {
+                var dbAuditConnection =
+                    _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == datalinkTest.AuditConnectionKey);
+
+                if (dbAuditConnection == null)
+                {
+                    throw new DatalinkRunException(
+                        $"Audit connection with key {datalinkTest.AuditConnectionKey} was not found.");
+                }
+
+                auditConnection = dbAuditConnection.GetConnection(_transformSettings);
+            }
+            else
+            {
+                auditConnection = new ConnectionMemory();
+            }
             
             TestResults = new List<TestResult>();
-            
-            WriterResult = new TransformWriterResult
-            {
-                HubKey = hub.HubKey,
-                AuditConnectionKey = datalinkTest.AuditConnectionKey ?? 0,
-                ReferenceKey = referenceKey,
-                ParentAuditKey = 0,
-                TriggerInfo = "",
-                TriggerMethod = TransformWriterResult.ETriggerMethod.Manual
-            };
+
+           
+            WriterResult = new TransformWriterResult(_hub.HubKey,
+                datalinkTest.AuditConnectionKey ?? 0, "DatalinkTest", datalinkTest.DatalinkTestKey,
+                0, datalinkTest.Name, 0,
+                "", 0, "", auditConnection, transformWriterOptions);
+
         }
 
         private async Task UpdateProgress(int percent, string message, CancellationToken cancellationToken)
@@ -84,30 +98,12 @@ namespace dexih.operations
         }
 
 
-        private async Task InitializeAudit(string auditType, CancellationToken cancellationToken)
+        public async Task Initialize(string auditType, CancellationToken cancellationToken)
         {
-            Connection auditConnection;
-            if (_datalinkTest.AuditConnectionKey > 0)
-            {
-
-                var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == _datalinkTest.AuditConnectionKey);
-
-                if (dbAuditConnection == null)
-                {
-                    throw new DatalinkRunException($"Audit connection with key {_datalinkTest.AuditConnectionKey} was not found.");
-                }
-                auditConnection = dbAuditConnection.GetConnection(_transformSettings);
-            }
-            else
-            {
-                auditConnection = new ConnectionMemory();
-            }
-
+            await WriterResult.Initialize(cancellationToken);
             WriterResult.OnProgressUpdate += DatalinkTest_OnProgressUpdate;
             WriterResult.OnStatusUpdate += DatalinkTest_OnStatusUpdate;
             WriterResult.RunStatus = TransformWriterResult.ERunStatus.Running;
-            
-            await auditConnection.InitializeAudit(WriterResult, _hub.HubKey, _datalinkTest.AuditConnectionKey ?? 0, auditType, ReferenceKey, WriterResult.ParentAuditKey, _datalinkTest.Name, 0, "", 0, "", WriterResult.TriggerMethod, WriterResult.TriggerInfo, cancellationToken);
         }
 
         /// <summary>
@@ -120,9 +116,6 @@ namespace dexih.operations
             try
             {
                 var percent = 0;
-
-
-                await InitializeAudit("DatalinkTest_Snapshot", cancellationToken);
 
                 foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
                 {
@@ -184,7 +177,7 @@ namespace dexih.operations
 
                         var transformOperations = new TransformsManager(_transformSettings);
                         var runPlan =
-                            transformOperations.CreateRunPlan(_hub, datalink, null, _globalVariables, null, null);
+                            transformOperations.CreateRunPlan(_hub, datalink, null,null, null, _transformWriterOptions);
 
                         using (var transform = runPlan.sourceTransform)
                         {
@@ -245,8 +238,6 @@ namespace dexih.operations
         {
             try
             {
-                await InitializeAudit("DatalinkTest", cancellationToken);
-
                 var tempTargetTableKey = -10000;
 
                 foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
@@ -315,12 +306,9 @@ namespace dexih.operations
                         cancellationToken);
 
                     // run the datalink
-                    var datalinkRun = new DatalinkRun(_transformSettings, _logger, datalink, _hub, _globalVariables,
-                        "test",
-                        _datalinkTest.DatalinkTestKey, 0, TransformWriterResult.ETriggerMethod.Manual, "", false, false,
-                        null, null, null);
+                    var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions);
 
-                    await datalinkRun.Initialize(0, cancellationToken);
+                    await datalinkRun.Initialize(cancellationToken);
                     await datalinkRun.Build(cancellationToken);
                     await datalinkRun.Run(cancellationToken);
 

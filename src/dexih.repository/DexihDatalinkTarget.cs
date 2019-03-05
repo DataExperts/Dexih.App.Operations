@@ -18,6 +18,8 @@ namespace dexih.repository
         
         public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
         
+        public int Position { get; set; }
+        
         public long TableKey { get; set; }
         
         [JsonIgnore, CopyIgnore]

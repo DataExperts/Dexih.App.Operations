@@ -430,9 +430,9 @@ namespace dexih.repository
                 AddIfMissing(new NamingStandard() { Name =  "UpdateAuditKey.Column.Name", Value =  "UpdateAuditKey" });
                 AddIfMissing(new NamingStandard() { Name =  "UpdateAuditKey.Column.Logical", Value =  "UpdateAuditKey" });
                 AddIfMissing(new NamingStandard() { Name =  "UpdateAuditKey.Column.Description", Value =  "Link to the audit key that updated the record." });
-                AddIfMissing(new NamingStandard() { Name =  "SurrogateKey.Column.Name", Value =  "{0}Sk" });
-                AddIfMissing(new NamingStandard() { Name =  "SurrogateKey.Column.Logical", Value =  "{0}Sk" });
-                AddIfMissing(new NamingStandard() { Name =  "SurrogateKey.Column.Description", Value =  "The surrogate key created for the table {0}." });
+                AddIfMissing(new NamingStandard() { Name =  "AutoIncrement.Column.Name", Value =  "{0}Sk" });
+                AddIfMissing(new NamingStandard() { Name =  "AutoIncrement.Column.Logical", Value =  "{0}Sk" });
+                AddIfMissing(new NamingStandard() { Name =  "AutoIncrement.Column.Description", Value =  "The surrogate key created for the table {0}." });
                 AddIfMissing(new NamingStandard() { Name =  "ValidFromDate.Column.Name", Value =  "ValidFromDate" });
                 AddIfMissing(new NamingStandard() { Name =  "ValidFromDate.Column.Logical", Value =  "ValidFromDate" });
                 AddIfMissing(new NamingStandard() { Name =  "ValidFromDate.Column.Description", Value =  "The date and time the record becomes valid." });

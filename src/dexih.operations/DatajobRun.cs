@@ -40,34 +40,49 @@ namespace dexih.operations
 		
 		public List<DatalinkRun> DatalinkSteps { get; set; }
 		private readonly DexihHub _hub;
-		public TransformWriterResult WriterResult { get; set; }
+		public TransformWriterResult WriterResult { get; private set; }
 
 		private readonly TransformSettings _transformSettings;
-        // private readonly IEnumerable<DexihHubVariable> _hubVariables;
-
 		private Connection _auditConnection;
-		private readonly bool _truncateTarget;
-		private readonly bool _resetIncremental;
-		private readonly object _resetIncrementalValue;
-		private readonly GlobalVariables _globalVariables;
+		private TransformWriterOptions _transformWriterOptions;
 
 		private readonly ILogger _logger;
 
 
-		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, GlobalVariables globalVariables, bool truncateTarget, bool resetIncremental, object resetIncrementalValue)
+		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, TransformWriterOptions transformWriterOptions)
 		{
 			_transformSettings = transformSettings;
 			_logger = logger;
-			
-			_truncateTarget = truncateTarget;
-			_resetIncremental = resetIncremental;
-			_resetIncrementalValue = resetIncrementalValue;
-			_globalVariables = globalVariables;
 
+			_transformWriterOptions = transformWriterOptions;
+
+			Connection auditConnection;
+
+			if (datajob.AuditConnectionKey > 0)
+			{
+				var dbAuditConnection =
+					_hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == datajob.AuditConnectionKey);
+
+				if (dbAuditConnection == null)
+				{
+					throw new DatalinkRunException(
+						$"Audit connection with key {datajob.AuditConnectionKey} was not found.");
+				}
+
+				auditConnection = dbAuditConnection.GetConnection(_transformSettings);
+			}
+			else
+			{
+				auditConnection = new ConnectionMemory();
+			}
+
+			WriterResult = new TransformWriterResult(_hub.HubKey,
+				datajob.AuditConnectionKey ?? 0, "Datajob", datajob.DatajobKey,
+				0, datajob.Name, 0,
+				"", 0, "", auditConnection, _transformWriterOptions);
+			
 			Datajob = datajob;
 			_hub = hub;
-
-			Reset();
 		}
 
 		public void ResetEvents()
@@ -95,10 +110,13 @@ namespace dexih.operations
 				}
 				else
 				{
-					throw new DatajobRunException("There is no audit connection spefieid.");
+					throw new DatajobRunException("There is no audit connection specified.");
 				}
 
-				await _auditConnection.InitializeAudit(WriterResult, _hub.HubKey, Datajob.AuditConnectionKey ?? 0, WriterResult.AuditType, Datajob.DatajobKey, WriterResult.ParentAuditKey, Datajob.Name, 0, "", 0, "", WriterResult.TriggerMethod, WriterResult.TriggerInfo, cancellationToken);
+				await WriterResult.Initialize(cancellationToken);
+				WriterResult.OnProgressUpdate += Datajob_OnProgressUpdate;
+				WriterResult.OnStatusUpdate += Datajob_OnStatusUpdate;
+
 			}
 			catch (Exception ex)
 			{
@@ -106,34 +124,6 @@ namespace dexih.operations
 				WriterResult.Message = "Error occurred initializing datajob " + Datajob.Name + ".  " + ex.Message;
 				throw new DatajobRunException(WriterResult.Message, ex);
 			}
-		}
-
-		/// <summary>
-		/// Resets the writeResult and events for the datajob run.  This is called on recurring schedules where the job is run again.
-		/// </summary>
-		public void Reset()
-		{
-			WriterResult = new TransformWriterResult
-			{
-				HubKey = _hub.HubKey,
-				AuditConnectionKey = Datajob.AuditConnectionKey ?? 0,
-				AuditType = "Datajob",
-				ReferenceKey = Datajob.DatajobKey,
-				ParentAuditKey = 0,
-				TriggerInfo = "",
-				TriggerMethod =  ETriggerMethod.NotTriggered
-			};
-			
-			WriterResult.OnProgressUpdate += Datajob_OnProgressUpdate;
-			WriterResult.OnStatusUpdate += Datajob_OnStatusUpdate;
-			WriterResult.TruncateTarget = _truncateTarget;
-			WriterResult.ResetIncremental = _resetIncremental;
-			WriterResult.ResetIncrementalValue = _resetIncrementalValue;
-
-			//override the incremental value if it is set.
-			if (_resetIncremental)
-				WriterResult.LastMaxIncrementalValue = _resetIncrementalValue;
-
 		}
 
 		public void Datajob_OnProgressUpdate(TransformWriterResult writer)
@@ -169,7 +159,7 @@ namespace dexih.operations
 			WriterResult.ScheduledTime = null;
 		}
 
-		public async Task<bool> Run(ETriggerMethod triggerMethod, string triggerInfo, CancellationToken cancellationToken)
+		public async Task<bool> Run(CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -177,8 +167,6 @@ namespace dexih.operations
 
 				WriterResult.StartTime = DateTime.Now;
 				WriterResult.LastUpdateTime = DateTime.Now;
-				WriterResult.TriggerMethod = triggerMethod;
-				WriterResult.TriggerInfo = triggerInfo;
 
 				var runstatusResult = await WriterResult.SetRunStatus(ERunStatus.Started, null, null, cancellationToken);
 				if (!runstatusResult)
@@ -190,7 +178,8 @@ namespace dexih.operations
 				foreach (var step in Datajob.DexihDatalinkSteps)
 				{
 					var datalink = _hub.DexihDatalinks.Single(c => c.DatalinkKey == step.DatalinkKey);
-					var datalinkRun = new DatalinkRun(_transformSettings, _logger, datalink, _hub, _globalVariables, "Datalink", datalink.DatalinkKey, WriterResult.AuditKey, ETriggerMethod.Manual, "Triggered by datajob " + Datajob.Name, _truncateTarget, _resetIncremental, _resetIncrementalValue, null, null);
+					var datalinkRun = new DatalinkRun(_transformSettings, _logger, Datajob.DatajobKey, datalink, _hub, null, _transformWriterOptions);
+
 					DatalinkSteps.Add(datalinkRun);
 
 					//start datalinks that have no dependencies.
@@ -282,14 +271,14 @@ namespace dexih.operations
 					//see if any of the pending jobs, should be started or abended
 					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterTargets.WriterResult == null || c.WriterTargets.WriterResult.RunStatus == ERunStatus.Initialised))
 					{
-						var dbStep = Datajob.DexihDatalinkSteps.SingleOrDefault(c => c.DatalinkStepKey == datalinkStep.ReferenceKey);
+						var dbStep = Datajob.DexihDatalinkSteps.SingleOrDefault(c => c.DatalinkKey == datalinkStep.Datalink.DatalinkKey);
 						if (dbStep.DexihDatalinkDependencies.Any(c => c.DatalinkStepKey == writerResult.ReferenceKey))
 						{
 							//check if the jobs other dependencies have finished
 							var allFinished = true;
 							foreach (var dbDependentStep in dbStep.DexihDatalinkDependencies.Where(c => c.DatalinkStepKey != writerResult.ReferenceKey))
 							{
-								var dependentStep = DatalinkSteps.SingleOrDefault(c => c.ReferenceKey == dbDependentStep.DatalinkStepKey);
+								var dependentStep = DatalinkSteps.SingleOrDefault(c => c.Datalink.DatalinkKey == dbDependentStep.DatalinkStep.DatalinkKey);
 
 								if (dependentStep.WriterTargets.WriterResult.RunStatus != ERunStatus.Finished)
 								{

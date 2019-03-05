@@ -582,6 +582,7 @@ namespace dexih.repository
                 entity.Property(e => e.DatalinkTargetKey).HasColumnName("datalink_target_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
+                entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.NodeDatalinkColumnKey).HasColumnName("node_datalink_column_key");
                 entity.Property(e => e.TableKey).HasColumnName("table_key");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
@@ -605,6 +606,7 @@ namespace dexih.repository
                     .HasForeignKey(d => d.TableKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_target_table");
+                
             });
             
             modelBuilder.Entity<DexihDatalinkTest>(entity =>
