@@ -326,7 +326,7 @@ namespace dexih.operations
                 var updateStrategy = datalink.UpdateStrategy;
 
                 if (maxDatalinkTransformKey == null && 
-                    transformWriterOptions.TruncateTarget == false && 
+                    transformWriterOptions.IsEmptyTarget() == false && 
                     updateStrategy != TransformDelta.EUpdateStrategy.Reload && 
                     incrementalCol != null && 
                     (updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDelete || updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve) && 

@@ -75,11 +75,20 @@ namespace dexih.operations
 			{
 				auditConnection = new ConnectionMemory();
 			}
-
-			WriterResult = new TransformWriterResult(_hub.HubKey,
-				datajob.AuditConnectionKey ?? 0, "Datajob", datajob.DatajobKey,
-				0, datajob.Name, 0,
-				"", 0, "", auditConnection, _transformWriterOptions);
+			
+			var writerResult = new TransformWriterResult()
+			{
+				AuditConnection = auditConnection,
+				AuditConnectionKey = datajob.AuditConnectionKey ?? 0,
+				AuditType = "Datajob",
+				HubKey = _hub.HubKey,
+				ReferenceKey = datajob.DatajobKey,
+				ParentAuditKey = 0,
+				ReferenceName = datajob.Name,
+				SourceTableKey = 0,
+				SourceTableName = "",
+				TransformWriterOptions = _transformWriterOptions
+			};
 			
 			Datajob = datajob;
 			_hub = hub;
@@ -93,7 +102,7 @@ namespace dexih.operations
 			OnDatalinkStart = null;
 		}
 
-		public async Task Initialize(CancellationToken cancellationToken)
+		public async Task<bool> Initialize(CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -113,10 +122,9 @@ namespace dexih.operations
 					throw new DatajobRunException("There is no audit connection specified.");
 				}
 
-				await WriterResult.Initialize(cancellationToken);
 				WriterResult.OnProgressUpdate += Datajob_OnProgressUpdate;
 				WriterResult.OnStatusUpdate += Datajob_OnStatusUpdate;
-
+				return await WriterResult.Initialize(cancellationToken);
 			}
 			catch (Exception ex)
 			{
@@ -137,10 +145,10 @@ namespace dexih.operations
 			_completedDatalinks.Post(writer);
 		}
 
-		public async Task Schedule(DateTime scheduledTime, CancellationToken cancellationToken)
+		public void Schedule(DateTime scheduledTime, CancellationToken cancellationToken)
 		{
-			var runstatusResult = await WriterResult.SetRunStatus(ERunStatus.Scheduled, null, null, cancellationToken);
-			if (!runstatusResult)
+			var runStatus = WriterResult.SetRunStatus(ERunStatus.Scheduled, null, null, cancellationToken);
+			if (!runStatus)
 			{
 				throw new DatajobRunException($"Failed to set status");
 			}
@@ -148,9 +156,9 @@ namespace dexih.operations
 			WriterResult.ScheduledTime = scheduledTime;
 		}
 
-		public async Task CancelSchedule(CancellationToken cancellationToken)
+		public void CancelSchedule(CancellationToken cancellationToken)
 		{
-			var runstatusResult = await WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null, cancellationToken);
+			var runstatusResult = WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null, cancellationToken);
 			if (!runstatusResult)
 			{
 				throw new DatajobRunException($"Failed to set status");
@@ -168,8 +176,8 @@ namespace dexih.operations
 				WriterResult.StartTime = DateTime.Now;
 				WriterResult.LastUpdateTime = DateTime.Now;
 
-				var runstatusResult = await WriterResult.SetRunStatus(ERunStatus.Started, null, null, cancellationToken);
-				if (!runstatusResult)
+				var runStatus = WriterResult.SetRunStatus(ERunStatus.Started, null, null, cancellationToken);
+				if (!runStatus)
 				{
 					throw new DatajobRunException($"Failed to set status");
 				}
@@ -200,7 +208,7 @@ namespace dexih.operations
 					}
 				}
 
-				await WriterResult.SetRunStatus(ERunStatus.Running, null, null, cancellationToken);
+				WriterResult.SetRunStatus(ERunStatus.Running, null, null, cancellationToken);
 
 				//wait until all other datalinks have finished
 				while (WriterResult.RunStatus != ERunStatus.Finished &&
@@ -212,11 +220,13 @@ namespace dexih.operations
 					var writer = await _completedDatalinks.ReceiveAsync(cancellationToken);
 				}
 
+				await WriterResult.Finalize();
+
 				return true;
 			}
 			catch (OperationCanceledException)
 			{
-				await WriterResult.SetRunStatus(ERunStatus.Cancelled, "Datajob was cancelled", null, cancellationToken);
+				WriterResult.SetRunStatus(ERunStatus.Cancelled, "Datajob was cancelled", null, cancellationToken);
 				throw new DatajobRunException($"The datajob {Datajob.Name} was cancelled.");
 
 			}
@@ -225,7 +235,7 @@ namespace dexih.operations
 				var message = $"The job {Datajob.Name} failed.  ${ex.Message}";
 				if (WriterResult != null)
 				{
-					await WriterResult?.SetRunStatus(ERunStatus.Abended, message, null, cancellationToken);
+					WriterResult?.SetRunStatus(ERunStatus.Abended, message, null, cancellationToken);
 				}
 				throw new DatajobRunException(message, ex);
 			}
@@ -238,7 +248,7 @@ namespace dexih.operations
 		/// <summary>
 		/// Called whenever a datalink reports an update, and determines when the job should finish or start other datalinks.
 		/// </summary>
-		public async void DatalinkStatus(TransformWriterResult writerResult)
+		public void DatalinkStatus(TransformWriterResult writerResult)
 		{
 			if (writerResult.RunStatus == ERunStatus.Finished || writerResult.RunStatus == ERunStatus.Abended || writerResult.RunStatus == ERunStatus.Cancelled)
 			{
@@ -262,14 +272,14 @@ namespace dexih.operations
 				//if the datalink failed, and the job is set to abend on fail, then cancel the other datalinks.
 				if (Datajob.FailAction == EFailAction.Abend && (writerResult.RunStatus == ERunStatus.Abended || writerResult.RunStatus == ERunStatus.Cancelled || writerResult.RunStatus == ERunStatus.FinishedErrors))
 				{
-					await WriterResult.SetRunStatus(ERunStatus.Abended, "The job abended due to the datalink " + writerResult.ReferenceName + " abending.", null, CancellationToken.None);
+					WriterResult.SetRunStatus(ERunStatus.Abended, "The job abended due to the datalink " + writerResult.ReferenceName + " abending.", null, CancellationToken.None);
 					//Cancel();
 					return;
 				}
 				else if (writerResult.RunStatus == ERunStatus.Finished || Datajob.FailAction == EFailAction.Continue)
 				{
 					//see if any of the pending jobs, should be started or abended
-					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterTargets.WriterResult == null || c.WriterTargets.WriterResult.RunStatus == ERunStatus.Initialised))
+					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterTarget.WriterResult == null || c.WriterTarget.WriterResult.RunStatus == ERunStatus.Initialised))
 					{
 						var dbStep = Datajob.DexihDatalinkSteps.SingleOrDefault(c => c.DatalinkKey == datalinkStep.Datalink.DatalinkKey);
 						if (dbStep.DexihDatalinkDependencies.Any(c => c.DatalinkStepKey == writerResult.ReferenceKey))
@@ -280,7 +290,7 @@ namespace dexih.operations
 							{
 								var dependentStep = DatalinkSteps.SingleOrDefault(c => c.Datalink.DatalinkKey == dbDependentStep.DatalinkStep.DatalinkKey);
 
-								if (dependentStep.WriterTargets.WriterResult.RunStatus != ERunStatus.Finished)
+								if (dependentStep.WriterTarget.WriterResult.RunStatus != ERunStatus.Finished)
 								{
 									allFinished = false;
 									break;
@@ -296,7 +306,7 @@ namespace dexih.operations
 									OnDatalinkStart(datalinkStep);
 								else
 								{
-									await WriterResult.SetRunStatus(ERunStatus.Abended, "Could not start the datalink due to a missing start event.", null, CancellationToken.None);
+									WriterResult.SetRunStatus(ERunStatus.Abended, "Could not start the datalink due to a missing start event.", null, CancellationToken.None);
 									return;
 								}
 							}
@@ -311,16 +321,16 @@ namespace dexih.operations
 			var finished = true;
 			foreach (var step in DatalinkSteps)
 			{
-				var result = step.WriterTargets.WriterResult;
+				var result = step.WriterTarget.WriterResult;
 				if (result != null) //this can sometimes be null as some datalinks have progressed whilst others are still inializing.
 				{
 					switch (result.RunStatus)
 					{
 						case ERunStatus.Cancelled:
-							await WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null, CancellationToken.None);
+							WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null, CancellationToken.None);
 							break;
 						case ERunStatus.Abended:
-							await WriterResult.SetRunStatus(ERunStatus.RunningErrors, null, null, CancellationToken.None);
+							WriterResult.SetRunStatus(ERunStatus.RunningErrors, null, null, CancellationToken.None);
 							break;
 						case ERunStatus.Started:
 						case ERunStatus.Initialised:
@@ -345,15 +355,15 @@ namespace dexih.operations
 			if (finished)
 			{
 				if (WriterResult.RunStatus == ERunStatus.RunningErrors)
-					await WriterResult.SetRunStatus(ERunStatus.FinishedErrors, null, null, CancellationToken.None);
+					WriterResult.SetRunStatus(ERunStatus.FinishedErrors, null, null, CancellationToken.None);
 				else if (WriterResult.RunStatus == ERunStatus.Cancelled)
-					await WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null, CancellationToken.None);
+					WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null, CancellationToken.None);
 				else
-					await WriterResult.SetRunStatus(ERunStatus.Finished, null, null, CancellationToken.None);
+					WriterResult.SetRunStatus(ERunStatus.Finished, null, null, CancellationToken.None);
 			}
 			else if (runningJobs == false)
 			{
-				await WriterResult.SetRunStatus(ERunStatus.Abended, "Datalinks could not be started, so the job has abended.  This may be due to the dependencies on the datalinks.", null, CancellationToken.None);
+				WriterResult.SetRunStatus(ERunStatus.Abended, "Datalinks could not be started, so the job has abended.  This may be due to the dependencies on the datalinks.", null, CancellationToken.None);
 			}
 
 			OnDatajobProgressUpdate?.Invoke(WriterResult);

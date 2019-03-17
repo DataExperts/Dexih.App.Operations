@@ -73,18 +73,26 @@ namespace dexih.operations
             
             TestResults = new List<TestResult>();
 
+            var writerResult = new TransformWriterResult()
+            {
+                AuditConnection = auditConnection,
+                AuditConnectionKey = datalinkTest.AuditConnectionKey ?? 0,
+                AuditType = "DatalinkTest",
+                HubKey = _hub.HubKey,
+                ReferenceKey = datalinkTest.DatalinkTestKey,
+                ParentAuditKey = 0,
+                ReferenceName = datalinkTest.Name,
+                SourceTableKey = 0,
+                SourceTableName = "",
+                TransformWriterOptions = _transformWriterOptions
+            };
            
-            WriterResult = new TransformWriterResult(_hub.HubKey,
-                datalinkTest.AuditConnectionKey ?? 0, "DatalinkTest", datalinkTest.DatalinkTestKey,
-                0, datalinkTest.Name, 0,
-                "", 0, "", auditConnection, transformWriterOptions);
-
         }
 
-        private async Task UpdateProgress(int percent, string message, CancellationToken cancellationToken)
+        private void UpdateProgress(int percent, string message, CancellationToken cancellationToken)
         {
             WriterResult.RowsCreated = percent;
-            await WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Running, message, null, cancellationToken);
+            WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Running, message, null, cancellationToken);
         }
         
         public void DatalinkTest_OnProgressUpdate(TransformWriterResult writer)
@@ -98,12 +106,12 @@ namespace dexih.operations
         }
 
 
-        public async Task Initialize(string auditType, CancellationToken cancellationToken)
+        public async Task<bool> Initialize(string auditType, CancellationToken cancellationToken)
         {
-            await WriterResult.Initialize(cancellationToken);
             WriterResult.OnProgressUpdate += DatalinkTest_OnProgressUpdate;
             WriterResult.OnStatusUpdate += DatalinkTest_OnStatusUpdate;
             WriterResult.RunStatus = TransformWriterResult.ERunStatus.Running;
+            return await WriterResult.Initialize(cancellationToken);
         }
 
         /// <summary>
@@ -153,7 +161,7 @@ namespace dexih.operations
                                 var expectedConnection = dbExpectedConnection.GetConnection(_transformSettings);
                                 var expectedTable = dbExpectedTable.GetTable(targetConnection, _transformSettings);
 
-                                await UpdateProgress(percent,
+                                UpdateProgress(percent,
                                     $"Copying table {targetTable.Name} to the expected test data table {expectedTable.Name}.",
                                     cancellationToken);
 
@@ -182,7 +190,7 @@ namespace dexih.operations
                         using (var transform = runPlan.sourceTransform)
                         {
                             await transform.Open(0, null, cancellationToken);
-                            await UpdateProgress(percent,
+                            UpdateProgress(percent,
                                 $"Copying datalink {datalink.Name} output to the expected test data table {expectedTable.Name}.",
                                 cancellationToken);
                             await expectedConnection.CreateTable(expectedTable, true, cancellationToken);
@@ -209,7 +217,7 @@ namespace dexih.operations
                             var testTable1 = dbSourceTable.GetTable(testConnection, _transformSettings);
 
 
-                            await UpdateProgress(percent,
+                            UpdateProgress(percent,
                                 $"Copying table {datalinkTable.Name} to the expected source data table {testTable1.Name}.",
                                 cancellationToken);
                             await testConnection.CreateTable(testTable1, true, cancellationToken);
@@ -218,12 +226,13 @@ namespace dexih.operations
                     }
                 }
 
-                await WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Finished, "Finished", null, cancellationToken);
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Finished, "Finished", null, cancellationToken);
+                await WriterResult.Finalize();
                 return true;
             }
             catch (Exception ex)
             {
-                await WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex, cancellationToken);
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex, cancellationToken);
                 return false;
             }
         }
@@ -249,7 +258,7 @@ namespace dexih.operations
                         throw new DatalinkTestRunException( $"The datalink test {_datalinkTest.Name} failed as the datalink with the key {step.DatalinkKey} could not be found.");
                     }
 
-                    await UpdateProgress(1,$"Preparing test tables for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
+                    UpdateProgress(1,$"Preparing test tables for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
 
                     // prepare all the relevant tables
                     foreach (var testTable in step.DexihDatalinkTestTables)
@@ -257,7 +266,7 @@ namespace dexih.operations
                         await PrepareTestTable(testTable, cancellationToken);
                     }
 
-                    await UpdateProgress(1, "Preparing test tables for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
+                    UpdateProgress(1, "Preparing test tables for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
 
                     datalink.AuditConnectionKey = _datalinkTest.AuditConnectionKey;
 
@@ -301,7 +310,7 @@ namespace dexih.operations
                     }
 
 
-                    await UpdateProgress(50,
+                    UpdateProgress(50,
                         $"Running the datalink {datalink.Name} for datalink test {_datalinkTest.Name}, step {step.Name}",
                         cancellationToken);
 
@@ -309,10 +318,10 @@ namespace dexih.operations
                     var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions);
 
                     await datalinkRun.Initialize(cancellationToken);
-                    await datalinkRun.Build(cancellationToken);
+                    datalinkRun.Build(cancellationToken);
                     await datalinkRun.Run(cancellationToken);
 
-                    await UpdateProgress(70, "Comparing the results for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
+                    UpdateProgress(70, "Comparing the results for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
 
                     foreach (var table in targetTables)
                     {
@@ -368,19 +377,21 @@ namespace dexih.operations
 
                 if (WriterResult.Failed > 0)
                 {
-                    await WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Failed, $"{WriterResult.Passed} tests passed, {WriterResult.Failed} test failed.", null, cancellationToken);
+                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Failed, $"{WriterResult.Passed} tests passed, {WriterResult.Failed} test failed.", null, cancellationToken);
                 }
                 else
                 {
-                    await WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, $"{WriterResult.Passed} tests passed.", null, cancellationToken);
+                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, $"{WriterResult.Passed} tests passed.", null, cancellationToken);
                 }
+
+                await WriterResult.Finalize();
 
                 return TestResults;
                 
             }
             catch (Exception ex)
             {
-                await WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex,
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex,
                     cancellationToken);
                 return TestResults;
             }
@@ -446,14 +457,8 @@ namespace dexih.operations
             }
 
             // copy the test data across.
-            var writer = new TransformWriter();
-            var writerResult = new TransformWriterResult();
-            var finished = await writer.WriteRecordsAsync(writerResult, sourceConnection.GetTransformReader(sourceTable), TransformWriterTarget.ETransformWriterMethod.Bulk, testTable, testConnection, 10000, cancellationToken);
-
-            if (!finished)
-            {
-                throw new DatalinkTestRunException($"The datalink test {_datalinkTest.Name} failed as the table {sourceTable.Schema}.{sourceTable.Name} did not copy to the test table {testTable.Schema}.{testTable.Name}.  Message: {writerResult.Message}.", new Exception(writerResult.ExceptionDetails));
-            }
+            var writer = new TransformWriterTarget(testConnection, testTable);
+            await writer.WriteRecordsAsync(sourceConnection.GetTransformReader(sourceTable), TransformDelta.EUpdateStrategy.Reload, cancellationToken);
 
             // update the dexihtable with the test connection, so the datalink runs against this value.
             dexihTable.ConnectionKey = datalinkTestTable.TestConnectionKey;

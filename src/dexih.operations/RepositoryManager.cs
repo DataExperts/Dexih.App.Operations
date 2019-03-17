@@ -1473,6 +1473,14 @@ namespace dexih.operations
 						existingDatalink.SourceDatalinkTableKey = existingDatalink.SourceDatalinkTable.DatalinkTableKey;
 					}
 
+					foreach (var transform in existingDatalink.DexihDatalinkTransforms)
+					{
+						if (transform.JoinDatalinkTable != null)
+						{
+							transform.JoinDatalinkTableKey = transform.JoinDatalinkTable.DatalinkTableKey;
+						}
+					}
+
 					existingDatalink.UpdateDate = DateTime.Now;
 					savedDatalinks.Add(existingDatalink);
 

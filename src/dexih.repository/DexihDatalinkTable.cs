@@ -15,7 +15,7 @@ namespace dexih.repository
         {
             DexihDatalinkSourceTables = new HashSet<DexihDatalink>();
             DexihDatalinkColumns = new HashSet<DexihDatalinkColumn>();
-            DexihDatalinkSourceTables = new HashSet<DexihDatalink>();
+            DexihDatalinkTransforms = new HashSet<DexihDatalinkTransform>();
         }
 
         [JsonIgnore, CopyIgnore]
@@ -86,7 +86,7 @@ namespace dexih.repository
         public List<DexihDatalinkColumn> GetNodePath(long columnKey, ICollection<DexihDatalinkColumn> childColumns = null)
         {
 	        var columns = childColumns ?? DexihDatalinkColumns;
-	        if (columns == null)
+	        if (columns != null)
 	        {
 		        foreach (var column in columns)
 		        {

@@ -287,6 +287,16 @@ namespace dexih.repository
                 }
             }
 
+            foreach (var target in DexihDatalinkTargets)
+            {
+                if (target.NodeDatalinkColumn != null)
+                {
+                    target.NodeDatalinkColumnKey = target.NodeDatalinkColumn?.DatalinkColumnKey;
+                    AddColumns(target.NodeDatalinkColumn, columns);
+                    target.NodeDatalinkColumn = null;
+                }
+            }
+
             return columns;
         }
 
@@ -438,6 +448,22 @@ namespace dexih.repository
                             if(paramArray.DatalinkColumnKey < 0) paramArray.DatalinkColumnKey = 0;
                         }
                     }
+                }
+            }
+
+            foreach (var target in DexihDatalinkTargets)
+            {
+                if (target.NodeDatalinkColumnKey != null &&
+                    columns.ContainsKey(target.NodeDatalinkColumnKey.Value))
+                {
+                    target.NodeDatalinkColumn = columns[target.NodeDatalinkColumnKey.Value];
+                    if (target.NodeDatalinkColumnKey < 0) target.NodeDatalinkColumnKey = 0;
+                }
+                
+                if (target.NodeDatalinkColumnKey != null && columns.ContainsKey(target.NodeDatalinkColumnKey.Value))
+                {
+                    target.NodeDatalinkColumn = columns[target.NodeDatalinkColumnKey.Value];
+                    if(target.NodeDatalinkColumnKey < 0) target.NodeDatalinkColumnKey = 0;
                 }
             }
 
