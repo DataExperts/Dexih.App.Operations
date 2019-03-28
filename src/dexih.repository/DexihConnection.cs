@@ -9,7 +9,7 @@ using dexih.transforms;
 
 namespace dexih.repository
 {
-    public class DexihConnection : DexihBaseEntity
+    public class DexihConnection : DexihHubBaseEntity
     {
         #region Enums
         [JsonConverter(typeof(StringEnumConverter))]
@@ -31,8 +31,6 @@ namespace dexih.repository
         [CopyCollectionKey((long)0, true)]
         public long ConnectionKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
         public string ConnectionAssemblyName { get; set; }
         public string ConnectionClassName { get; set; }

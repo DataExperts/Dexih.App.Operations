@@ -7,7 +7,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
-    public class DexihColumnValidation : DexihBaseEntity
+    public class DexihColumnValidation : DexihHubBaseEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum ECleanAction
@@ -23,8 +23,6 @@ namespace dexih.repository
         [CopyCollectionKey((long)0, true)]
         public long ColumnValidationKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         

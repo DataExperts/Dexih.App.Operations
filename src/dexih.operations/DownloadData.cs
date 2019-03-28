@@ -91,7 +91,7 @@ namespace dexih.operations
                             throw new DownloadDataException($"The datalink {dbDatalink.Name} failed to open for reading.");
                         }
 
-                        transform.SetCacheMethod(ECacheMethod.OnDemandCache);
+                        transform.SetCacheMethod(ECacheMethod.DemandCache);
                         transform.SetEncryptionMethod(EEncryptionMethod.MaskSecureFields, "");
 
                         name = dbDatalink.Name;

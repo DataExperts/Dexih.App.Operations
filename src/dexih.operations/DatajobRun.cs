@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using static dexih.repository.DexihDatajob;
 using static dexih.transforms.TransformWriterResult;
 using System.Threading.Tasks.Dataflow;
-using dexih.functions;
 using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
@@ -44,7 +43,7 @@ namespace dexih.operations
 
 		private readonly TransformSettings _transformSettings;
 		private Connection _auditConnection;
-		private TransformWriterOptions _transformWriterOptions;
+		private readonly TransformWriterOptions _transformWriterOptions;
 
 		private readonly ILogger _logger;
 
@@ -61,7 +60,7 @@ namespace dexih.operations
 			if (datajob.AuditConnectionKey > 0)
 			{
 				var dbAuditConnection =
-					_hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == datajob.AuditConnectionKey);
+					hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == datajob.AuditConnectionKey);
 
 				if (dbAuditConnection == null)
 				{
@@ -76,12 +75,12 @@ namespace dexih.operations
 				auditConnection = new ConnectionMemory();
 			}
 			
-			var writerResult = new TransformWriterResult()
+			WriterResult = new TransformWriterResult
 			{
 				AuditConnection = auditConnection,
 				AuditConnectionKey = datajob.AuditConnectionKey ?? 0,
 				AuditType = "Datajob",
-				HubKey = _hub.HubKey,
+				HubKey = hub.HubKey,
 				ReferenceKey = datajob.DatajobKey,
 				ParentAuditKey = 0,
 				ReferenceName = datajob.Name,
@@ -220,7 +219,7 @@ namespace dexih.operations
 					var writer = await _completedDatalinks.ReceiveAsync(cancellationToken);
 				}
 
-				await WriterResult.Finalize();
+				await WriterResult.CompleteDatabaseWrites();
 
 				return true;
 			}

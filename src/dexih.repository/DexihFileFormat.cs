@@ -5,15 +5,13 @@ using dexih.functions.File;
 
 namespace dexih.repository
 {
-	public partial class DexihFileFormat : DexihBaseEntity
+	public partial class DexihFileFormat : DexihHubBaseEntity
     {
 		public DexihFileFormat() => DexihTables = new HashSet<DexihTable>();
 
         [CopyCollectionKey((long)0, true)]
         public long FileFormatKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public bool IsDefault { get; set; }

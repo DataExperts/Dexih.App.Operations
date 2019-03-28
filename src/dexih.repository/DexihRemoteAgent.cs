@@ -10,7 +10,7 @@ namespace dexih.repository
     {        
         public DexihRemoteAgent()
         {
-            DexihremoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
+            DexihRemoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
         }
         
         [CopyCollectionKey((long)0, true)]
@@ -34,6 +34,6 @@ namespace dexih.repository
         [NotMapped]
         public DexihActiveAgent[] ActiveAgents { get; set; }
         
-        public virtual ICollection<DexihRemoteAgentHub> DexihremoteAgentHubs { get; set; }
+        public virtual ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
     }
 }

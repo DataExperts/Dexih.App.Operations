@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Newtonsoft.Json;
 using dexih.functions;
@@ -20,8 +19,6 @@ namespace dexih.repository
 	        ChildColumns = new HashSet<DexihDatalinkColumn>();
         }
 
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
 	    [CopyCollectionKey(0L, false)]
 	    public long DatalinkColumnKey { get; set; }
@@ -82,23 +79,6 @@ namespace dexih.repository
 			}
 			return tableColumn;
 		}
-
-//	    /// <summary>
-//	    /// Used to keep an original datalink column key when reloading references.
-//	    /// </summary>
-//	    [NotMapped, JsonIgnore]
-//	    public long OldDatalinkColumnKey { get; set; }
-//
-//	    public long GetPreservedColumnKey()
-//	    {
-//		    if (DatalinkColumnKey == 0)
-//		    {
-//			    return OldDatalinkColumnKey;
-//		    }
-//
-//		    return DatalinkColumnKey;
-//	    }
-
 
     }
 }

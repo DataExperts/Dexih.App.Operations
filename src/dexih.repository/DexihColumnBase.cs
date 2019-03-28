@@ -7,7 +7,7 @@ namespace dexih.repository
     /// <summary>
     /// Base class for table columns.  Inherited by DexihTableColumn and DexihDatalinkColumn
     /// </summary>
-    public class DexihColumnBase: DexihBaseEntity
+    public class DexihColumnBase: DexihHubBaseEntity
     {
         public int Position { get; set; }
 

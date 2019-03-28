@@ -3,7 +3,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
-    public partial class DexihRemoteAgentHub : DexihBaseEntity
+    public partial class DexihRemoteAgentHub : DexihHubBaseEntity
     {
         [CopyCollectionKey((long)0, true)]
         public long RemoteAgentHubKey { get; set; }
@@ -11,7 +11,6 @@ namespace dexih.repository
         // [CopyParentCollectionKey]
         public long RemoteAgentKey { get; set; }
         
-        public long HubKey { get; set; }
         
         public bool IsDefault { get; set; }
         public bool IsAuthorized { get; set; }

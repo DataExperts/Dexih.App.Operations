@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
+using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkTest: DexihBaseEntity
+    public class DexihDatalinkTest: DexihHubBaseEntity
     {
         public DexihDatalinkTest() => DexihDatalinkTestSteps = new HashSet<DexihDatalinkTestStep>();
 
-        public long HubKey { get; set; }
         
         [CopyCollectionKey((long)0, true)]
         public long DatalinkTestKey { get; set; }

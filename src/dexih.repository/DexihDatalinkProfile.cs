@@ -3,10 +3,9 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
-    public partial class DexihDatalinkProfile : DexihBaseEntity
+    public partial class DexihDatalinkProfile : DexihHubBaseEntity
     {
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
+
 
         [CopyCollectionKey((long)0, true)]
         public long DatalinkProfileKey { get; set; }

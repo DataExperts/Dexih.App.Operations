@@ -14,8 +14,6 @@ namespace dexih.repository
 		    ChildColumns = new HashSet<DexihTableColumn>();
 	    }
 	    
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
         [CopyCollectionKey((long)0, true)]
         public long ColumnKey { get; set; }
@@ -40,7 +38,7 @@ namespace dexih.repository
         public virtual DexihTable Table { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihColumnValidation ColumnValidation { get; set; }
+        public virtual DexihColumnValidation HubColumnValidation { get; set; }
 
 	    [JsonIgnore, CopyIgnore]
 	    public virtual ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }

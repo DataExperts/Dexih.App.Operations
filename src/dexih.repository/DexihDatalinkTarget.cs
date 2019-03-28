@@ -3,10 +3,8 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkTarget: DexihBaseEntity
+    public class DexihDatalinkTarget: DexihHubBaseEntity
     {
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
         [CopyCollectionKey((long)0, true)]
         public long DatalinkTargetKey { get; set; }

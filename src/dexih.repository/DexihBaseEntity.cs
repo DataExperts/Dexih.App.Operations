@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
@@ -9,7 +9,7 @@ namespace dexih.repository
         public DateTime CreateDate { get; set; }
         public DateTime UpdateDate { get; set; }
 
-		[CopyIsValid]
-		public bool IsValid { get; set; } = true;
+        [CopyIsValid]
+        public bool IsValid { get; set; } = true;
     }
 }

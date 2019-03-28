@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using dexih.functions;
 using dexih.repository;
 using dexih.transforms;
 using Dexih.Utils.CopyProperties;
@@ -73,7 +72,7 @@ namespace dexih.operations
             
             TestResults = new List<TestResult>();
 
-            var writerResult = new TransformWriterResult()
+            WriterResult = new TransformWriterResult()
             {
                 AuditConnection = auditConnection,
                 AuditConnectionKey = datalinkTest.AuditConnectionKey ?? 0,
@@ -170,7 +169,6 @@ namespace dexih.operations
                                     cancellationToken);
                             }
                         }
-
                     }
                     else
                     {
@@ -227,7 +225,7 @@ namespace dexih.operations
                 }
 
                 WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Finished, "Finished", null, cancellationToken);
-                await WriterResult.Finalize();
+                await WriterResult.CompleteDatabaseWrites();
                 return true;
             }
             catch (Exception ex)
@@ -274,7 +272,7 @@ namespace dexih.operations
                     ICollection<DexihTable> targetTables;
 
                     // add a target table to store the data when the datalink doesn't have one.
-                    if (datalink.LoadStrategy == TransformWriterTarget.ETransformWriterMethod.None)
+                    if (datalink.DexihDatalinkTargets.Any())
                     {
                         var target = new DexihDatalinkTarget()
                         {
@@ -317,7 +315,7 @@ namespace dexih.operations
                     // run the datalink
                     var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions);
 
-                    await datalinkRun.Initialize(cancellationToken);
+                    // await datalinkRun.Initialize(cancellationToken);
                     datalinkRun.Build(cancellationToken);
                     await datalinkRun.Run(cancellationToken);
 
@@ -384,7 +382,7 @@ namespace dexih.operations
                     WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, $"{WriterResult.Passed} tests passed.", null, cancellationToken);
                 }
 
-                await WriterResult.Finalize();
+                await WriterResult.CompleteDatabaseWrites();
 
                 return TestResults;
                 
@@ -401,7 +399,7 @@ namespace dexih.operations
         /// <summary>
         /// Creates test table and copies data to it.
         /// </summary>
-        /// <param name="datalinkTestTable"></param>
+        /// <param name="datalinkTestTableble"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         public async Task PrepareTestTable(DexihDatalinkTestTable datalinkTestTable, CancellationToken cancellationToken)

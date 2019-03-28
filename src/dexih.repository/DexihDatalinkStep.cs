@@ -4,7 +4,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
-    public partial class DexihDatalinkStep : DexihBaseEntity
+    public partial class DexihDatalinkStep : DexihHubBaseEntity
     {
         public DexihDatalinkStep()
         {
@@ -13,8 +13,6 @@ namespace dexih.repository
             DexihDatalinkStepColumns = new HashSet<DexihDatalinkStepColumn>();
         }
 
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
         [CopyCollectionKey((long)0, true)]
         public long DatalinkStepKey { get; set; }

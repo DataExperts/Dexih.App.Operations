@@ -9,7 +9,7 @@ using dexih.transforms.Transforms;
 
 namespace dexih.repository
 {
-    public partial class DexihDatalink : DexihBaseEntity
+    public partial class DexihDatalink : DexihHubBaseEntity
     {
 
 
@@ -39,7 +39,6 @@ namespace dexih.repository
 		[CopyCollectionKey((long)0, true)]
 		public long DatalinkKey { get; set; }
 
-        public long HubKey { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public long SourceDatalinkTableKey { get; set; }

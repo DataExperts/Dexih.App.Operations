@@ -7,8 +7,6 @@ using System.Diagnostics;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 using dexih.functions;
 using dexih.functions.Query;
 using dexih.operations;
@@ -19,12 +17,10 @@ using static dexih.transforms.Transforms.TransformAttribute;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkTransform : DexihBaseEntity
+    public class DexihDatalinkTransform : DexihHubBaseEntity
     {
 		public DexihDatalinkTransform() => DexihDatalinkTransformItems = new HashSet<DexihDatalinkTransformItem>();
 
-		[JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
         [CopyCollectionKey((long)0, true)]
         public long DatalinkTransformKey { get; set; }
@@ -258,7 +254,7 @@ namespace dexih.repository
                             break;
                     }
                 }
-                
+
                 
                 // transform.PassThroughColumns = PassThroughColumns;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;

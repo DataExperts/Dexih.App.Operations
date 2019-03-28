@@ -23,7 +23,7 @@ using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
-	public class DexihDatalinkTransformItem : DexihBaseEntity
+	public class DexihDatalinkTransformItem : DexihHubBaseEntity
 	{
 		[JsonConverter(typeof(StringEnumConverter))]
 		public enum ETransformItemType
@@ -33,8 +33,6 @@ namespace dexih.repository
 
 		public DexihDatalinkTransformItem() => DexihFunctionParameters = new HashSet<DexihFunctionParameter>();
 
-		[JsonIgnore, CopyIgnore]
-		public long HubKey { get; set; }
 
 		[CopyCollectionKey((long)0, true)]
 		public long DatalinkTransformItemKey { get; set; }

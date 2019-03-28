@@ -2,8 +2,6 @@
 using dexih.repository;
 using dexih.transforms;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using dexih.functions.Parameter;
@@ -104,18 +102,18 @@ namespace dexih.operations
         
 
         /// Searches all the tables in a datalink for a particular columnKey
-        public DexihDatalinkColumn GetDatalinkColumn(DexihHub hub, DexihDatalink datalink, long? datalinkColumnKey)
+        public DexihDatalinkColumn GetDatalinkColumn(DexihHub hub, DexihDatalink hubDatalink, long? datalinkColumnKey)
         {
-            if(datalinkColumnKey == null || datalink == null) 
+            if(datalinkColumnKey == null || hubDatalink == null) 
                 return null;
 
             DexihDatalinkColumn column = null;
 
-            column = datalink.SourceDatalinkTable.DexihDatalinkColumns.SingleOrDefault(c => c.DatalinkColumnKey == (long)datalinkColumnKey);
+            column = hubDatalink.SourceDatalinkTable.DexihDatalinkColumns.SingleOrDefault(c => c.DatalinkColumnKey == (long)datalinkColumnKey);
             if(column != null)
                 return column;
 
-            foreach(var datalinkTransform in datalink.DexihDatalinkTransforms)
+            foreach(var datalinkTransform in hubDatalink.DexihDatalinkTransforms)
             {
                 foreach(var item in datalinkTransform.DexihDatalinkTransformItems)
                 {
@@ -189,33 +187,33 @@ namespace dexih.operations
         }
 
 
-		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable datalinkTable, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions)
+		public (Transform sourceTransform, Table sourceTable) GetSourceTransform(DexihHub hub, DexihDatalinkTable hubDatalinkTable, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions)
 		{
             try
             {
                 (Transform sourceTransform, Table sourceTable) returnValue;
                 
-                switch (datalinkTable.SourceType)
+                switch (hubDatalinkTable.SourceType)
                 {
                     case ESourceType.Datalink:
-                        var datalink = hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == datalinkTable.SourceDatalinkKey);
+                        var datalink = hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == hubDatalinkTable.SourceDatalinkKey);
                         if (datalink == null)
                         {
-                            throw new TransformManagerException($"The source datalink with the key {datalinkTable.SourceDatalinkKey} was not found");
+                            throw new TransformManagerException($"The source datalink with the key {hubDatalinkTable.SourceDatalinkKey} was not found");
                         }
                         returnValue = CreateRunPlan(hub, datalink, null, null, false, transformWriterOptions);
-                        returnValue.sourceTransform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
+                        returnValue.sourceTransform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
                         break;
                     case ESourceType.Table:
-                        if (datalinkTable.SourceTableKey == null)
+                        if (hubDatalinkTable.SourceTableKey == null)
                         {
                             throw new TransformManagerException($"The source table key was null.");
                         }
                         
-                        var sourceDbTable = hub.GetTableFromKey(datalinkTable.SourceTableKey.Value);
+                        var sourceDbTable = hub.GetTableFromKey(hubDatalinkTable.SourceTableKey.Value);
                         if (sourceDbTable == null)
                         {
-                            throw new TransformManagerException($"The source table with the key {datalinkTable.SourceTableKey.Value} could not be found.");
+                            throw new TransformManagerException($"The source table with the key {hubDatalinkTable.SourceTableKey.Value} could not be found.");
                         }
                         
 //                        if (sourceDbTable.IsInternal)
@@ -238,20 +236,20 @@ namespace dexih.operations
                             var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
                             var sourceTable = sourceDbTable.GetTable(sourceConnection, inputColumns, _transformSettings);
                             var transform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
-                            transform.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
+                            transform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
                             returnValue =  (transform, sourceTable);
 //                        }
 
                         break;
                     case ESourceType.Rows:
                         var rowCreator2 = new ReaderRowCreator();
-                        rowCreator2.InitializeRowCreator(datalinkTable.RowsStartAt??1, datalinkTable.RowsEndAt??1, datalinkTable.RowsIncrement??1);
-                        rowCreator2.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
+                        rowCreator2.InitializeRowCreator(hubDatalinkTable.RowsStartAt??1, hubDatalinkTable.RowsEndAt??1, hubDatalinkTable.RowsIncrement??1);
+                        rowCreator2.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
                         var table = rowCreator2.GetTable();
                         returnValue =  (rowCreator2, table);
                         break;
                     case ESourceType.Function:
-                        var functionTable = datalinkTable.GetTable(null, inputColumns);
+                        var functionTable = hubDatalinkTable.GetTable(null, inputColumns);
                         var data = new object[functionTable.Columns.Count];
                         for(var i = 0; i< functionTable.Columns.Count; i++)
                         {
@@ -271,7 +269,7 @@ namespace dexih.operations
                 // compare the table in the transform to the source datalink columns.  If any are misisng, add a mapping 
                 // transform to include them.
                 var transformColumns = returnValue.sourceTransform.CacheTable.Columns;
-                var datalinkColumns = datalinkTable.DexihDatalinkColumns;
+                var datalinkColumns = hubDatalinkTable.DexihDatalinkColumns;
 
                 // var mappings = new List<ColumnPair>();
                 var mappings = new Mappings();
@@ -305,25 +303,25 @@ namespace dexih.operations
             
         }
 
-        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink datalink, InputColumn[] inputColumns, long? maxDatalinkTransformKey, object maxIncrementalValue, TransformWriterOptions transformWriterOptions) //Last datatransform key is used to preview the output of a specific transform in the series.
+        public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink hubDatalink, InputColumn[] inputColumns, long? maxDatalinkTransformKey, object maxIncrementalValue, TransformWriterOptions transformWriterOptions) //Last datatransform key is used to preview the output of a specific transform in the series.
         {
             try
             {
-                _logger?.LogTrace($"CreateRunPlan {datalink.Name} started.");
+                _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name} started.");
 
                 var timer = Stopwatch.StartNew();
                 
-				var primaryTransformResult = GetSourceTransform(hub, datalink.SourceDatalinkTable, inputColumns, transformWriterOptions);
+				var primaryTransformResult = GetSourceTransform(hub, hubDatalink.SourceDatalinkTable, inputColumns, transformWriterOptions);
 				var primaryTransform = primaryTransformResult.sourceTransform;
 				var sourceTable = primaryTransformResult.sourceTable;
 				foreach(var column in primaryTransform.CacheTable.Columns)
 				{
-					column.ReferenceTable = datalink.SourceDatalinkTableKey.ToString();
+					column.ReferenceTable = hubDatalink.SourceDatalinkTableKey.ToString();
 				}
 
                 //add a filter for the incremental column (if there is one)
-                var incrementalCol = sourceTable?.GetIncrementalUpdateColumn();
-                var updateStrategy = datalink.UpdateStrategy;
+                var incrementalCol = sourceTable?.GetAutoIncrementColumn();
+                var updateStrategy = hubDatalink.UpdateStrategy;
 
                 if (maxDatalinkTransformKey == null && 
                     transformWriterOptions.IsEmptyTarget() == false && 
@@ -345,7 +343,7 @@ namespace dexih.operations
                 }
 
                 DexihTable targetTable = null;
-                var target = datalink.DexihDatalinkTargets.FirstOrDefault(c => c.NodeDatalinkColumnKey == null);
+                var target = hubDatalink.DexihDatalinkTargets.FirstOrDefault(c => c.NodeDatalinkColumnKey == null);
                 if (target != null)
                 {
                     targetTable = hub.GetTableFromKey(target.TableKey);
@@ -356,11 +354,11 @@ namespace dexih.operations
 //                    targetTable = hub.GetTableFromKey((long) datalink.TargetTableKey);
 //                }
 
-                _logger?.LogTrace($"CreateRunPlan {datalink.Name}.  Added incremental filter.  Elapsed: {timer.Elapsed}");
+                _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}.  Added incremental filter.  Elapsed: {timer.Elapsed}");
 
                 
                 //loop through the transforms to create the chain.
-                foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
+                foreach (var datalinkTransform in hubDatalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
                 {
                     //if this is an empty transform, then ignore it.
                     if (datalinkTransform.DexihDatalinkTransformItems.Count == 0)
@@ -384,7 +382,7 @@ namespace dexih.operations
                     
                     var transform = datalinkTransform.GetTransform(hub, transformWriterOptions.GlobalVariables, _transformSettings, primaryTransform, referenceTransform, targetTable, _logger);
 
-                    _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
+                    _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 
                     primaryTransform = transform;
 
@@ -393,12 +391,10 @@ namespace dexih.operations
                 }
 
                 //if the maxDatalinkTransformKey is null (i.e. we are not doing a preview), and there are profiles add a profile transform.
-                if (maxDatalinkTransformKey == null && datalink.DexihDatalinkProfiles != null && datalink.DexihDatalinkProfiles.Count > 0 && datalink.LoadStrategy != TransformWriterTarget.ETransformWriterMethod.None)
+                if (maxDatalinkTransformKey == null && hubDatalink.DexihDatalinkProfiles != null && hubDatalink.DexihDatalinkProfiles.Count > 0 && targetTable != null)
                 {
-					
-
                     var profileRules = new Mappings();
-                    foreach (var profile in datalink.DexihDatalinkProfiles)
+                    foreach (var profile in hubDatalink.DexihDatalinkProfiles)
                     {
                         foreach (var column in targetTable.DexihTableColumns.Where(c => c.IsSourceColumn))
                         {
@@ -410,7 +406,7 @@ namespace dexih.operations
 
                     primaryTransform = transform;
 
-                    _logger?.LogTrace($"CreateRunPlan {datalink.Name}, adding profiling.  Elapsed: {timer.Elapsed}");
+                    _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}, adding profiling.  Elapsed: {timer.Elapsed}");
                 }
                 
                 if(transformWriterOptions.SelectQuery != null)
@@ -419,7 +415,7 @@ namespace dexih.operations
                     primaryTransform = transform;
                 }
 
-                _logger?.LogTrace($"CreateRunPlan {datalink.Name}, completed.  Elapsed: {timer.Elapsed}");
+                _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}, completed.  Elapsed: {timer.Elapsed}");
 
 				return (primaryTransform, sourceTable);
             }

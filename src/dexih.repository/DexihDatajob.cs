@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace dexih.repository
 {
-    public partial class DexihDatajob : DexihBaseEntity
+    public partial class DexihDatajob : DexihHubBaseEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EFailAction
@@ -24,7 +24,6 @@ namespace dexih.repository
 		[CopyCollectionKey((long)0, true)]
         public long DatajobKey { get; set; }
 
-        public long HubKey { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
 

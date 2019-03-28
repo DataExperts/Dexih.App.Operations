@@ -5,16 +5,13 @@ using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
-    public class DexihParameterBase : DexihBaseEntity
+    public class DexihParameterBase : DexihHubBaseEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EParameterDirection
         {
             Input, Output, ResultInput, ResultOutput, ReturnValue, ResultReturnValue
         }
-
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
 
         public string ParameterName { get; set; }
 

@@ -4,12 +4,10 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkTestStep: DexihBaseEntity
+    public class DexihDatalinkTestStep: DexihHubBaseEntity
     {
         public DexihDatalinkTestStep() => DexihDatalinkTestTables = new HashSet<DexihDatalinkTestTable>();
         
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
         
         [CopyCollectionKey((long)0, true)]
         public long DatalinkTestStepKey { get; set; }

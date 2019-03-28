@@ -10,7 +10,7 @@ using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
-    public partial class DexihTable : DexihBaseEntity
+    public partial class DexihTable : DexihHubBaseEntity
     {
         public DexihTable()
         {
@@ -22,8 +22,6 @@ namespace dexih.repository
 		[CopyCollectionKey((long)0, true)]
         public long TableKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
-        public long HubKey { get; set; }
         public long ConnectionKey { get; set; }
         public string Name { get; set; }
 		public string Schema {get; set; }
@@ -94,10 +92,10 @@ namespace dexih.repository
         public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 
         [JsonIgnore, CopyIgnore]
-        public DexihConnection Connection { get; set; }
+        public DexihConnection HubConnection { get; set; }
 
 	    [CopyReference]
-        public DexihFileFormat FileFormat { get; set; }
+        public DexihFileFormat HubFileFormat { get; set; }
 
 
 	    public Table GetTable(Connection connection, TransformSettings transformSettings)
@@ -126,7 +124,7 @@ namespace dexih.repository
 		        {
 			        case EConnectionCategory.File:
 				        table = new FlatFile();
-				        ((FlatFile)table).FileConfiguration = FileFormat?.GetFileFormat();
+				        ((FlatFile)table).FileConfiguration = HubFileFormat?.GetFileFormat();
 				        break;
 			        case EConnectionCategory.WebService:
 				        table = new WebService();

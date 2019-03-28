@@ -16,7 +16,7 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-	public partial class DexihRepositoryContext : IdentityDbContext<ApplicationUser>
+	public sealed partial class DexihRepositoryContext : IdentityDbContext<ApplicationUser>
 	{
 		public enum EDatabaseType
 		{
@@ -50,7 +50,7 @@ namespace dexih.repository
         /// <returns></returns>
         public Task<int> SaveHub(long hubKey, bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihBaseEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
+            var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihHubBaseEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
 
             foreach (var entity in entities)
             {
@@ -84,16 +84,16 @@ namespace dexih.repository
 		}
 
 		private void AddTimestamps()
-		{
-			var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihBaseEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
+        {
+			var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihHubBaseEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
 
 			foreach (var entity in entities)
 			{
 				if (entity.State == EntityState.Added)
 				{
-					((DexihBaseEntity)entity.Entity).CreateDate = DateTime.UtcNow;
+					((DexihHubBaseEntity)entity.Entity).CreateDate = DateTime.UtcNow;
 				}
-				((DexihBaseEntity)entity.Entity).UpdateDate = DateTime.UtcNow;
+				((DexihHubBaseEntity)entity.Entity).UpdateDate = DateTime.UtcNow;
             }
 		}
 
@@ -1129,7 +1129,7 @@ namespace dexih.repository
                     .HasForeignKey(d => d.HubKey);
                 
                 entity.HasOne(d => d.RemoteAgent)
-                    .WithMany(p => p.DexihremoteAgentHubs)
+                    .WithMany(p => p.DexihRemoteAgentHubs)
                     .HasForeignKey(d => d.RemoteAgentKey);
 
             });
@@ -1259,7 +1259,7 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_table_columns_dexih_tables");
 
-                entity.HasOne(d => d.ColumnValidation)
+                entity.HasOne(d => d.HubColumnValidation)
                     .WithMany(p => p.DexihColumnValidationColumn)
                     .HasForeignKey(d => d.ColumnValidationKey)
                     .OnDelete(DeleteBehavior.Restrict)
@@ -1323,13 +1323,13 @@ namespace dexih.repository
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
-                entity.HasOne(d => d.Connection)
+                entity.HasOne(d => d.HubConnection)
                     .WithMany(p => p.DexihTables)
                     .HasForeignKey(d => d.ConnectionKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_tables_dexih_connections");
 
-                entity.HasOne(d => d.FileFormat)
+                entity.HasOne(d => d.HubFileFormat)
                     .WithMany(p => p.DexihTables)
                     .HasForeignKey(d => d.FileFormatKey)
                     .HasConstraintName("FK_dexih_tables_dexih_file_format");
@@ -1413,34 +1413,34 @@ namespace dexih.repository
 
         }
 
-        public virtual DbSet<DexihColumnValidation> DexihColumnValidation { get; set; }
-        public virtual DbSet<DexihConnection> DexihConnections { get; set; }
-	    public virtual DbSet<DexihCustomFunction> DexihCustomFunctions { get; set; }
-        public virtual DbSet<DexihDatajob> DexihDatajobs { get; set; }
-        public virtual DbSet<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
-        public virtual DbSet<DexihDatalinkTable> DexihDatalinkTables { get; set; }
-        public virtual DbSet<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
-        public virtual DbSet<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
-        public virtual DbSet<DexihDatalinkStep> DexihDatalinkStep { get; set; }
-	    public virtual DbSet<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
-        public virtual DbSet<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
-	    public virtual DbSet<DexihDatalinkTest> DexihDatalinkTests { get; set; }
-	    public virtual DbSet<DexihDatalinkTestStep> DexihDatalinkTestSteps { get; set; }
-	    public virtual DbSet<DexihDatalinkTestTable> DexihDatalinkTestTables { get; set; }
-        public virtual DbSet<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
-        public virtual DbSet<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
-        public virtual DbSet<DexihDatalink> DexihDatalinks { get; set; }
-        public virtual DbSet<DexihFileFormat> DexihFileFormat { get; set; }
-        public virtual DbSet<DexihFunctionParameter> DexihFunctionParameters { get; set; }
-	    public virtual DbSet<DexihFunctionArrayParameter> DexihFunctionArrayParameters { get; set; }
-        public virtual DbSet<DexihRemoteAgent> DexihRemoteAgents { get; set; }
-	    public virtual DbSet<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
-        public virtual DbSet<DexihHubUser> DexihHubUser { get; set; }
-        public virtual DbSet<DexihHub> DexihHubs { get; set; }
-        public virtual DbSet<DexihHubVariable> DexihHubVariable { get; set; }
-        public virtual DbSet<DexihTableColumn> DexihTableColumns { get; set; }
-        public virtual DbSet<DexihTable> DexihTables { get; set; }
-        public virtual DbSet<DexihTrigger> DexihTriggers { get; set; }
-	    public virtual DbSet<DexihView> DexihViews { get; set; }
+        public DbSet<DexihColumnValidation> DexihColumnValidation { get; set; }
+        public DbSet<DexihConnection> DexihConnections { get; set; }
+	    public DbSet<DexihCustomFunction> DexihCustomFunctions { get; set; }
+        public DbSet<DexihDatajob> DexihDatajobs { get; set; }
+        public DbSet<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
+        public DbSet<DexihDatalinkTable> DexihDatalinkTables { get; set; }
+        public DbSet<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
+        public DbSet<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
+        public DbSet<DexihDatalinkStep> DexihDatalinkStep { get; set; }
+	    public DbSet<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
+        public DbSet<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
+	    public DbSet<DexihDatalinkTest> DexihDatalinkTests { get; set; }
+	    public DbSet<DexihDatalinkTestStep> DexihDatalinkTestSteps { get; set; }
+	    public DbSet<DexihDatalinkTestTable> DexihDatalinkTestTables { get; set; }
+        public DbSet<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
+        public DbSet<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
+        public DbSet<DexihDatalink> DexihDatalinks { get; set; }
+        public DbSet<DexihFileFormat> DexihFileFormat { get; set; }
+        public DbSet<DexihFunctionParameter> DexihFunctionParameters { get; set; }
+	    public DbSet<DexihFunctionArrayParameter> DexihFunctionArrayParameters { get; set; }
+        public DbSet<DexihRemoteAgent> DexihRemoteAgents { get; set; }
+	    public DbSet<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
+        public DbSet<DexihHubUser> DexihHubUser { get; set; }
+        public DbSet<DexihHub> DexihHubs { get; set; }
+        public DbSet<DexihHubVariable> DexihHubVariable { get; set; }
+        public DbSet<DexihTableColumn> DexihTableColumns { get; set; }
+        public DbSet<DexihTable> DexihTables { get; set; }
+        public DbSet<DexihTrigger> DexihTriggers { get; set; }
+	    public DbSet<DexihView> DexihViews { get; set; }
     }
 }
