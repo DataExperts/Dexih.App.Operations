@@ -897,7 +897,7 @@ namespace dexih.repository
 
                 entity.Property(e => e.MaxRows).HasColumnName("max_rows");
                 entity.Property(e => e.AddDefaultRow).HasColumnName("add_default_row");
-                entity.Property(e => e.NoDataload).HasColumnName("no_dataload");
+                entity.Property(e => e.IsQuery).HasColumnName("is_query");
                 entity.Property(e => e.RollbackOnFail).HasColumnName("rollback_on_fail");
                 entity.Property(e => e.RowsPerCommit).HasColumnName("rows_per_commit");
                 entity.Property(e => e.RowsPerProgress).HasColumnName("rows_per_progress");

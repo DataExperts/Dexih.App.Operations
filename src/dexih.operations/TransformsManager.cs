@@ -2,6 +2,7 @@
 using dexih.repository;
 using dexih.transforms;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using dexih.functions.Parameter;
@@ -10,6 +11,7 @@ using dexih.functions.Query;
 using dexih.transforms.Exceptions;
 using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
+using Dexih.Utils.DataType;
 using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
@@ -174,7 +176,9 @@ namespace dexih.operations
 
                 var parameters = new Parameters()
                 {
-                    Inputs = new Parameter[] {new ParameterColumn("value", new TableColumn(columnName))}
+                    Inputs = new Parameter[] {new ParameterColumn("value", new TableColumn(columnName))},
+                    ResultReturnParameters = new List<Parameter>() {new ParameterOutputColumn("value", DataType.ETypeCode.String)},
+                    ResultOutputs = new List<Parameter>() {new ParameterOutputColumn("distribution", DataType.ETypeCode.Unknown)},
                 };
                 var profileFunction = new TransformFunction(profileObject, functionMethodName, null, parameters, globalVariables);
                 var mapFunction = new MapFunction(profileFunction, parameters, MapFunction.EFunctionCaching.NoCache);

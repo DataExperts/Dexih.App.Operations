@@ -55,7 +55,7 @@ namespace dexih.repository
         public int RowsPerCommit { get; set; }
         public int RowsPerProgress { get; set; }
         public bool RollbackOnFail { get; set; }
-        public bool NoDataload { get; set; }
+        public bool IsQuery { get; set; }
         public int MaxRows { get; set; }
         public bool AddDefaultRow { get; set; }
         public string ProfileTableName { get; set; }

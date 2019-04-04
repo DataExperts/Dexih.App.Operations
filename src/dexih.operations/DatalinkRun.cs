@@ -126,6 +126,7 @@ namespace dexih.operations
                 TransformWriterOptions = _transformWriterOptions,
                 TargetTableKey = target.TableKey,
                 TargetTableName = targetTable.Name,
+                ProfileTableName = Datalink.ProfileTableName
             };
 
             writerResult.OnStatusUpdate += Datalink_OnStatusUpdate;
@@ -133,7 +134,7 @@ namespace dexih.operations
 
             parentWriterResult?.ChildResults.Add(writerResult);
             
-            var writerTarget = new TransformWriterTarget(targetConnection, targetTable, writerResult, _transformWriterOptions, targetConnection, rejectTable);
+            var writerTarget = new TransformWriterTarget(targetConnection, targetTable, writerResult, _transformWriterOptions, targetConnection, rejectTable, targetConnection, Datalink.ProfileTableName);
             return writerTarget;
         }
 

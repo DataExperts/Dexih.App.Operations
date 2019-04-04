@@ -1716,6 +1716,7 @@ namespace dexih.operations
 						AuditConnectionKey = auditConnectionKey,
 						MaxRows = 1000,
 						RowsPerProgress = 1000,
+						IsQuery = false,
 						IsValid = true,
 						SourceDatalinkTable = new DexihDatalinkTable()
 						{
