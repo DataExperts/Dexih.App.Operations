@@ -10,7 +10,9 @@ namespace dexih.repository
         [CopyCollectionKey((long)0)]
         public long DatalinkStepColumnKey { get; set; }
 
-        public long? DatalinkStepKey { get; set; }
+        [CopyParentCollectionKey]
+        public long DatalinkStepKey { get; set; }
+        
         
         [JsonIgnore, CopyIgnore]
         public DexihDatalinkStep DatalinkStep { get; set; }

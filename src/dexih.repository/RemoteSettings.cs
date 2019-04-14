@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using dexih.functions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -35,6 +36,22 @@ namespace dexih.repository
             
             return false;
         }
+        
+        public string CertificateFilePath()
+        {
+            if (string.IsNullOrEmpty(Network.CertificateFilename))
+            {
+                return null;
+            }
+
+            if (Path.GetFileName(Network.CertificateFilename) == Network.CertificateFilename)
+            {
+                return Path.Combine(Runtime.ConfigDirectory, Network.CertificateFilename);
+            }
+
+            return Network.CertificateFilename;
+        }
+
 
         /// <summary>
         /// Gets a list of download urls in sequence of priority
@@ -225,7 +242,7 @@ namespace dexih.repository
         /// <summary>
         /// If AllowAllPaths = false, a list of the file paths the remote agent can access.
         /// </summary>
-        public string[] AllowedPaths { get; set; }
+        public string[] AllowedPaths { get; set; } = {};
 
         /// <summary>
         /// Allow agent to use any hub on the central web server.
@@ -235,7 +252,7 @@ namespace dexih.repository
         /// <summary>
         /// If AllowAllHubs = false, a list of the hubkeys that agent can access.
         /// </summary>
-        public long[] AllowedHubs { get; set; }
+        public long[] AllowedHubs { get; set; } = {};
 
         public FilePermissions GetFilePermissions()
         {
@@ -285,20 +302,6 @@ namespace dexih.repository
         /// </summary>
         public string CertificateFilename { get; set; }
 
-        public string CertificateFilePath()
-        {
-            if (string.IsNullOrEmpty(CertificateFilename))
-            {
-                return null;
-            }
-
-            if (Path.GetFileName(CertificateFilename) == CertificateFilename)
-            {
-                return Path.Combine(Directory.GetCurrentDirectory(), CertificateFilename);
-            }
-
-            return CertificateFilename;
-        }
         
         /// <summary>
         /// Password for the ssl certificate
@@ -371,6 +374,11 @@ namespace dexih.repository
 
     public class RuntimeSection
     {
+        public string ConfigDirectory { get; set; }
+        public string LogDirectory { get; set; }
+        
+        public string AppSettingsPath { get; set; }
+        
         public string Password { get; set; }
 
         public string LocalIpAddress { get; set; }

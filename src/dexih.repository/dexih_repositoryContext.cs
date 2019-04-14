@@ -399,7 +399,7 @@ namespace dexih.repository
             {
                 entity.HasKey(e => e.DatalinkTableKey).HasName("PK_dexih_datalink_table");
 
-                entity.ToTable("dexih_datalink_table");
+                entity.ToTable("dexih_datalink_tables");
 
                 entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
@@ -497,7 +497,7 @@ namespace dexih.repository
                 entity.HasKey(e => e.DatalinkStepKey)
                     .HasName("PK_dexih_datajobs_datalinks");
 
-                entity.ToTable("dexih_datalink_step");
+                entity.ToTable("dexih_datalink_steps");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
@@ -577,7 +577,7 @@ namespace dexih.repository
             {
                 entity.HasKey(e => e.DatalinkTargetKey).HasName("PK_dexih_datalink_target");
 
-                entity.ToTable("dexih_datalink_target");
+                entity.ToTable("dexih_datalink_targets");
 
                 entity.Property(e => e.DatalinkTargetKey).HasColumnName("datalink_target_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
@@ -931,11 +931,6 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalinks_dexih_hubs");
 
-//                entity.HasOne(d => d.TargetTable)
-//                    .WithMany(p => p.DexihTargetTables)
-//                    .HasForeignKey(d => d.TargetTableKey)
-//                    .OnDelete(DeleteBehavior.Restrict)
-//                    .HasConstraintName("FK_dexih_target_tables");
 
                 entity.HasOne(d => d.AuditConnection)
                     .WithMany(p => p.DexihDatalinkAuditConnections)
@@ -949,7 +944,7 @@ namespace dexih.repository
                 entity.HasKey(e => e.FileFormatKey)
                     .HasName("PK_dexih_file_format");
 
-                entity.ToTable("dexih_file_format");
+                entity.ToTable("dexih_file_formats");
 
                 entity.Property(e => e.FileFormatKey).HasColumnName("file_format_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
@@ -1138,7 +1133,7 @@ namespace dexih.repository
             {
                 entity.HasKey(e => new { e.UserId, e.HubKey }).HasName("PK_UserHub");
 
-                entity.ToTable("dexih_hub_user");
+                entity.ToTable("dexih_hub_users");
 
                 entity.Property(e => e.UserId).HasMaxLength(450);
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
@@ -1186,7 +1181,7 @@ namespace dexih.repository
                 entity.HasKey(e => e.HubVariableKey)
                     .HasName("PK_dexih_hub_variable");
 
-                entity.ToTable("dexih_hub_variable");
+                entity.ToTable("dexih_hub_variables");
 
                 entity.Property(e => e.HubVariableKey).HasColumnName("hub_variable_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
@@ -1290,6 +1285,11 @@ namespace dexih.repository
                 entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);
                 entity.Property(e => e.BaseTableName).HasColumnName("base_table_name").HasMaxLength(250);
                 entity.Property(e => e.RejectedTableName).HasColumnName("rejected_table_name").HasMaxLength(250);
+                
+                entity.Property(e => e.TableType).HasColumnName("table_type").HasMaxLength(10)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (Table.ETableType) Enum.Parse(typeof(Table.ETableType), v));
 
                 entity.Property(e => e.UseQuery).HasColumnName("use_query");
                 entity.Property(e => e.QueryString).HasColumnName("query_string");

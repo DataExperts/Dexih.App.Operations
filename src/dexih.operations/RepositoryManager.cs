@@ -1879,13 +1879,13 @@ namespace dexih.operations
                         }
                     }
 
-                    foreach (var step in datajob.DexihDatalinkSteps)
-                    {
-                        if (step.DatalinkStepKey < 0)
-                        {
-                            step.DatalinkStepKey = 0;
-                        }
-                    }
+//                    foreach (var step in datajob.DexihDatalinkSteps)
+//                    {
+//                        if (step.DatalinkStepKey < 0)
+//                        {
+//                            step.DatalinkStepKey = 0;
+//                        }
+//                    }
 
                     if (datajob.DatajobKey <= 0) {
 						datajob.DatajobKey = 0;

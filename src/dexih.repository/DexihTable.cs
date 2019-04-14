@@ -27,6 +27,8 @@ namespace dexih.repository
 		public string Schema {get; set; }
         public string BaseTableName { get; set; }
         public string LogicalName { get; set; }
+        
+        public Table.ETableType TableType { get; set; }
         public string SourceConnectionName { get; set; }
         public string Description { get; set; }
         public long? FileFormatKey { get; set; }

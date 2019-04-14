@@ -205,7 +205,7 @@ namespace dexih.operations
                         {
                             throw new TransformManagerException($"The source datalink with the key {hubDatalinkTable.SourceDatalinkKey} was not found");
                         }
-                        returnValue = CreateRunPlan(hub, datalink, null, null, false, transformWriterOptions);
+                        returnValue = CreateRunPlan(hub, datalink, inputColumns, null, false, transformWriterOptions);
                         returnValue.sourceTransform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
                         break;
                     case ESourceType.Table:
@@ -220,29 +220,18 @@ namespace dexih.operations
                             throw new TransformManagerException($"The source table with the key {hubDatalinkTable.SourceTableKey.Value} could not be found.");
                         }
                         
-//                        if (sourceDbTable.IsInternal)
-//                        {
-//                            var sourceTable = datalinkTable.GetTable(null, inputColumns);
-//                            var rowCreator = new ReaderRowCreator();
-//                            rowCreator.InitializeRowCreator(0, 0, 1);
-//                            rowCreator.ReferenceTableAlias = datalinkTable.DatalinkTableKey.ToString();
-//                            returnValue = (rowCreator, sourceTable);
-//                        }
-//                        else
-//                        {
-                            var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
+                        var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
 
-                            if (sourceDbConnection == null)
-                            {
-                                throw new TransformException($"The connection with key {sourceDbTable.ConnectionKey} could not be found.");
-                            }
+                        if (sourceDbConnection == null)
+                        {
+                            throw new TransformException($"The connection with key {sourceDbTable.ConnectionKey} could not be found.");
+                        }
 
-                            var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
-                            var sourceTable = sourceDbTable.GetTable(sourceConnection, inputColumns, _transformSettings);
-                            var transform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
-                            transform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
-                            returnValue =  (transform, sourceTable);
-//                        }
+                        var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
+                        var sourceTable = sourceDbTable.GetTable(sourceConnection, inputColumns, _transformSettings);
+                        var transform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
+                        transform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
+                        returnValue =  (transform, sourceTable);
 
                         break;
                     case ESourceType.Rows:
@@ -352,14 +341,8 @@ namespace dexih.operations
                 {
                     targetTable = hub.GetTableFromKey(target.TableKey);
                 }
-                
-//                if (datalink.TargetTableKey != null)
-//                {
-//                    targetTable = hub.GetTableFromKey((long) datalink.TargetTableKey);
-//                }
 
                 _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}.  Added incremental filter.  Elapsed: {timer.Elapsed}");
-
                 
                 //loop through the transforms to create the chain.
                 foreach (var datalinkTransform in hubDatalink.DexihDatalinkTransforms.OrderBy(c => c.Position))

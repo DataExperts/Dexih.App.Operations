@@ -117,6 +117,14 @@ namespace dexih.operations
                                 return (name, fileStream);
                             }
                             break;
+                        case EDownloadFormat.JsonCompact:
+                            name = name + ".json";
+                            fileStream = new StreamJsonCompact(name, transform);
+                            if (!zipFiles)
+                            {
+                                return (name, fileStream);
+                            }
+                            break;
                             
                         default:
                             throw new Exception("The file format " + downloadFormat + " is not currently supported for downloading data.");
@@ -158,7 +166,7 @@ namespace dexih.operations
 
         public enum EDownloadFormat
         {
-            Csv, Json
+            Csv, Json, JsonCompact
         }
     }
 }

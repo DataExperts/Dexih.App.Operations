@@ -91,7 +91,7 @@ namespace dexih.operations
         private void UpdateProgress(int percent, string message, CancellationToken cancellationToken)
         {
             WriterResult.RowsCreated = percent;
-            WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Running, message, null, cancellationToken);
+            WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Running, message, null);
         }
         
         public void DatalinkTest_OnProgressUpdate(TransformWriterResult writer)
@@ -224,13 +224,13 @@ namespace dexih.operations
                     }
                 }
 
-                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Finished, "Finished", null, cancellationToken);
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Finished, "Finished", null);
                 await WriterResult.CompleteDatabaseWrites();
                 return true;
             }
             catch (Exception ex)
             {
-                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex, cancellationToken);
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex);
                 return false;
             }
         }
@@ -375,11 +375,11 @@ namespace dexih.operations
 
                 if (WriterResult.Failed > 0)
                 {
-                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Failed, $"{WriterResult.Passed} tests passed, {WriterResult.Failed} test failed.", null, cancellationToken);
+                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Failed, $"{WriterResult.Passed} tests passed, {WriterResult.Failed} test failed.", null);
                 }
                 else
                 {
-                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, $"{WriterResult.Passed} tests passed.", null, cancellationToken);
+                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, $"{WriterResult.Passed} tests passed.", null);
                 }
 
                 await WriterResult.CompleteDatabaseWrites();
@@ -389,8 +389,7 @@ namespace dexih.operations
             }
             catch (Exception ex)
             {
-                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex,
-                    cancellationToken);
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Abended, ex.Message, ex);
                 return TestResults;
             }
 
