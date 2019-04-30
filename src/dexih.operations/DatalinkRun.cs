@@ -111,8 +111,8 @@ namespace dexih.operations
             var dbTargetConnection =
                 _hub.DexihConnections.Single(c => c.ConnectionKey == dbTargetTable.ConnectionKey);
             var targetConnection = dbTargetConnection.GetConnection(_transformSettings);
-            var targetTable = dbTargetTable.GetTable(targetConnection, _transformSettings);
-            var rejectTable = dbTargetTable.GetRejectedTable(targetConnection, _transformSettings);
+            var targetTable = dbTargetTable.GetTable(_hub, targetConnection, _transformSettings);
+            var rejectTable = dbTargetTable.GetRejectedTable(_hub, targetConnection, _transformSettings);
 
             var writerResult = new TransformWriterResult()
             {
@@ -128,7 +128,9 @@ namespace dexih.operations
                 TransformWriterOptions = _transformWriterOptions,
                 TargetTableKey = target.TableKey,
                 TargetTableName = targetTable.Name,
-                ProfileTableName = Datalink.ProfileTableName
+                ProfileTableName = Datalink.ProfileTableName,
+                RowsPerProgressEvent = Datalink.RowsPerProgress
+
             };
 
             writerResult.OnStatusUpdate += Datalink_OnStatusUpdate;

@@ -10,7 +10,7 @@ namespace dexih.repository
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EParameterDirection
         {
-            Input, Output, ResultInput, ResultOutput, ReturnValue, ResultReturnValue
+            Input, Output, ResultInput, ResultOutput, ReturnValue, ResultReturnValue, Join
         }
 
         public string ParameterName { get; set; }

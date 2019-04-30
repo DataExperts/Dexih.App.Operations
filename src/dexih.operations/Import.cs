@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.Pipes;
 using dexih.repository;
 using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;
@@ -27,6 +28,7 @@ namespace dexih.operations
         public ImportObjects<DexihRemoteAgentHub> RemoteAgentHubs { get; set; }
         public ImportObjects<DexihDatalinkTest> DatalinkTests { get; set; }
         public ImportObjects<DexihView> Views { get; set; }
+        public ImportObjects<DexihApi> Apis { get; set; }
 
         public Import(long hubKey)
         {
@@ -43,6 +45,7 @@ namespace dexih.operations
             RemoteAgentHubs = new ImportObjects<DexihRemoteAgentHub>();
             DatalinkTests = new ImportObjects<DexihDatalinkTest>();
             Views = new ImportObjects<DexihView>();
+            Apis = new ImportObjects<DexihApi>();
         }
 
         /// <summary>
@@ -90,6 +93,9 @@ namespace dexih.operations
                     case DexihView a:
                         Views.Add(a, operation);
                         break;
+                    case DexihApi a:
+                        Apis.Add(a, operation);
+                        break;
                     default:
                         return false;
                 }
@@ -113,7 +119,8 @@ namespace dexih.operations
                    FileFormats.Any() || 
                    RemoteAgentHubs.Any() || 
                    DatalinkTests.Any() ||
-                    Views.Any();
+                   Views.Any() ||
+                   Apis.Any();
         }
     }
 

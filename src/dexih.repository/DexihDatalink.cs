@@ -388,27 +388,27 @@ namespace dexih.repository
                     datalinkTransform.NodeDatalinkColumn = columns[datalinkTransform.NodeDatalinkColumnKey.Value];
                     if(datalinkTransform.NodeDatalinkColumnKey < 0) datalinkTransform.NodeDatalinkColumnKey = 0;
                 }
+
+                // track any join columns for the transform.
+                if (datalinkTransform.JoinDatalinkTable != null)
+                {
+                    newColumns = new HashSet<DexihDatalinkColumn>();
+                    foreach (var column in datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns)
+                    {
+                        if (columns.ContainsKey(column.DatalinkColumnKey))
+                        {
+                            newColumns.Add(columns[column.DatalinkColumnKey]);
+                        }
+                        else
+                        {
+                            newColumns.Add(column);
+                        }
+                    }
+                    datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns = newColumns;
+                }
                 
                 foreach(var item in datalinkTransform.DexihDatalinkTransformItems)
                 {
-                    // track any join columns for the transform.
-                    if (datalinkTransform.JoinDatalinkTable != null)
-                    {
-                        newColumns = new HashSet<DexihDatalinkColumn>();
-                        foreach (var column in datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns)
-                        {
-                            if (columns.ContainsKey(column.DatalinkColumnKey))
-                            {
-                                newColumns.Add(columns[column.DatalinkColumnKey]);
-                            }
-                            else
-                            {
-                                newColumns.Add(column);
-                            }
-                        }
-                        datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns = newColumns;
-                    }
-                    
                     if (item.FilterDatalinkColumnKey != null && columns.ContainsKey(item.FilterDatalinkColumnKey.Value))
                     {
                         item.FilterDatalinkColumn = columns[item.FilterDatalinkColumnKey.Value];

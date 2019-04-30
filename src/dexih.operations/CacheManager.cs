@@ -190,6 +190,7 @@ namespace dexih.operations
 			    Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
+				Hub.DexihApis = await dbContext.DexihApis.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 
 				return Hub;
 			} catch(Exception ex)
@@ -718,7 +719,7 @@ namespace dexih.operations
 			    var existingJob = Hub.DexihDatajobs.SingleOrDefault(c=>c.DatajobKey == datajobKey);
 			    if(existingJob == null)
 			    {
-				    var job = hub.DexihDatajobs.SingleOrDefault(c => c.HubKey == HubKey && c.DatajobKey == datajobKey && c.IsValid);
+				    var job = hub.DexihDatajobs.SingleOrDefault(c => c.DatajobKey == datajobKey && c.IsValid);
 				    Hub.DexihDatajobs.Add(job);
 				    LoadDatajobDependencies(job, hub);
 			    }
@@ -747,7 +748,7 @@ namespace dexih.operations
 			    var columnValidation = Hub.DexihColumnValidations.SingleOrDefault(c => c.ColumnValidationKey == columnValidationKey);
 			    if(columnValidation == null)
 			    {
-				    columnValidation = hub.DexihColumnValidations.SingleOrDefault(c => c.HubKey == HubKey && c.ColumnValidationKey == columnValidationKey && c.IsValid);
+				    columnValidation = hub.DexihColumnValidations.SingleOrDefault(c => c.ColumnValidationKey == columnValidationKey && c.IsValid);
 				    Hub.DexihColumnValidations.Add(columnValidation);
 				    LoadColumnValidationDependencies(columnValidation, hub);
 			    }
@@ -774,12 +775,75 @@ namespace dexih.operations
 			    var customFunction = Hub.DexihCustomFunctions.SingleOrDefault(c => c.CustomFunctionKey == customFunctionKey);
 			    if(customFunction == null)
 			    {
-				    customFunction = hub.DexihCustomFunctions.SingleOrDefault(c => c.HubKey == HubKey && c.CustomFunctionKey == customFunctionKey && c.IsValid);
+				    customFunction = hub.DexihCustomFunctions.SingleOrDefault(c => c.CustomFunctionKey == customFunctionKey && c.IsValid);
 				    Hub.DexihCustomFunctions.Add(customFunction);
 			    }
 		    }
 	    }
+
+	    public void AddViews(IEnumerable<long> viewKeys, DexihHub hub)
+	    {
+		    foreach (var viewKey in viewKeys)
+		    {
+			    var view = Hub.DexihViews.SingleOrDefault(c => c.ViewKey == viewKey);
+			    if(view == null)
+			    {
+				    view = hub.DexihViews.SingleOrDefault(c => c.ViewKey == viewKey && c.IsValid);
+				    Hub.DexihViews.Add(view);
+				    
+				    if(view.SourceTableKey != null) AddTables(new [] {view.SourceTableKey.Value}, hub);
+				    if(view.SourceDatalinkKey != null) AddDatalinks(new [] {view.SourceDatalinkKey.Value}, hub);
+			    }
+		    }
+	    }
 	    
+	    public async Task AddViews(IEnumerable<long> viewKeys, DexihRepositoryContext dbContext)
+	    {
+		    foreach (var viewKey in viewKeys)
+		    {
+			    var view = Hub.DexihViews.SingleOrDefault(c => c.ViewKey == viewKey);
+			    if(view == null)
+			    {
+				    view = await dbContext.DexihViews.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.ViewKey == viewKey && c.IsValid);
+				    Hub.DexihViews.Add(view);
+				    
+				    if(view.SourceTableKey != null) await AddTables(new [] {view.SourceTableKey.Value}, dbContext);
+				    if(view.SourceDatalinkKey != null) await AddDatalinks(new [] {view.SourceDatalinkKey.Value}, dbContext);
+			    }
+		    }
+	    }
+	    
+	    public void AddApis(IEnumerable<long> apiKeys, DexihHub hub)
+	    {
+		    foreach (var apiKey in apiKeys)
+		    {
+			    var api = Hub.DexihApis.SingleOrDefault(c => c.ApiKey == apiKey);
+			    if(api == null)
+			    {
+				    api = hub.DexihApis.SingleOrDefault(c => c.ApiKey == apiKey && c.IsValid);
+				    Hub.DexihApis.Add(api);
+				    
+				    if(api.SourceTableKey != null && api.SourceTableKey > 0) AddTables(new [] {api.SourceTableKey.Value}, hub);
+				    if(api.SourceDatalinkKey != null && api.SourceDatalinkKey > 0) AddDatalinks(new [] {api.SourceDatalinkKey.Value}, hub);
+			    }
+		    }
+	    }
+	    
+	    public async Task AddApis(IEnumerable<long> apiKeys, DexihRepositoryContext dbContext)
+	    {
+		    foreach (var apiKey in apiKeys)
+		    {
+			    var api = Hub.DexihApis.SingleOrDefault(c => c.ApiKey == apiKey);
+			    if(api == null)
+			    {
+				    api = await dbContext.DexihApis.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.ApiKey == apiKey && c.IsValid);
+				    Hub.DexihApis.Add(api);
+				    
+				    if(api.SourceTableKey != null) await AddTables(new [] {api.SourceTableKey.Value}, dbContext);
+				    if(api.SourceDatalinkKey != null) await AddDatalinks(new [] {api.SourceDatalinkKey.Value}, dbContext);
+			    }
+		    }
+	    }
 		public async Task<DexihDatalink> GetDatalink(long datalinkKey, DexihRepositoryContext dbContext)
         {
 	        var datalinks = await GetDatalinks(new[] {datalinkKey}, dbContext);

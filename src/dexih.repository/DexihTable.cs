@@ -94,24 +94,24 @@ namespace dexih.repository
         public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 
         [JsonIgnore, CopyIgnore]
-        public DexihConnection HubConnection { get; set; }
+        public DexihConnection Connection { get; set; }
 
-	    [CopyReference]
-        public DexihFileFormat HubFileFormat { get; set; }
+        [JsonIgnore, CopyIgnore]
+        public DexihFileFormat FileFormat { get; set; }
 
 
-	    public Table GetTable(Connection connection, TransformSettings transformSettings)
+	    public Table GetTable(DexihHub hub, Connection connection, TransformSettings transformSettings)
 	    {
-		    return GetTable(connection, (InputColumn[]) null, transformSettings);
+		    return GetTable(hub, connection, (InputColumn[]) null, transformSettings);
 	    }
 	    
-	    public Table GetTable(Connection connection,  IEnumerable<DexihColumnBase> inputColumns, TransformSettings transformSettings)
+	    public Table GetTable(DexihHub hub, Connection connection,  IEnumerable<DexihColumnBase> inputColumns, TransformSettings transformSettings)
 	    {
 		    var inputs = inputColumns.Select(c => c.ToInputColumn()).ToArray();
-		    return GetTable(connection, inputs, transformSettings);
+		    return GetTable(hub, connection, inputs, transformSettings);
 	    }
 
-        public Table GetTable(Connection connection, InputColumn[] inputColumns, TransformSettings transformSettings)
+        public Table GetTable(DexihHub hub, Connection connection, InputColumn[] inputColumns, TransformSettings transformSettings)
         {
 	        Table table;
 
@@ -126,7 +126,8 @@ namespace dexih.repository
 		        {
 			        case EConnectionCategory.File:
 				        table = new FlatFile();
-				        ((FlatFile)table).FileConfiguration = HubFileFormat?.GetFileFormat();
+				        var fileFormat = hub.DexihFileFormats.SingleOrDefault(f => f.FileFormatKey == FileFormatKey);
+				        ((FlatFile)table).FileConfiguration =  fileFormat?.GetFileFormat();
 				        break;
 			        case EConnectionCategory.WebService:
 				        table = new WebService();
@@ -179,9 +180,9 @@ namespace dexih.repository
             return table;
         }
 
-        public Table GetRejectedTable(Connection connection, TransformSettings transformSettings)
+        public Table GetRejectedTable(DexihHub hub, Connection connection, TransformSettings transformSettings)
         {
-            var table = GetTable(connection, transformSettings);
+            var table = GetTable(hub, connection, transformSettings);
             return table.GetRejectedTable(RejectedTableName);
         }
     }

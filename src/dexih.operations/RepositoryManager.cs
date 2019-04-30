@@ -1101,18 +1101,18 @@ namespace dexih.operations
 						table.DexihTableColumns = null;
 					}
 
-					if (includeFileFormat && table.HubFileFormat != null)
+					if (includeFileFormat && table.FileFormat != null)
 					{
-						var dbFileFormat = await DbContext.DexihFileFormat.SingleOrDefaultAsync(f => f.HubKey == hubKey && f.FileFormatKey == table.HubFileFormat.FileFormatKey);
+						var dbFileFormat = await DbContext.DexihFileFormat.SingleOrDefaultAsync(f => f.HubKey == hubKey && f.FileFormatKey == table.FileFormat.FileFormatKey);
 						if (dbFileFormat == null)
 						{
-							table.EntityStatus.Message = $"The table could not be saved as the table contains the fileformat {table.HubFileFormat.FileFormatKey} that no longer exists in the repository.";
+							table.EntityStatus.Message = $"The table could not be saved as the table contains the fileformat {table.FileFormat.FileFormatKey} that no longer exists in the repository.";
 							table.EntityStatus.LastStatus = EntityStatus.EStatus.Error;
                             throw new RepositoryManagerException(table.EntityStatus.Message);
                         }
 
-                        table.HubFileFormat.CopyProperties(dbFileFormat, true);
-						table.HubFileFormat = dbFileFormat;
+                        table.FileFormat.CopyProperties(dbFileFormat, true);
+						table.FileFormat = dbFileFormat;
 					}
 
 					var dbConnection = DbContext.DexihConnections.SingleOrDefault(c => c.HubKey == hubKey && c.ConnectionKey == table.ConnectionKey);
@@ -1149,13 +1149,13 @@ namespace dexih.operations
 						}
 						else
 						{
-							if (dbTable.HubFileFormat?.FileFormatKey == table.HubFileFormat?.FileFormatKey)
-							{
-								table.HubFileFormat = dbTable.HubFileFormat;
-							}
+//							if (dbTable.FileFormat?.FileFormatKey == table.FileFormat?.FileFormatKey)
+//							{
+//								table.FileFormat = dbTable.FileFormat;
+//							}
 
 							table.CopyProperties(dbTable, false);
-							dbTable.UpdateDate = DateTime.Now; // chnage update date to force table to become modified entity.
+							dbTable.UpdateDate = DateTime.Now; // change update date to force table to become modified entity.
 							savedTables.Add(dbTable);
 						}
 					}
@@ -1181,12 +1181,12 @@ namespace dexih.operations
 					dbTable.HubKey = hubKey;
 				}
 
-				// remove any change tracking on the file format, to aovid an attempted resave.
-				var entities = DbContext.ChangeTracker.Entries().Where(x => (
-						x.Entity is DexihFileFormat ||
-                        x.Entity is DexihColumnValidation
-					) && (x.State == EntityState.Added || x.State == EntityState.Modified));
-				entities.Select(c => { c.State = EntityState.Unchanged; return c; }).ToList();
+				// remove any change tracking on the file format, to avoid an attempted re-save.
+//				var entities = DbContext.ChangeTracker.Entries().Where(x => (
+//						x.Entity is DexihFileFormat ||
+//                        x.Entity is DexihColumnValidation
+//					) && (x.State == EntityState.Added || x.State == EntityState.Modified));
+//				entities.Select(c => { c.State = EntityState.Unchanged; return c; }).ToList();
 
 				await SaveHubChangesAsync(hubKey);
 				return savedTables.ToArray();
@@ -1210,7 +1210,7 @@ namespace dexih.operations
             {
                 var dbTables = await DbContext.DexihTables
                     .Include(d => d.DexihTableColumns)
-                    .Include(f => f.HubFileFormat)
+                    .Include(f => f.FileFormat)
                     .Where(c => c.HubKey == hubKey && tableKeys.Contains(c.TableKey) && c.IsValid)
                     .ToArrayAsync();
 
@@ -1223,9 +1223,9 @@ namespace dexih.operations
                         dbColumn.IsValid = false;
                     }
 
-                    if (table.HubFileFormat != null && table.HubFileFormat.IsDefault == false)
+                    if (table.FileFormat != null && table.FileFormat.IsDefault == false)
                     {
-                        table.HubFileFormat.IsValid = false;
+                        table.FileFormat.IsValid = false;
                     }
                 }
 
@@ -1245,7 +1245,7 @@ namespace dexih.operations
             {
                 var dbTables = await DbContext.DexihTables
                     .Include(d => d.DexihTableColumns)
-                    .Include(f => f.HubFileFormat)
+                    .Include(f => f.FileFormat)
                     .Where(c => c.HubKey == hubKey && tableKeys.Contains(c.TableKey) && c.IsValid)
                     .ToArrayAsync();
 
@@ -1302,7 +1302,7 @@ namespace dexih.operations
 
 	            if (dbTable.FileFormatKey != null)
 	            {
-		            dbTable.HubFileFormat =
+		            dbTable.FileFormat =
 			            await DbContext.DexihFileFormat.SingleOrDefaultAsync(
 				            c => c.FileFormatKey == dbTable.FileFormatKey && c.IsValid);
 	            }
@@ -2671,7 +2671,7 @@ namespace dexih.operations
             }
         }
 
-	   public async Task<DexihView[]> DeleteHViews(long hubKey, long[] viewKeys)
+	   public async Task<DexihView[]> DeleteViews(long hubKey, long[] viewKeys)
         {
             try
             {
@@ -2738,6 +2738,74 @@ namespace dexih.operations
             catch (Exception ex)
             {
                 throw new RepositoryManagerException($"Save view {view.Name} failed.  {ex.Message}", ex);
+            }
+        }
+        
+          public async Task<DexihApi[]> DeleteApis(long hubKey, long[] apiKeys)
+        {
+            try
+            {
+                var dbApis = await DbContext.DexihApis
+                    .Where(c => c.HubKey == hubKey && apiKeys.Contains(c.ApiKey) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var api in dbApis)
+                {
+	                api.IsValid = false;
+                }
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbApis;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete API's failed.  {ex.Message}", ex);
+            }
+        }
+
+        public async Task<DexihApi> SaveApi(long hubKey, DexihApi api)
+        {
+            try
+            {
+	            DexihApi dbApi;
+
+                //check there are no connections with the same name
+                var sameName = await DbContext.DexihApis.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == api.Name && c.ApiKey != api.ApiKey && c.IsValid);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A API with the name {api.Name} already exists in the repository.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (api.ApiKey > 0)
+                {
+                    dbApi = await DbContext.DexihApis.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.ApiKey == api.ApiKey);
+                    if (dbApi != null)
+                    {
+	                    api.CopyProperties(dbApi, true);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The api could not be saved as it contains the api_key {api.ApiKey} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+                    dbApi = new DexihApi();
+                    api.CopyProperties(dbApi, true);
+                    DbContext.DexihApis.Add(dbApi);
+                }
+
+                dbApi.IsValid = true;
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbApi;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save api {api.Name} failed.  {ex.Message}", ex);
             }
         }
 		
@@ -3568,10 +3636,10 @@ namespace dexih.operations
             {
                 if (table.TableKey < 0) table.TableKey = 0;
 
-                table.HubConnection = connections.GetValueOrDefault(table.ConnectionKey);
+                table.Connection = connections.GetValueOrDefault(table.ConnectionKey);
                 if(table.FileFormatKey != null)
                 {
-                    table.HubFileFormat = fileFormats.GetValueOrDefault(table.FileFormatKey.Value);
+                    table.FileFormat = fileFormats.GetValueOrDefault(table.FileFormatKey.Value);
                 }
 
                 foreach(var column in table.DexihTableColumns)
@@ -3580,7 +3648,7 @@ namespace dexih.operations
                     column.Table = table;
                     if(column.ColumnValidationKey != null)
                     {
-                        column.HubColumnValidation = columnValidations.GetValueOrDefault(column.ColumnValidationKey.Value);
+                        column.ColumnValidation = columnValidations.GetValueOrDefault(column.ColumnValidationKey.Value);
                     }
                 }
             }

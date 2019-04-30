@@ -42,7 +42,7 @@ namespace dexih.operations
                             if (dbTable != null)
                             {
                                 var connection = dbConnection.GetConnection(_transformSettings);
-                                var table = dbTable.GetTable(connection, downloadObject.InputColumns, _transformSettings);
+                                var table = dbTable.GetTable(cache.Hub, connection, downloadObject.InputColumns, _transformSettings);
                                 name = table.Name;
 
                                 if (downloadObject.InputColumns != null)

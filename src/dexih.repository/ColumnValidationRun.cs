@@ -74,7 +74,7 @@ namespace dexih.operations
 
                 var dbConnection = Hub.DexihConnections.Single(c => c.ConnectionKey == dbTable.ConnectionKey);
                 var connection = dbConnection.GetConnection(_transformSettings);
-                _lookupTable = dbTable.GetTable(connection, _transformSettings);
+                _lookupTable = dbTable.GetTable(Hub, connection, _transformSettings);
                 _lookupColumn = dbColumn.GetTableColumn(null);
                 _lookupValues = await connection.GetColumnValues(_lookupTable, _lookupColumn, cancellationToken);
             }

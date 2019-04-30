@@ -110,6 +110,39 @@ namespace dexih.repository
             modelBuilder.Entity<IdentityUserClaim<string>>().ToTable("dexih_UserClaims");
             modelBuilder.Entity<IdentityUserToken<string>>().ToTable("dexih_UserTokens");
 
+            modelBuilder.Entity<DexihApi>(entity =>
+            {
+                entity.HasKey(e => e.ApiKey).HasName("PK_dexih_api");
+
+                entity.ToTable("dexih_apis");
+
+                entity.Property(e => e.ApiKey).HasColumnName("api_key");
+                entity.Property(e => e.HubKey).IsRequired().HasColumnName("hub_key");
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description");
+                entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
+                entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.SourceType).IsRequired().HasColumnName("source_type").HasMaxLength(20)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (ESourceType) Enum.Parse(typeof(ESourceType), v));
+                entity.Property(e => e.LogDirectory).HasColumnName("log_directory").HasMaxLength(250);
+                entity.Property(e => e.AutoStart).HasColumnName("auto_start");
+                entity.Property(e => e.CacheQueries).IsRequired().HasColumnName("cache_queries");
+                entity.Property(e => e.CacheResetInterval).HasColumnName("cache_reset_interval");
+                
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query")
+                    .HasConversion(
+                        v => v == null ? null : JsonConvert.SerializeObject(v),
+                        v => v == null ? null : JsonConvert.DeserializeObject<SelectQuery>(v));
+
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+            });
+                        
             modelBuilder.Entity<DexihColumnValidation>(entity =>
             {
                 entity.HasKey(e => e.ColumnValidationKey).HasName("PK_dexih_column_validation");
@@ -844,6 +877,9 @@ namespace dexih.repository
                         v => (Transform.EDuplicateStrategy) Enum.Parse(typeof(Transform.EDuplicateStrategy), v));
 
                 entity.Property(e => e.JoinSortDatalinkColumnKey).HasColumnName("join_sort_column_key");
+                
+                entity.Property(e => e.MaxInputRows).HasColumnName("max_input_rows");
+                entity.Property(e => e.MaxOutputRows).HasColumnName("max_output_rows");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1254,7 +1290,7 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_table_columns_dexih_tables");
 
-                entity.HasOne(d => d.HubColumnValidation)
+                entity.HasOne(d => d.ColumnValidation)
                     .WithMany(p => p.DexihColumnValidationColumn)
                     .HasForeignKey(d => d.ColumnValidationKey)
                     .OnDelete(DeleteBehavior.Restrict)
@@ -1323,15 +1359,16 @@ namespace dexih.repository
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
-                entity.HasOne(d => d.HubConnection)
+                entity.HasOne(d => d.Connection)
                     .WithMany(p => p.DexihTables)
                     .HasForeignKey(d => d.ConnectionKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_tables_dexih_connections");
 
-                entity.HasOne(d => d.HubFileFormat)
+                entity.HasOne(d => d.FileFormat)
                     .WithMany(p => p.DexihTables)
                     .HasForeignKey(d => d.FileFormatKey)
+                    .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_tables_dexih_file_format");
 
             });
@@ -1413,6 +1450,7 @@ namespace dexih.repository
 
         }
 
+        public DbSet<DexihApi> DexihApis { get; set; }
         public DbSet<DexihColumnValidation> DexihColumnValidation { get; set; }
         public DbSet<DexihConnection> DexihConnections { get; set; }
 	    public DbSet<DexihCustomFunction> DexihCustomFunctions { get; set; }

@@ -84,7 +84,7 @@ namespace dexih.operations
 				ReferenceName = datajob.Name,
 				SourceTableKey = 0,
 				SourceTableName = "",
-				TransformWriterOptions = _transformWriterOptions
+				TransformWriterOptions = _transformWriterOptions,
 			};
 			
 			Datajob = datajob;

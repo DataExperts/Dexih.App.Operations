@@ -38,7 +38,7 @@ namespace dexih.repository
         public virtual DexihTable Table { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihColumnValidation HubColumnValidation { get; set; }
+        public virtual DexihColumnValidation ColumnValidation { get; set; }
 
 	    [JsonIgnore, CopyIgnore]
 	    public virtual ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }

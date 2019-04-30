@@ -58,6 +58,9 @@ namespace dexih.repository
         
         public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
 
+        public long MaxInputRows { get; set; } = 0;
+        public long MaxOutputRows { get; set; } = 0;
+
         /// <summary>
         /// Gets all the mapped output columns for this transform.
         /// </summary>
@@ -131,6 +134,9 @@ namespace dexih.repository
                 {
                     transform.Name = "Transform - " + DatalinkTransformKey;
                 }
+
+                transform.MaxInputRows = MaxInputRows;
+                transform.MaxOutputRows = MaxOutputRows;
 
 				if(JoinDatalinkTable != null)
 				{

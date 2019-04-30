@@ -32,6 +32,7 @@ namespace dexih.repository
             DexihRemoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
             DexihDatalinkTests = new HashSet<DexihDatalinkTest>();
             DexihViews = new HashSet<DexihView>();
+            DexihApis = new HashSet<DexihApi>();
         }
 
         [CopyCollectionKey((long)0, true)]
@@ -52,6 +53,7 @@ namespace dexih.repository
         public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
         public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
         public ICollection<DexihView> DexihViews { get; set; }
+        public ICollection<DexihApi> DexihApis { get; set; }
 
         public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
         public ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }

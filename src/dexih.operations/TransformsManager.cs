@@ -228,7 +228,7 @@ namespace dexih.operations
                         }
 
                         var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
-                        var sourceTable = sourceDbTable.GetTable(sourceConnection, inputColumns, _transformSettings);
+                        var sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
                         var transform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
                         transform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
                         returnValue =  (transform, sourceTable);
@@ -259,12 +259,13 @@ namespace dexih.operations
                     
                 }
                 
-                // compare the table in the transform to the source datalink columns.  If any are misisng, add a mapping 
+                // compare the table in the transform to the source datalink columns.  If any are missing, add a mapping 
                 // transform to include them.
                 var transformColumns = returnValue.sourceTransform.CacheTable.Columns;
                 var datalinkColumns = hubDatalinkTable.DexihDatalinkColumns;
 
-                // var mappings = new List<ColumnPair>();
+
+                // add a mapping transform to include inputColumns.
                 var mappings = new Mappings();
                 
                 foreach (var column in datalinkColumns)
@@ -273,7 +274,7 @@ namespace dexih.operations
                     if (transformColumn == null)
                     {
                         var newColumn = column.GetTableColumn(inputColumns);
-                        mappings.Add(new MapColumn(newColumn)); 
+                        mappings.Add(new MapInputColumn(newColumn)); 
                     }
                 }
 
@@ -303,6 +304,8 @@ namespace dexih.operations
                 _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name} started.");
 
                 var timer = Stopwatch.StartNew();
+                
+                if(transformWriterOptions == null) transformWriterOptions = new TransformWriterOptions();
                 
 				var primaryTransformResult = GetSourceTransform(hub, hubDatalink.SourceDatalinkTable, inputColumns, transformWriterOptions);
 				var primaryTransform = primaryTransformResult.sourceTransform;

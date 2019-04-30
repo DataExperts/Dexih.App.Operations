@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Policy;
 using dexih.functions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -52,6 +53,26 @@ namespace dexih.repository
             return Network.CertificateFilename;
         }
 
+        public string AutoStartPath()
+        {
+            string path;
+            if (string.IsNullOrEmpty(AppSettings.AutoStartPath))
+            {
+                path = Path.Combine(Runtime.ConfigDirectory, "autoStart");
+            }
+            else
+            {
+                path = AppSettings.AutoStartPath;
+            }
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            return path;
+        }
+
 
         /// <summary>
         /// Gets a list of download urls in sequence of priority
@@ -69,10 +90,16 @@ namespace dexih.repository
 
             if (Privacy.AllowLanAccess)
             {
-                if(Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
+                var localIpAddress = string.IsNullOrEmpty(Network.LocalIpAddress)
+                    ? Runtime.LocalIpAddress : Network.LocalIpAddress;
+                var localPort = Network.LocalPort ?? Network.DownloadPort ?? 33944;
+
+                if (Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
                 {
-                    urls.Add(new DownloadUrl() {
-                        Url = $"https://{Runtime.LocalIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(Network.DownloadPort ?? 33944)}",
+                    urls.Add(new DownloadUrl()
+                    {
+                        Url =
+                            $"https://{localIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(localPort)}",
                         DownloadUrlType = EDownloadUrlType.Direct,
                         IsEncrypted = true
                     });
@@ -80,8 +107,9 @@ namespace dexih.repository
 
                 if (!Network.EnforceHttps)
                 {
-                    urls.Add(new DownloadUrl() {
-                        Url = $"http://{Runtime.LocalIpAddress}:{Network.DownloadPort ?? 33944}",
+                    urls.Add(new DownloadUrl()
+                    {
+                        Url = $"http://{localIpAddress}:{localPort}",
                         DownloadUrlType = EDownloadUrlType.Direct,
                         IsEncrypted = false
                     });
@@ -92,12 +120,13 @@ namespace dexih.repository
             {
                 if (!string.IsNullOrEmpty(Network.ExternalDownloadUrl))
                 {
-                    if (!Network.EnforceHttps || Network.ExternalDownloadUrl.Substring(0, 5) == "https")
+                    bool encrypted = Network.ExternalDownloadUrl.StartsWith("https:://");
+                    if (!Network.EnforceHttps || encrypted)
                     {
                         urls.Add(new DownloadUrl() {
                             Url = Network.ExternalDownloadUrl,
                             DownloadUrlType = EDownloadUrlType.Direct,
-                            IsEncrypted = true
+                            IsEncrypted = encrypted
                         });
                     }
                 }
@@ -224,6 +253,8 @@ namespace dexih.repository
         /// Allow pre-release versions to be included in the auto upgrade.
         /// </summary>
         public bool AllowPreReleases { get; set; } = false;
+        
+        public string AutoStartPath { get; set; }
 
     }
 
@@ -271,6 +302,16 @@ namespace dexih.repository
         /// URL to upload/download from this agent.
         /// </summary>
         public string ExternalDownloadUrl { get; set; }
+        
+        /// <summary>
+        /// Local IP to upload/download from this agent
+        /// </summary>
+        public string LocalIpAddress { get; set; }
+        
+        /// <summary>
+        /// Local port to upload/download  
+        /// </summary>
+        public int? LocalPort { get; set; }
 
         /// <summary>
         /// Override the default proxy server with a custom implementation.
@@ -278,7 +319,7 @@ namespace dexih.repository
         public string ProxyUrl { get; set; }
 
         /// <summary>
-        /// Local download port to use 
+        /// Download port to use 
         /// </summary>
         public int? DownloadPort { get; set; } = 33944; //default port
 
@@ -360,6 +401,11 @@ namespace dexih.repository
     {
         public bool IncludeScopes { get; set; } = false;
         public LogLevelSection LogLevel { get; set; } = new LogLevelSection();
+
+        /// <summary>
+        /// File name to create a log file
+        /// </summary>
+        public string LogFilePath { get; set; }
     }
 
     public class LogLevelSection
@@ -370,18 +416,19 @@ namespace dexih.repository
         public LogLevel System { get; set; } = LogLevel.Information;
         [JsonConverter(typeof(StringEnumConverter))]
         public LogLevel Microsoft { get; set; } = LogLevel.Information;
+
     }
 
     public class RuntimeSection
     {
         public string ConfigDirectory { get; set; }
-        public string LogDirectory { get; set; }
-        
+       
         public string AppSettingsPath { get; set; }
         
         public string Password { get; set; }
 
         public string LocalIpAddress { get; set; }
+        public string LocalPort { get; set; }
 
         public string ExternalIpAddress { get; set; }
         

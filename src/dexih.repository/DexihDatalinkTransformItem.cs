@@ -106,21 +106,35 @@ namespace dexih.repository
 		{
 
 			var column = parameter.DatalinkColumn?.GetTableColumn(null);
-			
-			if (direction == DexihParameterBase.EParameterDirection.Input || direction == DexihParameterBase.EParameterDirection.ResultInput)
+
+			switch (direction)
 			{
-				if (column != null)
-				{
-					return new ParameterColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);
-				}
-				else
-				{
-					return new ParameterValue(parameter.ParameterName, parameter.DataType, parameter.Value);
-				}
-			}
-			else
-			{
-				return new ParameterOutputColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);				
+				case DexihParameterBase.EParameterDirection.Input:
+				case DexihParameterBase.EParameterDirection.ResultInput:
+					if (column != null)
+					{
+						return new ParameterColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);
+					}
+					else
+					{
+						return new ParameterValue(parameter.ParameterName, parameter.DataType, parameter.Value);
+					}
+
+					break;
+				case DexihParameterBase.EParameterDirection.Join:
+					if (column != null)
+					{
+						return new ParameterJoinColumn(parameter.ParameterName, column);
+					}
+					else
+					{
+						return new ParameterValue(parameter.ParameterName, parameter.DataType, parameter.Value);
+					}
+
+					break;
+				default:
+					return new ParameterOutputColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);				
+					break;
 			}
 		}
 		
@@ -148,7 +162,6 @@ namespace dexih.repository
 				var resultOutputs = new List<Parameter>();
 				var returnParameters = new List<Parameter>();
 				var resultReturnParameters = new List<Parameter>();
-				
 
 				foreach (var parameter in DexihFunctionParameters.OrderBy(c=>c.Position))
 				{
@@ -179,6 +192,7 @@ namespace dexih.repository
 					switch (parameter.Direction)
 					{
 						case DexihParameterBase.EParameterDirection.Input:
+						case DexihParameterBase.EParameterDirection.Join:
 							inputs.Add(newParameter);
 							break;
 						case DexihParameterBase.EParameterDirection.Output:
@@ -196,7 +210,7 @@ namespace dexih.repository
 						case DexihParameterBase.EParameterDirection.ResultReturnValue:
 							resultReturnParameters.Add(newParameter);
 							break;
-							
+						
 					}
 				}
 
