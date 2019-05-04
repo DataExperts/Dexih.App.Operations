@@ -329,8 +329,6 @@ namespace dexih.repository
                     .HasForeignKey(d => d.CustomFunctionKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_customfunction_customfunction_parameter");
-                
-
             });
 
             modelBuilder.Entity<DexihDatajob>(entity =>

@@ -9,7 +9,7 @@ namespace dexih.repository
     [CopyCollectionKey((long)0, true)]
     public long CustomFunctionParameterKey { get; set; }
     
-    [CopyParentCollectionKey]
+    [CopyParentCollectionKey(nameof(DexihCustomFunction.CustomFunctionKey))]
     public long CustomFunctionKey { get; set; }
       
       // public string Name { get; set; }

@@ -374,7 +374,7 @@ using System.Collections.Generic;
 public class Program
 {
     // These variables are cached between row calls and can be used to store data.
-    // These are reset in the group/row transform whenever a neew group is encountered.
+    // These are reset in the group/row transform whenever a new group is encountered.
 	static int intValue;
 	static double doubleValue;
 	static string stringValue;
@@ -443,7 +443,13 @@ $FunctionCode
 }
                     ");
 
-	        var tabbedCode = "\t\t" + functionCode.Replace("\n", "\n\t\t");
+            var functionCode2 = functionCode.TrimStart();
+            if (functionCode2[0] == '=')
+            {
+	            functionCode2 = "return " + functionCode2.Substring(1) + ";";
+            }
+            
+	        var tabbedCode = "\t\t" + functionCode2.Replace("\n", "\n\t\t");
 	        
             code.Replace("$FunctionCode", tabbedCode);
             code.Replace("$FunctionReturn", parameters.ReturnParameters[0].DataType.ToString());
@@ -472,7 +478,7 @@ $FunctionCode
                 var inputParameters = new StringBuilder();
                 foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input))
                 {
-                    inputParameters.Append("\t\t" + inputParameter.DataType + " " + inputParameter.ParameterName + " = ");
+                    inputParameters.Append("\t\t" + inputParameter.DataType + AddRank(inputParameter.Rank) + " " + inputParameter.ParameterName + " = ");
 
 	                var parameter = parameters.Inputs?.SingleOrDefault(c => c.Name == inputParameter.ParameterName);
 	                if (parameter != null)
@@ -485,11 +491,11 @@ $FunctionCode
 			                case EBasicType.Date:
 			                case EBasicType.Time:
 			                case EBasicType.Binary:
-				                inputParameters.AppendLine("\"" + parameter.Value + "\";");
+				                inputParameters.AppendLine(AddRankValue("\"" + parameter.Value + "\"", inputParameter.Rank));
 				                break;
 			                case EBasicType.Numeric:
 			                case EBasicType.Boolean:
-				                inputParameters.AppendLine(parameter.Value + ";");
+				                inputParameters.AppendLine(AddRankValue(parameter.Value , inputParameter.Rank));
 				                break;
 			                default:
 				                throw new ArgumentOutOfRangeException();
@@ -507,35 +513,35 @@ $FunctionCode
 			                case ETypeCode.Int16:
 			                case ETypeCode.Int32:
 			                case ETypeCode.Int64:
-				                inputParameters.AppendLine("1;");
+				                inputParameters.AppendLine(AddRankValue("1", inputParameter.Rank));
 				                break;
 			                case ETypeCode.Decimal:
 			                case ETypeCode.Double:
 			                case ETypeCode.Single:
-				                inputParameters.AppendLine("1.1;");
+				                inputParameters.AppendLine(AddRankValue("1.1", inputParameter.Rank));
 				                break;
 			                case ETypeCode.Text:
 			                case ETypeCode.String:
 			                case ETypeCode.Unknown:
-				                inputParameters.AppendLine("\"sample\";");
+				                inputParameters.AppendLine(AddRankValue("\"sample\"", inputParameter.Rank));
 				                break;
 			                case ETypeCode.Json:
-				                inputParameters.AppendLine("\"{ test: \\\"testValue\\\" }\";");
+				                inputParameters.AppendLine(AddRankValue("\"{ test: \\\"testValue\\\" }\"", inputParameter.Rank));
 				                break;
 			                case ETypeCode.Xml:
-				                inputParameters.AppendLine("\"<test>testValue</test>\";");
+				                inputParameters.AppendLine(AddRankValue("\"<test>testValue</test>\"", inputParameter.Rank));
 				                break;
 			                case ETypeCode.Boolean:
-				                inputParameters.AppendLine("false;");
+				                inputParameters.AppendLine(AddRankValue("false", inputParameter.Rank));
 				                break;
 			                case ETypeCode.DateTime:
-				                inputParameters.AppendLine("DateTime.Now;");
+				                inputParameters.AppendLine(AddRankValue("DateTime.Now", inputParameter.Rank));
 				                break;
 			                case ETypeCode.Time:
-				                inputParameters.AppendLine("\"" + TimeSpan.FromDays(1) + "\";");
+				                inputParameters.AppendLine(AddRankValue("\"" + TimeSpan.FromDays(1) + "\"", inputParameter.Rank));
 				                break;
 			                case ETypeCode.Guid:
-				                inputParameters.AppendLine("\"" + Guid.NewGuid() + "\";");
+				                inputParameters.AppendLine(AddRankValue("\"" + Guid.NewGuid() + "\"", inputParameter.Rank));
 				                break;
 			                default:
 				                throw new ArgumentOutOfRangeException();
@@ -580,16 +586,12 @@ $FunctionCode
 			var parameterString = "";
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Input))
 			{
-				var addArray = "";
-				if (t.Rank > 0) addArray = "[]";
-				parameterString += t.DataType + addArray + " " + t.ParameterName + ",";
+				parameterString += t.DataType + AddRank(t.Rank) + " " + t.ParameterName + ",";
 			}
 
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Output))
 			{
-				var addArray = "";
-				if (t.Rank > 0) addArray = "[]";
-				parameterString += "out " + t.DataType + addArray + " " + t.ParameterName + ",";
+				parameterString += "out " + t.DataType + AddRank(t.Rank) + " " + t.ParameterName + ",";
 			}
 
             if (parameterString != "") //remove last comma
@@ -598,6 +600,16 @@ $FunctionCode
             code.Replace("$Parameters", parameterString);
 
             return code.ToString();
+        }
+
+        private string AddRank(int rank)
+        {
+	        return rank > 0 ? "[]" : "";
+        }
+
+        private string AddRankValue(object value, int rank)
+        {
+	        return rank == 0 ? value.ToString() + ";" : "new [] {" + value.ToString() + "};";
         }
     }
 }

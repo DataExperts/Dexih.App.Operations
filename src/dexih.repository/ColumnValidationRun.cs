@@ -60,22 +60,16 @@ namespace dexih.operations
         {
             if (ColumnValidation.LookupColumnKey != null)
             {
-                var dbColumn = Hub.GetColumnFromKey((long)ColumnValidation.LookupColumnKey);
-                if (dbColumn == null)
+                var tableColumn = Hub.GetTableColumnFromKey((long)ColumnValidation.LookupColumnKey);
+                if (tableColumn.column == null)
                 {
                     throw new ColumnValidationException($"Error: The lookup table for column {ColumnValidation.LookupColumnKey} could not be found.");
                 }
 
-                var dbTable = Hub.GetTableFromKey(dbColumn.GetParentTableKey());
-                if (dbTable == null)
-                {
-                    throw new ColumnValidationException($"Error: The lookup table with key {dbColumn.TableKey} could not be found.");
-                }
-
-                var dbConnection = Hub.DexihConnections.Single(c => c.ConnectionKey == dbTable.ConnectionKey);
+                var dbConnection = Hub.DexihConnections.Single(c => c.ConnectionKey == tableColumn.table.ConnectionKey);
                 var connection = dbConnection.GetConnection(_transformSettings);
-                _lookupTable = dbTable.GetTable(Hub, connection, _transformSettings);
-                _lookupColumn = dbColumn.GetTableColumn(null);
+                _lookupTable = tableColumn.table.GetTable(Hub, connection, _transformSettings);
+                _lookupColumn = tableColumn.column.GetTableColumn(null);
                 _lookupValues = await connection.GetColumnValues(_lookupTable, _lookupColumn, cancellationToken);
             }
         }

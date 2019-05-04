@@ -46,9 +46,18 @@ namespace dexih.repository
 	    public TableColumn GetTableColumn(InputColumn[] inputColumns)
 	    {
 		    var tableColumn = new TableColumn();
-		    this.CopyProperties(tableColumn, false);
+		    this.CopyProperties(tableColumn, true);
 		    tableColumn.ReferenceTable = TableKey.ToString();
 
+		    if (ChildColumns != null && ChildColumns.Count > 0)
+		    {
+			    tableColumn.ChildColumns = new TableColumns();
+			    foreach (var childColumn in ChildColumns.OrderBy(c => c.Position))
+			    {
+				    tableColumn.ChildColumns.Add(childColumn.GetTableColumn(inputColumns));
+			    }
+		    }
+		    
 		    var column = inputColumns?.SingleOrDefault(c => c.Name == tableColumn.Name);
 		    if (column != null)
 		    {

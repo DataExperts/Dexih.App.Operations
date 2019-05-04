@@ -456,8 +456,8 @@ namespace dexih.operations
 	    {
 		    if(columnValidation.LookupColumnKey != null)
 		    {
-			    var column = hub.GetColumnFromKey(columnValidation.LookupColumnKey.Value);
-			    AddTables(new[] { column.GetParentTableKey() }, hub);
+			    var tableColumn = hub.GetTableColumnFromKey(columnValidation.LookupColumnKey.Value);
+			    AddTables(new[] { tableColumn.table.TableKey }, hub);
 		    }
 	    }
 

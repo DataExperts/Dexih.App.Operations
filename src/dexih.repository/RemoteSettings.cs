@@ -2,12 +2,17 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Policy;
+using System.Threading.Tasks;
 using dexih.functions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 
 namespace dexih.repository
 {
@@ -71,6 +76,127 @@ namespace dexih.repository
             }
 
             return path;
+        }
+
+        public bool UpgradeAvailable()
+        {
+            var latestBuild = Runtime.LatestVersion.Split('-').Last();
+            var localBuild = Runtime.Version.Split('-').Last();
+
+            if (string.CompareOrdinal(latestBuild, localBuild) > 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+        
+               /// <summary>
+        /// Checks for a newer release, and downloads if there is.
+        /// </summary>
+        /// <returns>True is upgrade is required.</returns>
+        public async Task<bool> CheckUpgrade()
+        {
+            var localVersion = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+            Runtime.Version = localVersion;
+            
+                string downloadUrl = null;
+                string latestVersion = null;
+
+
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
+                    JToken jToken;
+                    if (AppSettings.AllowPreReleases)
+                    {
+                        // this api gets all releases.
+                        var response =
+                            await httpClient.GetAsync(
+                                "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases");
+                        var responseText = await response.Content.ReadAsStringAsync();
+                        var releases = JArray.Parse(responseText);
+                        // the first release will be the latest.
+                        jToken = releases[0];
+                    }
+                    else
+                    {
+                        // this api gets the latest release, excluding pre-releases.
+                        var response =
+                            await httpClient.GetAsync(
+                                "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest");
+                        var responseText = await response.Content.ReadAsStringAsync();
+                        jToken = JToken.Parse(responseText);
+                    }
+
+                    latestVersion = (string) jToken["tag_name"];
+
+                    foreach (var asset in jToken["assets"])
+                    {
+                        var name = ((string) asset["name"]).ToLower();
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
+                        {
+                            downloadUrl = (string) asset["browser_download_url"];
+                            break;
+                        }
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
+                        {
+                            downloadUrl = (string) asset["browser_download_url"];
+                            break;
+                        }
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
+                        {
+                            downloadUrl = (string) asset["browser_download_url"];
+                            break;
+                        }
+                    }
+
+                    Runtime.LatestVersion = latestVersion;
+                    Runtime.LatestDownloadUrl = downloadUrl;
+
+                    var latestBuild = latestVersion.Split('-').Last();
+                    var localBuild = localVersion.Split('-').Last();
+
+                    if (string.CompareOrdinal(latestBuild, localBuild) > 0)
+                    {
+                        return true;
+                    }
+
+                    return false;
+
+                    // Download and save the update
+//                        if (!string.IsNullOrEmpty(downloadUrl))
+//                        {
+//                            Logger.LogInformation($"Downloading latest remote agent release from {downloadUrl}.");
+//                            var releaseFileName = Path.Combine(Path.GetTempPath(), "dexih.remote.latest.zip");
+//
+//                            if (File.Exists(releaseFileName))
+//                            {
+//                                File.Delete(releaseFileName);
+//                            }
+//
+//                            using (var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
+//                            using (var streamToReadFrom = await response.Content.ReadAsStreamAsync())
+//                            {
+//                                using (Stream streamToWriteTo = File.Open(releaseFileName, FileMode.Create))
+//                                {
+//                                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
+//                                }
+//                            }
+//
+//                            var extractDirectory = Path.Combine(Path.GetTempPath(), "remote.agent");
+//                            if (Directory.Exists(extractDirectory))
+//                            {
+//                                Directory.Delete(extractDirectory, true);
+//                            }
+//
+//                            Directory.CreateDirectory(extractDirectory);
+//                            ZipFile.ExtractToDirectory(releaseFileName, extractDirectory);
+//                        }
+                }
+
         }
 
 
@@ -428,21 +554,24 @@ namespace dexih.repository
         public string Password { get; set; }
 
         public string LocalIpAddress { get; set; }
-        public string LocalPort { get; set; }
+//        public string LocalPort { get; set; }
 
         public string ExternalIpAddress { get; set; }
         
-        public string ProxyUrl { get; set; }
+//        public string ProxyUrl { get; set; }
         
         public ApplicationUser User { get; set; }
         
         public string UserHash { get; set; }
         
         public string Version { get; set; }
+        
+        public string LatestVersion { get; set; }
+        public string LatestDownloadUrl { get; set; }
 
         public bool GenerateUserToken { get; set; } 
         
-        public List<FunctionReference> Functions { get; set; }
+//        public List<FunctionReference> Functions { get; set; }
     }
 
 

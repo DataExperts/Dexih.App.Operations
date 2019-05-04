@@ -64,10 +64,18 @@ namespace dexih.repository
         /// </summary>
         /// <param name="columnKey"></param>
         /// <returns></returns>
-        public DexihTableColumn GetColumnFromKey(long columnKey)
+        public (DexihTable table, DexihTableColumn column) GetTableColumnFromKey(long columnKey)
         {
-            var column = DexihConnections.SelectMany(c => c.DexihTables).SelectMany(d => d.DexihTableColumns).SingleOrDefault(c => c.ColumnKey == columnKey);
-            return column;
+            foreach (var table in DexihConnections.SelectMany(c => c.DexihTables))
+            {
+                var column = table.DexihTableColumns.SingleOrDefault(c => c.ColumnKey == columnKey);
+                if (column != null)
+                {
+                    return (table, column);
+                }
+            }
+
+            return (null, null);
         }
 
         /// <summary>
