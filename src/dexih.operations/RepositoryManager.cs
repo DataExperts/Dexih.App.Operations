@@ -756,6 +756,7 @@ namespace dexih.operations
                 //save the hub to generate a hub key.
                 await DbContext.SaveChangesAsync();
 				ResetHubCache(hub.HubKey);
+				ResetHubPermissions(hub.HubKey);
 
 				return hub;
 			}

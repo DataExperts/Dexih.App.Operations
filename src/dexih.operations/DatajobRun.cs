@@ -33,7 +33,7 @@ namespace dexih.operations
 		private readonly List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
 
 		private readonly BufferBlock<TransformWriterResult> _completedDatalinks = new BufferBlock<TransformWriterResult>();
-
+		
 		#endregion
 
 		public DexihDatajob Datajob { get; set; }
@@ -45,6 +45,8 @@ namespace dexih.operations
 		private readonly TransformSettings _transformSettings;
 		private readonly TransformWriterOptions _transformWriterOptions;
 		private readonly ILogger _logger;
+		
+		private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
 		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, TransformWriterOptions transformWriterOptions)
 		{
@@ -144,19 +146,18 @@ namespace dexih.operations
 
 		public void Schedule(DateTime scheduledTime, CancellationToken cancellationToken)
 		{
+			WriterResult.ScheduledTime = scheduledTime;
 			var runStatus = WriterResult.SetRunStatus(ERunStatus.Scheduled, null, null);
 			if (!runStatus)
 			{
 				throw new DatajobRunException($"Failed to set status");
 			}
-
-			WriterResult.ScheduledTime = scheduledTime;
 		}
 
 		public void CancelSchedule(CancellationToken cancellationToken)
 		{
-			var runstatusResult = WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null);
-			if (!runstatusResult)
+			var runStatusResult = WriterResult.SetRunStatus(ERunStatus.Cancelled, null, null);
+			if (!runStatusResult)
 			{
 				throw new DatajobRunException($"Failed to set status");
 			}
@@ -180,9 +181,14 @@ namespace dexih.operations
 				}
 
 				//start all jobs async
-				foreach (var step in Datajob.DexihDatalinkSteps)
+				foreach (var step in Datajob.DexihDatalinkSteps.Where(c => c.IsValid))
 				{
-					var datalink = _hub.DexihDatalinks.Single(c => c.DatalinkKey == step.DatalinkKey);
+					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == step.DatalinkKey);
+
+					if (datalink == null)
+					{
+						throw new DatajobRunException($"The step {step.Name} contains a datalink with the key {step.DatalinkKey} which can not be found.");
+					}
 
 					var inputColumns = step.DexihDatalinkStepColumns.Select(c => c.ToInputColumn()).ToArray();
 					var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, inputColumns, _transformWriterOptions) { DatalinkStepKey = step.DatalinkStepKey};
@@ -208,37 +214,58 @@ namespace dexih.operations
 				}
 
 				WriterResult.SetRunStatus(ERunStatus.Running, null, null);
-
-				//wait until all other datalinks have finished
-				while (WriterResult.RunStatus != ERunStatus.Finished &&
-				       WriterResult.RunStatus != ERunStatus.FinishedErrors &&
-				       WriterResult.RunStatus != ERunStatus.Cancelled &&
-				       WriterResult.RunStatus != ERunStatus.Abended
-				)
-				{
-					var writer = await _completedDatalinks.ReceiveAsync(cancellationToken);
-				}
-
-				await WriterResult.CompleteDatabaseWrites();
-
+				
+				await WaitUntilFinished();
+				
 				return true;
 			}
 			catch (OperationCanceledException)
 			{
+				Cancel();
+				await WaitUntilFinished();
+				
 				WriterResult.SetRunStatus(ERunStatus.Cancelled, "Datajob was cancelled", null);
 				throw new DatajobRunException($"The datajob {Datajob.Name} was cancelled.");
 
 			}
 			catch (Exception ex)
 			{
-				var message = $"The job {Datajob.Name} failed.  ${ex.Message}";
-				WriterResult?.SetRunStatus(ERunStatus.Abended, message, null);
+				Cancel();
+				await WaitUntilFinished();
+				
+				var message = $"The job {Datajob.Name} failed.  {ex.Message}";
+				WriterResult?.SetRunStatus(ERunStatus.Abended, message, ex);
 				throw new DatajobRunException(message, ex);
 			}
 			finally
 			{
+				await WriterResult.CompleteDatabaseWrites();
 				OnFinish?.Invoke(this);
 			}
+		}
+
+		public void Cancel()
+		{
+			foreach (var step in DatalinkSteps)
+			{
+				step.Cancel();
+			}
+		}
+
+		private async Task WaitUntilFinished()
+		{
+			var tasks = DatalinkSteps.Select(c => c.WaitForFinish()).ToArray();
+			await Task.WhenAll(tasks);
+			
+//			//wait until all other datalinks have finished
+//			while (WriterResult.RunStatus != ERunStatus.Finished &&
+//			       WriterResult.RunStatus != ERunStatus.FinishedErrors &&
+//			       WriterResult.RunStatus != ERunStatus.Cancelled &&
+//			       WriterResult.RunStatus != ERunStatus.Abended
+//			)
+//			{
+//				await _completedDatalinks.ReceiveAsync();
+//			}
 		}
 
 		/// <summary>
@@ -246,6 +273,8 @@ namespace dexih.operations
 		/// </summary>
 		public void DatalinkStatus(DatalinkRun datalinkRun, TransformWriterResult writerResult)
 		{
+			if (_cancellationTokenSource.IsCancellationRequested) return;
+			
 			if (writerResult.RunStatus == ERunStatus.Finished || writerResult.RunStatus == ERunStatus.Abended || writerResult.RunStatus == ERunStatus.Cancelled)
 			{
 				WriterResult.RowsCreated += writerResult.RowsCreated;

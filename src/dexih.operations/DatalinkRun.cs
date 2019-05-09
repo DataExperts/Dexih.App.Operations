@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CsvHelper.Configuration.Attributes;
 using Microsoft.Extensions.Logging;
 using static dexih.transforms.TransformWriterResult;
 
@@ -29,8 +30,6 @@ namespace dexih.operations
 
         public DexihDatalink Datalink { get; set; }
         
-        
-        // private DexihTable _targetTable;
         private readonly DexihHub _hub;
 		private readonly TransformSettings _transformSettings;
         private readonly InputColumn[] _inputColumns;
@@ -40,7 +39,16 @@ namespace dexih.operations
         public long ParentAuditKey { get; }
 
         private readonly TransformWriterOptions _transformWriterOptions;
+        
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
+        private TaskCompletionSource<bool> _taskCompletionSource;
+
+        public Task WaitForFinish()
+        {
+            if(_taskCompletionSource == null) return Task.CompletedTask;
+            return _taskCompletionSource.Task;
+        }
 
         public DatalinkRun(TransformSettings transformSettings, ILogger logger, long parentAuditKey, DexihDatalink hubDatalink, DexihHub hub, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions)
         {
@@ -51,6 +59,8 @@ namespace dexih.operations
             Datalink = hubDatalink;
             _inputColumns = inputColumns;
             _transformWriterOptions = transformWriterOptions;
+            _taskCompletionSource = new TaskCompletionSource<bool>();
+
             
             Connection auditConnection;
 
@@ -159,9 +169,7 @@ namespace dexih.operations
             try
             {
                 ResetEvents();
-
                 var transformManager = new TransformsManager(_transformSettings, _logger);
-                //Get the last Transform that will load the target table.
                 Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, null, WriterTarget.WriterResult?.LastMaxIncrementalValue, _transformWriterOptions);
             }
             catch (Exception ex)
@@ -180,10 +188,27 @@ namespace dexih.operations
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="DatalinkRunException"></exception>
-        public Task Run(CancellationToken cancellationToken)
+        public async Task Run(CancellationToken cancellationToken)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return WriterTarget.WriteRecordsAsync(Reader.sourceTransform, Datalink.UpdateStrategy, Datalink.LoadStrategy, cancellationToken);
+            try
+            {
+                var ct = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token,
+                    cancellationToken);
+
+                var token = ct.Token;
+                token.ThrowIfCancellationRequested();
+                await WriterTarget.WriteRecordsAsync(Reader.sourceTransform, Datalink.UpdateStrategy,
+                    Datalink.LoadStrategy, token);
+            }
+            finally
+            {
+                _taskCompletionSource.SetResult(true);
+            }
+        }
+
+        public void Cancel()
+        {
+            _cancellationTokenSource.Cancel();
         }
 
         public void Datalink_OnProgressUpdate(TransformWriterResult writer)

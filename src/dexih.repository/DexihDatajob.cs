@@ -36,6 +36,8 @@ namespace dexih.repository
         /// </summary>
         public bool FileWatch { get; set; }
         
+        public bool AutoStart { get; set; }
+        
         /// <summary>
         /// Indicates if the job can be triggered through the external api.
         /// </summary>

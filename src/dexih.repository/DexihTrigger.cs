@@ -52,7 +52,7 @@ namespace dexih.repository
                     desc.AppendLine("Runs daily after:" + StartTime.Value.ToString());
                 if (EndTime != null)
                     desc.AppendLine("Ends daily after:" + EndTime.Value.ToString());
-                if (DaysOfWeek.Length > 0 && DaysOfWeek.Length < 7)
+                if (DaysOfWeek != null && DaysOfWeek.Length > 0 && DaysOfWeek.Length < 7)
                     desc.AppendLine("Only on:" + String.Join(",", DaysOfWeek.Select(c => c.ToString()).ToArray()));
                 if (IntervalTime != null)
                     desc.AppendLine("Runs every: " + IntervalTime.Value.ToString());

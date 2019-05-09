@@ -80,6 +80,11 @@ namespace dexih.repository
 
         public bool UpgradeAvailable()
         {
+            if (string.IsNullOrEmpty(Runtime.LatestVersion))
+            {
+                return false;
+            }
+
             var latestBuild = Runtime.LatestVersion.Split('-').Last();
             var localBuild = Runtime.Version.Split('-').Last();
 

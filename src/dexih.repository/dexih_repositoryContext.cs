@@ -350,6 +350,7 @@ namespace dexih.repository
                 entity.Property(e => e.AuditConnectionKey).HasColumnName("audit_connection_key");
                 // entity.Property(e => e.ExternalTrigger).HasColumnName("external_trigger");
                 entity.Property(e => e.FileWatch).HasColumnName("file_watch");
+                entity.Property(e => e.AutoStart).HasColumnName("auto_start");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
