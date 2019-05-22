@@ -71,6 +71,11 @@ namespace dexih.repository
 			return base.SaveChanges();
 		}
 
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default (CancellationToken))
+        {
+            return SaveChangesAsync(true, cancellationToken);
+        }
+        
 		public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			AddTimestamps();
@@ -85,15 +90,15 @@ namespace dexih.repository
 
 		private void AddTimestamps()
         {
-			var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihHubBaseEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
+			var entities = ChangeTracker.Entries().Where(x =>  x.Entity is DexihBaseEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
 
 			foreach (var entity in entities)
 			{
 				if (entity.State == EntityState.Added)
 				{
-					((DexihHubBaseEntity)entity.Entity).CreateDate = DateTime.UtcNow;
+					((DexihBaseEntity)entity.Entity).CreateDate = DateTime.UtcNow;
 				}
-				((DexihHubBaseEntity)entity.Entity).UpdateDate = DateTime.UtcNow;
+				((DexihBaseEntity)entity.Entity).UpdateDate = DateTime.UtcNow;
             }
 		}
 

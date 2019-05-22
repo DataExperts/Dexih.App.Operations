@@ -85,7 +85,7 @@ namespace dexih.operations
 		[JsonConverter(typeof(StringEnumConverter))]
 		public enum ELoginProvider
 		{
-			UserPass, Google, Microsoft    
+			Dexih, Google, Microsoft    
 		}
 
 		public Task<ApplicationUser> GetUser(ClaimsPrincipal principal)
@@ -237,7 +237,7 @@ namespace dexih.operations
 		/// <param name="userId"></param>
 		public void ResetUserCache(string userId)
 		{
-			MemoryCache.Remove($"USERHUBS-{userId}");
+			MemoryCache.Remove(CacheKeys.UserHubs((userId)));
 		}
 
 		/// <summary>
@@ -263,9 +263,9 @@ namespace dexih.operations
 				ResetUserCache(hubUser.Id);
 			}
 			
-			MemoryCache.Remove($"ADMINHUBS");
-			MemoryCache.Remove($"HUBUSERIDS-{hubKey}");
-			MemoryCache.Remove($"HUBUSERS-{hubKey}");
+			MemoryCache.Remove(CacheKeys.AdminHubs);
+			MemoryCache.Remove(CacheKeys.HubUserIds(hubKey));
+			MemoryCache.Remove(CacheKeys.HubUsers(hubKey));
 		}
 		
 		/// <summary>
@@ -275,7 +275,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public Task<DexihHub> GetHub(long hubKey)
 		{
-			var hubReturn = MemoryCache.GetOrCreateAsync($"HUB-{hubKey}", async entry =>
+			var hubReturn = MemoryCache.GetOrCreateAsync(CacheKeys.Hub((hubKey)), async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromHours(1);
 				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey));
@@ -314,7 +314,7 @@ namespace dexih.operations
 		{
 			if (user.IsAdmin)
 			{
-				return MemoryCache.GetOrCreateAsync($"ADMINHUBS", async entry =>
+				return MemoryCache.GetOrCreateAsync(CacheKeys.AdminHubs, async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 				
@@ -328,12 +328,13 @@ namespace dexih.operations
 			}
 			else
 			{
-				return MemoryCache.GetOrCreateAsync($"USERHUBS-{user.Id}", async entry =>
+				return MemoryCache.GetOrCreateAsync(CacheKeys.UserHubs(user.Id), async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 				
 					var hubKeys = await DbContext.DexihHubUser
-						.Where(c => c.UserId == user.Id && c.Permission <= DexihHubUser.EPermission.FullReader && c.IsValid)
+						.Where(c => c.UserId == user.Id && 
+						            (c.Permission == DexihHubUser.EPermission.FullReader || c.Permission == DexihHubUser.EPermission.User || c.Permission == DexihHubUser.EPermission.Owner) && c.IsValid)
 						.Select(c => c.HubKey).ToArrayAsync();
 				
 					var hubs = await DbContext.DexihHubs
@@ -368,7 +369,7 @@ namespace dexih.operations
 				else
 				{
 					// all hubs the user has reader access to.
-					var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+					var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && (c.Permission == DexihHubUser.EPermission.FullReader || c.Permission == DexihHubUser.EPermission.User || c.Permission == DexihHubUser.EPermission.Owner || c.Permission == DexihHubUser.EPermission.PublishReader) && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
 					
 					// all hubs the user has reader access to, or are public
 					return await DbContext.DexihHubs.Where(c => 
@@ -607,7 +608,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public Task<string[]> GetHubUserIds(long hubKey)
 		{
-			return MemoryCache.GetOrCreateAsync($"HUBUSERIDS-{hubKey}", async entry =>
+			return MemoryCache.GetOrCreateAsync(CacheKeys.HubUserIds(hubKey), async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 
@@ -649,7 +650,7 @@ namespace dexih.operations
         {
             try
             {
-	            var returnList = MemoryCache.GetOrCreateAsync($"HUBUSERS-{hubKey}", async entry =>
+	            var returnList = MemoryCache.GetOrCreateAsync(CacheKeys.HubUsers(hubKey), async entry =>
 	            {
 		            entry.SlidingExpiration = TimeSpan.FromHours(1);
 
@@ -716,12 +717,22 @@ namespace dexih.operations
 			return hub.EncryptionKey;
 		}
 
-		public async Task<DexihHub> SaveHub(DexihHub hub)
+		public async Task<DexihHub> SaveHub(DexihHub hub, ApplicationUser user)
 		{
 			try
 			{
-				var exists = await DbContext.DexihHubs.AnyAsync(c => c.Name == hub.Name && c.HubKey != hub.HubKey && c.IsValid);
-				if (exists)
+				if (hub.HubKey > 0 && !user.IsAdmin)
+				{
+					var permission = await ValidateHub(user, hub.HubKey);
+
+					if(permission != DexihHubUser.EPermission.Owner)
+					{
+						throw new RepositoryException("Only owners of the hub are able to make modifications.");
+					}
+				}
+				
+				var sameName = await DbContext.DexihHubs.AnyAsync(c => c.Name == hub.Name && c.HubKey != hub.HubKey && c.IsValid);
+				if (sameName)
 				{
                     throw new RepositoryManagerException($"A hub with the name {hub.Name} already exists.");
 				}
@@ -733,6 +744,7 @@ namespace dexih.operations
 				}
 
 				DexihHub dbHub;
+				var isNew = false;
 
 				if (hub.HubKey > 0)
 				{
@@ -740,6 +752,7 @@ namespace dexih.operations
 					if (dbHub != null)
 					{
 						hub.CopyProperties(dbHub, true);
+						isNew = false;
 					}
 					else
 					{
@@ -751,14 +764,23 @@ namespace dexih.operations
 					dbHub = hub;
 					DbContext.DexihHubs.Add(dbHub);
 					dbHub.IsValid = true;
+					isNew = true;
 				}
-
+				
                 //save the hub to generate a hub key.
                 await DbContext.SaveChangesAsync();
 				ResetHubCache(hub.HubKey);
 				ResetHubPermissions(hub.HubKey);
 
-				return hub;
+				// if new hub, then update with current user, and update the quota.
+				if (isNew && !user.IsAdmin)
+				{
+					user.HubQuota--;
+					await UpdateUserAsync(user);
+					await HubSetUserPermissions(dbHub.HubKey, new[] { user.Id }, DexihHubUser.EPermission.Owner);
+				}
+
+				return dbHub;
 			}
             catch (Exception ex)
             {
@@ -894,7 +916,7 @@ namespace dexih.operations
 		/// <exception cref="ApplicationUserException"></exception>
 		public Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey)
 		{
-			var validate = MemoryCache.GetOrCreateAsync($"PERMISSION-USER-{user.Id}-HUB-{hubKey}", async entry =>
+			var validate = MemoryCache.GetOrCreateAsync(CacheKeys.UserHubPermission(user.Id, hubKey), async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 
@@ -2066,6 +2088,14 @@ namespace dexih.operations
 					.SingleAsync(c => c.RemoteAgentKey == remoteAgentKey);
 
 				dbItem.IsValid = false;
+
+				// remove any permissions for the hub.
+				var hubs = DbContext.DexihRemoteAgentHubs.Where(c => c.RemoteAgentKey == dbItem.RemoteAgentKey);
+				foreach(var hub in hubs)
+				{
+					hub.IsValid = false;
+				}
+				
 				await DbContext.SaveChangesAsync();
 
 				return true;
@@ -2084,7 +2114,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(string iPAddress, RemoteSettings remoteSettings)
 		{
-			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-HUBS-{remoteSettings.AppSettings.RemoteAgentId}",
+			return await MemoryCache.GetOrCreateAsync(CacheKeys.RemoteAgentHubs(remoteSettings.AppSettings.RemoteAgentId),
 				async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
@@ -2109,7 +2139,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public async Task<DexihRemoteAgentHub[]> AuthorizedUserRemoteAgentHubs(ApplicationUser user)
 		{
-			return await MemoryCache.GetOrCreateAsync($"REMOTEAGENT-USER-HUBS-{user.Id}",
+			return await MemoryCache.GetOrCreateAsync(CacheKeys.RemoteAgentUserHubs(user.Id),
 				async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
@@ -2962,7 +2992,7 @@ namespace dexih.operations
 
 
 		/// <summary>
-		/// Compares an imported hub structure against the database structure, and maps keys and dependent obects together.
+		/// Compares an imported hub structure against the database structure, and maps keys and dependent objects together.
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <param name="hubHub">Importing Hub</param>
@@ -3086,15 +3116,15 @@ namespace dexih.operations
 			{
 				columnValidation.HubKey = hubKey;
 				
-				var existingcolumnValidation = existingColumnValidations.SingleOrDefault(con => columnValidation.Name == con.Name);
+				var existingColumnValidation = existingColumnValidations.SingleOrDefault(con => columnValidation.Name == con.Name);
 
-				if (existingcolumnValidation != null)
+				if (existingColumnValidation != null)
 				{
 					switch (columnValidationsAction)
 					{
 						case EImportAction.Replace:
-							columnValidationKeyMappings.Add(columnValidation.ColumnValidationKey, existingcolumnValidation.ColumnValidationKey);
-							columnValidation.ColumnValidationKey = existingcolumnValidation.ColumnValidationKey;
+							columnValidationKeyMappings.Add(columnValidation.ColumnValidationKey, existingColumnValidation.ColumnValidationKey);
+							columnValidation.ColumnValidationKey = existingColumnValidation.ColumnValidationKey;
 							plan.ColumnValidations.Add(columnValidation, EImportAction.Replace);
 							break;
 						case EImportAction.New:
@@ -3162,7 +3192,7 @@ namespace dexih.operations
 						case EImportAction.Skip:
 							break;
 						default:
-							throw new ArgumentOutOfRangeException(nameof(columnValidationsAction), columnValidationsAction, null);
+							throw new ArgumentOutOfRangeException(nameof(connectionsAction), connectionsAction, null);
 					}
 				}
 				else
@@ -3183,14 +3213,6 @@ namespace dexih.operations
                         table.HubKey = hubKey;
                         table.ConnectionKey = connection.ConnectionKey;
 
-                        if (table.FileFormatKey != null)
-                        {
-                            if (fileFormatKeyMappings.ContainsKey(table.FileFormatKey.Value))
-                            {
-                                table.FileFormatKey = fileFormatKeyMappings[table.FileFormatKey.Value];
-                            }
-                        }
-
                         foreach (var column in table.DexihTableColumns)
                         {
                             column.TableKey = table.TableKey;
@@ -3201,9 +3223,14 @@ namespace dexih.operations
 
 	                        if (column.ColumnValidationKey != null)
 	                        {
-		                        if (columnValidationKeyMappings.ContainsKey(column.ColumnValidationKey.Value))
+		                        if (columnValidationKeyMappings.TryGetValue(column.ColumnValidationKey.Value, out var columnValidationKey))
 		                        {
-			                        column.ColumnValidationKey = columnValidationKeyMappings[column.ColumnValidationKey.Value];
+			                        column.ColumnValidationKey = columnValidationKey;
+		                        }
+		                        else
+		                        {
+			                        plan.Warnings.Add($"The table {table.Name} with the column {column.Name} contains a column validation with the key {column.ColumnValidationKey} which does not exist in the package.  This will need to be manually fixed after import.");
+			                        column.ColumnValidationKey = null;    
 		                        }
 	                        }
                         }
@@ -3227,11 +3254,33 @@ namespace dexih.operations
 						{
 							table.HubKey = hubKey;
 							table.ConnectionKey = connection.ConnectionKey;
+
 							if (table.FileFormatKey != null)
 							{
-								if (fileFormatKeyMappings.ContainsKey(table.FileFormatKey.Value))
+								if (fileFormatKeyMappings.TryGetValue(table.FileFormatKey.Value, out var fileFormatKey))
 								{
-									table.FileFormatKey = fileFormatKeyMappings[table.FileFormatKey.Value];
+									table.FileFormatKey = fileFormatKey;
+								}
+								else
+								{
+									plan.Warnings.Add($"The table {table.Name} a file format with the key {table.FileFormatKey.Value} which does not exist in the package.  This will need to be manually fixed after import.");
+									table.FileFormatKey = null;
+								}
+							}
+
+							foreach (var column in table.DexihTableColumns)
+							{
+								if (column.ColumnValidationKey != null)
+								{
+									if (columnValidationKeyMappings.TryGetValue(column.ColumnValidationKey.Value, out var columnValidationKey))
+									{
+										column.ColumnValidationKey = columnValidationKey;
+									}
+									else
+									{
+										plan.Warnings.Add($"The table {table.Name} with the column {column.Name} contains a column validation with the key {column.ColumnValidationKey} which does not exist in the package.  This will need to be manually fixed after import.");
+										column.ColumnValidationKey = null;    
+									}
 								}
 							}
 
@@ -3256,13 +3305,6 @@ namespace dexih.operations
 										{
 											column.HubKey = hubKey;
 											column.TableKey = table.TableKey;
-											if (column.ColumnValidationKey != null)
-											{
-												if (columnValidationKeyMappings.ContainsKey(column.ColumnValidationKey.Value))
-												{
-													column.ColumnValidationKey = columnValidationKeyMappings[column.ColumnValidationKey.Value];
-												}
-											}
 											var existingColumn = existingColumns.SingleOrDefault(c => c.Name == column.Name);
 											{
 												if (existingColumn != null)
@@ -3286,13 +3328,6 @@ namespace dexih.operations
 										foreach (var column in table.DexihTableColumns)
 										{
 											column.HubKey = hubKey;
-											if (column.ColumnValidationKey != null)
-											{
-												if (columnValidationKeyMappings.ContainsKey(column.ColumnValidationKey.Value))
-												{
-													column.ColumnValidationKey = columnValidationKeyMappings[column.ColumnValidationKey.Value];
-												}
-											}
 											column.TableKey = table.TableKey;
 											var newKey = keySequence--;
 											columnKeyMappings.Add(column.ColumnKey, newKey);
@@ -3309,6 +3344,20 @@ namespace dexih.operations
 							}
 						}
 					}
+				}
+			}
+			
+			// need to go through the column validations again, now that the table keys are set to reset any lookups
+			foreach (var columnValidation in plan.ColumnValidations.Where(c => c.Item.LookupColumnKey != null))
+			{
+				if (columnKeyMappings.TryGetValue(columnValidation.Item.LookupColumnKey.Value, out var columnKey))
+				{
+					columnValidation.Item.LookupColumnKey = columnKey;
+				}
+				else
+				{
+					plan.Warnings.Add($"The column validation {columnValidation.Item.Name} contains a column lookup with the key {columnValidation.Item.LookupColumnKey} which does not exist in the package.  This will need to be manually fixed after import.");
+					columnValidation.Item.LookupColumnKey = null;    
 				}
 			}
 			
@@ -3382,14 +3431,32 @@ namespace dexih.operations
 					if (datalinkTable != null)
 					{
 						datalinkTable.DatalinkTableKey = 0;
-						if (datalinkTable.SourceDatalinkKey != null)
+						if (datalinkTable.SourceType == ESourceType.Datalink && datalinkTable.SourceDatalinkKey != null)
 						{
-							datalinkTable.SourceDatalinkKey = datalinkKeyMappings.GetValueOrDefault(datalinkTable.SourceDatalinkKey.Value);
+							if (datalinkKeyMappings.TryGetValue(datalinkTable.SourceDatalinkKey.Value,
+								out var sourceDatalinkKey))
+							{
+								datalinkTable.SourceDatalinkKey = sourceDatalinkKey;	
+							}
+							else
+							{
+								plan.Warnings.Add($"The datalink {datalink.Name} contains the source datalink with the key {datalinkTable.SourceDatalinkKey} which does not exist in the package.  This will need to be manually fixed after import.");
+								datalinkTable.SourceDatalinkKey = null;
+							}
 						}
 
-						if (datalinkTable.SourceTableKey != null)
+						if (datalinkTable.SourceType == ESourceType.Table && datalinkTable.SourceTableKey != null)
 						{
-							datalinkTable.SourceTableKey = tableKeyMappings.GetValueOrDefault(datalinkTable.SourceTableKey.Value);
+							if (tableKeyMappings.TryGetValue(datalinkTable.SourceTableKey.Value,
+								out var sourceTableKey))
+							{
+								datalinkTable.SourceTableKey = sourceTableKey;
+							}
+							else
+							{
+								plan.Warnings.Add($"The datalink {datalink.Name} contains the source table with the key {datalinkTable.SourceTableKey} which does not exist in the package.  This will need to be manually fixed after import.");
+								datalinkTable.SourceTableKey = null;
+							}
 						}
 
 						foreach (var column in datalinkTable.DexihDatalinkColumns)
@@ -3403,17 +3470,32 @@ namespace dexih.operations
 				ResetDatalinkTable(datalink.SourceDatalinkTable);
 
 				// reset the mappings for target tables that have been saved and keys changed.
+				var newTargets = new List<DexihDatalinkTarget>();
 				foreach (var target in datalink.DexihDatalinkTargets)
 				{
-					target.TableKey = tableKeyMappings.GetValueOrDefault(target.TableKey);
+					if (tableKeyMappings.TryGetValue(target.TableKey, out var tableKey))
+					{
+						target.TableKey = tableKey;
+						newTargets.Add(target);
+					}
+					else
+					{
+						plan.Warnings.Add($"The datalink {datalink.Name} contains the target table with the key {target.TableKey} which does not exist in the package.  This will need to be manually fixed after import.");
+					}
 				}
-
-//				datalink.TargetTableKey = datalink.TargetTableKey == null ? (long?) null :
-//					tableKeyMappings.GetValueOrDefault(datalink.TargetTableKey.Value);
+				datalink.DexihDatalinkTargets = newTargets;
 
 				if (datalink.AuditConnectionKey != null)
 				{
-					datalink.AuditConnectionKey = connectionKeyMappings.GetValueOrDefault(datalink.AuditConnectionKey.Value);
+					if (connectionKeyMappings.TryGetValue(datalink.AuditConnectionKey.Value, out var connectionKey))
+					{
+						datalink.AuditConnectionKey = connectionKey;	
+					}
+					else
+					{
+						plan.Warnings.Add($"The datalink {datalink.Name} contains the audit connection with the key {datalink.AuditConnectionKey} which does not exist in the package.  This will need to be manually fixed after import.");
+						datalink.AuditConnectionKey = null;
+					}
 				}
 
 				datalink.HubKey = hubKey;
@@ -3431,28 +3513,31 @@ namespace dexih.operations
 
 					foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
 					{
+						long? datalinkColumnMapping(DexihDatalinkColumn datalinkColumn)
+						{
+							if (datalinkColumn == null)
+							{
+								return null;
+							}
+
+							if(datalinkColumnKeyMapping.TryGetValue(datalinkColumn.DatalinkColumnKey, out var datalinkColumnKey))
+							{
+								return datalinkColumnKey;
+							}
+
+							plan.Warnings.Add($"The datalink {datalink.Name} contains the transform {datalinkTransform.Name}, which contains a source column {item.SourceDatalinkColumn.Name}, which does not exist as a previous mapping.  This will need to be manually fixed after import.");
+							return null;
+						}
+						
 						item.DatalinkTransformItemKey = 0;
 						item.HubKey = hubKey;
-						
-						if (item.JoinDatalinkColumn != null)
-						{
-							item.JoinDatalinkColumnKey = datalinkColumnKeyMapping.GetValueOrDefault(item.JoinDatalinkColumn.DatalinkColumnKey);
-							item.JoinDatalinkColumn = null;
-						}
-						else
-						{
-							item.JoinDatalinkColumnKey = null;
-						}
 
-						if (item.SourceDatalinkColumn != null)
-						{
-							item.SourceDatalinkColumnKey = datalinkColumnKeyMapping.GetValueOrDefault(item.SourceDatalinkColumn.DatalinkColumnKey);
-							item.SourceDatalinkColumn = null;
-						}
-						else
-						{
-							item.SourceDatalinkColumnKey = null;
-						}
+						item.JoinDatalinkColumnKey = datalinkColumnMapping(item.JoinDatalinkColumn);
+						item.JoinDatalinkColumn = null;
+
+						item.SourceDatalinkColumnKey = datalinkColumnMapping(item.SourceDatalinkColumn);
+						item.SourceDatalinkColumn = null;
+
 
 						foreach (var parameter in item.DexihFunctionParameters)
 						{
@@ -3463,15 +3548,8 @@ namespace dexih.operations
 
 							if (parameter.Direction == DexihParameterBase.EParameterDirection.Input)
 							{
-								if (parameter.DatalinkColumn != null)
-								{
-									parameter.DatalinkColumnKey = datalinkColumnKeyMapping.GetValueOrDefault(parameter.DatalinkColumn.DatalinkColumnKey);
-									parameter.DatalinkColumn = null;
-								}
-								else
-								{
-									parameter.DatalinkColumnKey = null;
-								}
+								parameter.DatalinkColumnKey = datalinkColumnMapping(parameter.DatalinkColumn);
+								parameter.DatalinkColumn = null;
 							}
 							else
 							{
@@ -3537,14 +3615,26 @@ namespace dexih.operations
 				}
 
 				var stepKeyMapping = new Dictionary<long, DexihDatalinkStep>();
+
+				var newSteps = new HashSet<DexihDatalinkStep>();
 				
 				foreach (var step in datajob.DexihDatalinkSteps)
 				{
 					var newKey = keySequence--;
 					stepKeyMapping.Add(step.DatalinkStepKey, step);
 					step.DatalinkStepKey = newKey;
-					step.DatalinkKey = datalinkKeyMappings.GetValueOrDefault(step.DatalinkKey);
+
+					if (datalinkKeyMappings.TryGetValue(step.DatalinkKey, out var datalinkKey))
+					{
+						step.DatalinkKey = datalinkKey;
+						newSteps.Add(step);
+					}
+					else
+					{
+						plan.Warnings.Add($"The datajob {datajob.Name} contains a step with a datalink with they key {datalinkKey} which does not exist in the package.  This will need to be manually fixed after import.");
+					}
 				}
+				datajob.DexihDatalinkSteps = newSteps;
 				
 				foreach (var step in datajob.DexihDatalinkSteps)
 				{
@@ -3561,7 +3651,15 @@ namespace dexih.operations
 
 				if (datajob.AuditConnectionKey != null)
 				{
-					datajob.AuditConnectionKey = connectionKeyMappings.GetValueOrDefault(datajob.AuditConnectionKey.Value);
+					if (connectionKeyMappings.TryGetValue(datajob.AuditConnectionKey.Value, out var connectionKey))
+					{
+						datajob.AuditConnectionKey = connectionKey;	
+					}
+					else
+					{
+						plan.Warnings.Add($"The datajob {datajob.Name} contains the audit connection with the key {datajob.AuditConnectionKey} which does not exist in the package.  This will need to be manually fixed after import.");
+						datajob.AuditConnectionKey = null;
+					}				
 				}
 			}
 			

@@ -30,6 +30,8 @@ namespace dexih.operations
         public ImportObjects<DexihView> Views { get; set; }
         public ImportObjects<DexihApi> Apis { get; set; }
 
+        public List<string> Warnings { get; set; }
+
         public Import(long hubKey)
         {
             HubKey = hubKey;
@@ -46,6 +48,7 @@ namespace dexih.operations
             DatalinkTests = new ImportObjects<DexihDatalinkTest>();
             Views = new ImportObjects<DexihView>();
             Apis = new ImportObjects<DexihApi>();
+            Warnings = new List<string>();
         }
 
         /// <summary>
