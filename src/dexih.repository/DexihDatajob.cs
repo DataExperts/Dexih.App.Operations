@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace dexih.repository
 {
-    public partial class DexihDatajob : DexihHubBaseEntity
+    public partial class DexihDatajob : DexihHubNamedEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EFailAction
@@ -20,12 +20,6 @@ namespace dexih.repository
             DexihDatalinkSteps = new HashSet<DexihDatalinkStep>();
             DexihTriggers = new HashSet<DexihTrigger>();
         }
-
-		[CopyCollectionKey((long)0, true)]
-        public long DatajobKey { get; set; }
-
-        public string Name { get; set; }
-        public string Description { get; set; }
 
         public EFailAction FailAction { get; set; }
 
@@ -52,7 +46,7 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public virtual DexihConnection AuditConnection { get; set; }
 
-        public DexihDatalinkStep GetDatalinkStep(long datalinkStepKey) => DexihDatalinkSteps.SingleOrDefault(step => step.DatalinkStepKey == datalinkStepKey);
-        public DexihTrigger GetTrigger(long triggerKey) => DexihTriggers.SingleOrDefault(trigger => trigger.TriggerKey == triggerKey);
+        public DexihDatalinkStep GetDatalinkStep(long datalinkStepKey) => DexihDatalinkSteps.SingleOrDefault(step => step.Key == datalinkStepKey);
+        public DexihTrigger GetTrigger(long triggerKey) => DexihTriggers.SingleOrDefault(trigger => trigger.Key == triggerKey);
     }
 }

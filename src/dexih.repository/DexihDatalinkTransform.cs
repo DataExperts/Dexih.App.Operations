@@ -17,19 +17,15 @@ using static dexih.transforms.Transforms.TransformAttribute;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkTransform : DexihHubBaseEntity
+    public class DexihDatalinkTransform : DexihHubNamedEntity
     {
 		public DexihDatalinkTransform() => DexihDatalinkTransformItems = new HashSet<DexihDatalinkTransformItem>();
 
 
-        [CopyCollectionKey((long)0, true)]
-        public long DatalinkTransformKey { get; set; }
 
         [CopyParentCollectionKey]
 		public long DatalinkKey { get; set; }
         public int Position { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
         
         public bool PassThroughColumns { get; set; }
 
@@ -77,7 +73,7 @@ namespace dexih.repository
 
                 foreach(var param in item.DexihFunctionParameters)
                 {
-                    if(param.Direction == DexihParameterBase.EParameterDirection.Output && param.DatalinkColumn != null)
+                    if(param.IsOutput() && param.DatalinkColumn != null)
                     {
                         columns.Add(param.DatalinkColumn);
                     }
@@ -104,7 +100,7 @@ namespace dexih.repository
 
                 foreach (var param in item.DexihFunctionParameters)
                 {
-                    if (param.Direction == DexihParameterBase.EParameterDirection.Input && param.DatalinkColumn != null)
+                    if (param.IsInput() && param.DatalinkColumn != null)
                     {
                         columns.Add(param.DatalinkColumn);
                     }
@@ -132,7 +128,7 @@ namespace dexih.repository
 				}
                 else
                 {
-                    transform.Name = "Transform - " + DatalinkTransformKey;
+                    transform.Name = "Transform - " + Key;
                 }
 
                 transform.MaxInputRows = MaxInputRows;
@@ -140,7 +136,7 @@ namespace dexih.repository
 
 				if(JoinDatalinkTable != null)
 				{
-					transform.ReferenceTableAlias = JoinDatalinkTable.DatalinkTableKey.ToString();	
+					transform.ReferenceTableAlias = JoinDatalinkTable.Key.ToString();	
 				}
 
                 var mappings = new Mappings(PassThroughColumns);
@@ -278,7 +274,7 @@ namespace dexih.repository
 
                         foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
                         {
-                            var columnValidation = hub.DexihColumnValidations.Single(c => c.ColumnValidationKey == column.ColumnValidationKey);
+                            var columnValidation = hub.DexihColumnValidations.Single(c => c.Key == column.ColumnValidationKey);
                             var validation =
                                 new ColumnValidationRun(transformSettings, columnValidation, hub)
                                 {

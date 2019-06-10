@@ -67,7 +67,7 @@ namespace dexih.operations
             if (Datalink.AuditConnectionKey > 0)
             {
                 var dbAuditConnection =
-                    _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == Datalink.AuditConnectionKey);
+                    _hub.DexihConnections.SingleOrDefault(c => c.Key == Datalink.AuditConnectionKey);
 
                 if (dbAuditConnection == null)
                 {
@@ -119,7 +119,7 @@ namespace dexih.operations
             }
 
             var dbTargetConnection =
-                _hub.DexihConnections.Single(c => c.ConnectionKey == dbTargetTable.ConnectionKey);
+                _hub.DexihConnections.Single(c => c.Key == dbTargetTable.ConnectionKey);
             var targetConnection = dbTargetConnection.GetConnection(_transformSettings);
             var targetTable = dbTargetTable.GetTable(_hub, targetConnection, _transformSettings);
             var rejectTable = dbTargetTable.GetRejectedTable(_hub, targetConnection, _transformSettings);
@@ -130,10 +130,10 @@ namespace dexih.operations
                 AuditConnectionKey = Datalink.AuditConnectionKey ?? 0,
                 AuditType = "Datalink",
                 HubKey = _hub.HubKey,
-                ReferenceKey = Datalink.DatalinkKey,
+                ReferenceKey = Datalink.Key,
                 ParentAuditKey = ParentAuditKey,
                 ReferenceName = Datalink.Name,
-                SourceTableKey = Datalink.SourceDatalinkTable.SourceTable?.TableKey ?? 0,
+                SourceTableKey = Datalink.SourceDatalinkTable.SourceTable?.Key ?? 0,
                 SourceTableName = Datalink.SourceDatalinkTable.Name,
                 TransformWriterOptions = _transformWriterOptions,
                 TargetTableKey = target.TableKey,

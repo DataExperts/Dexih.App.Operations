@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkTable: DexihHubBaseEntity
+    public class DexihDatalinkTable: DexihHubNamedEntity
     {
 
 
@@ -18,8 +18,6 @@ namespace dexih.repository
         }
 
 
-		[CopyCollectionKey()]
-        public long DatalinkTableKey { get; set; }
 
 	    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceTableKey { get; set; }
@@ -31,7 +29,6 @@ namespace dexih.repository
 	    public int? RowsEndAt { get; set; }
 	    public int? RowsIncrement { get; set; }
 	    
-        public string Name { get; set; }
 
         public ESourceType SourceType { get; set; }
 
@@ -48,6 +45,7 @@ namespace dexih.repository
 
         [JsonIgnore, CopyIgnore]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
+
 
         /// <summary>
         /// Converts the datalinkTable to a base "Table" class.
@@ -87,7 +85,7 @@ namespace dexih.repository
 	        {
 		        foreach (var column in columns)
 		        {
-			        if (columnKey == column.DatalinkColumnKey)
+			        if (columnKey == column.Key)
 			        {
 				        return new List<DexihDatalinkColumn> {column};
 			        }

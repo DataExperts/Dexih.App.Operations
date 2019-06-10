@@ -10,7 +10,7 @@ using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
-    public partial class DexihTable : DexihHubBaseEntity
+    public partial class DexihTable : DexihHubNamedEntity
     {
         public DexihTable()
         {
@@ -19,18 +19,14 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
-		[CopyCollectionKey((long)0, true)]
-        public long TableKey { get; set; }
 
         public long ConnectionKey { get; set; }
-        public string Name { get; set; }
 		public string Schema {get; set; }
         public string BaseTableName { get; set; }
         public string LogicalName { get; set; }
         
         public Table.ETableType TableType { get; set; }
         public string SourceConnectionName { get; set; }
-        public string Description { get; set; }
         public long? FileFormatKey { get; set; }
         public string RejectedTableName { get; set; }
 	    public bool UseQuery { get; set; }
@@ -58,8 +54,7 @@ namespace dexih.repository
 	    public bool IsVersioned { get; set; }
 //        public bool IsInternal { get; set; }
 		public bool IsShared { get; set; }
-
-
+		
 		[NotMapped, JsonIgnore, CopyIgnore]
 		public string[] OutputSortFields {
 			get {
@@ -68,7 +63,7 @@ namespace dexih.repository
 				{
 					foreach(var sortColumnKey in SortColumnKeys)
 					{
-						var column = DexihTableColumns.FirstOrDefault(c => c.ColumnKey == sortColumnKey && IsValid);
+						var column = DexihTableColumns.FirstOrDefault(c => c.Key == sortColumnKey && IsValid);
 						if(column != null) 
 						{
 							fields.Add(column.Name);
@@ -99,6 +94,8 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore]
         public DexihFileFormat FileFormat { get; set; }
 
+        [JsonIgnore, CopyIgnore, NotMapped]
+        public override long ParentKey => ConnectionKey;
 
 	    public Table GetTable(DexihHub hub, Connection connection, TransformSettings transformSettings)
 	    {
@@ -126,7 +123,7 @@ namespace dexih.repository
 		        {
 			        case EConnectionCategory.File:
 				        table = new FlatFile();
-				        var fileFormat = hub.DexihFileFormats.SingleOrDefault(f => f.FileFormatKey == FileFormatKey);
+				        var fileFormat = hub.DexihFileFormats.SingleOrDefault(f => f.Key == FileFormatKey);
 				        ((FlatFile)table).FileConfiguration =  fileFormat?.GetFileFormat();
 				        break;
 			        case EConnectionCategory.WebService:

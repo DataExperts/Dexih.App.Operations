@@ -9,7 +9,7 @@ using dexih.transforms.Transforms;
 
 namespace dexih.repository
 {
-    public partial class DexihDatalink : DexihHubBaseEntity
+    public partial class DexihDatalink : DexihHubNamedEntity
     {
 
 
@@ -36,11 +36,6 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
-		[CopyCollectionKey((long)0, true)]
-		public long DatalinkKey { get; set; }
-
-        public string Name { get; set; }
-        public string Description { get; set; }
         public long SourceDatalinkTableKey { get; set; }
         // public long? TargetTableKey { get; set; }
         public long? AuditConnectionKey { get; set; }
@@ -251,34 +246,34 @@ namespace dexih.repository
                     }
                 }
 
-                datalinkTransform.NodeDatalinkColumnKey = datalinkTransform.NodeDatalinkColumn?.DatalinkColumnKey;
+                datalinkTransform.NodeDatalinkColumnKey = datalinkTransform.NodeDatalinkColumn?.Key;
                 AddColumns(datalinkTransform.NodeDatalinkColumn, columns);
                 datalinkTransform.NodeDatalinkColumn = null;
 
                 // for any source mappings for the transform, copy the tracked instance.
                 foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
                 {
-                    item.SourceDatalinkColumnKey = item.SourceDatalinkColumn?.DatalinkColumnKey;
+                    item.SourceDatalinkColumnKey = item.SourceDatalinkColumn?.Key;
                     AddColumns(item.SourceDatalinkColumn, columns);
                     item.SourceDatalinkColumn = null;
 
-                    item.JoinDatalinkColumnKey = item.JoinDatalinkColumn?.DatalinkColumnKey;
+                    item.JoinDatalinkColumnKey = item.JoinDatalinkColumn?.Key;
                     AddColumns(item.JoinDatalinkColumn, columns);
                     item.JoinDatalinkColumn = null;
 
-                    item.TargetDatalinkColumnKey = item.TargetDatalinkColumn?.DatalinkColumnKey;
+                    item.TargetDatalinkColumnKey = item.TargetDatalinkColumn?.Key;
                     AddColumns(item.TargetDatalinkColumn, columns);
                     item.TargetDatalinkColumn = null;
 
                     foreach (var param in item.DexihFunctionParameters)
                     {
-                        param.DatalinkColumnKey = param.DatalinkColumn?.DatalinkColumnKey;
+                        param.DatalinkColumnKey = param.DatalinkColumn?.Key;
                         AddColumns(param.DatalinkColumn, columns);
                         param.DatalinkColumn = null;
 
                         foreach (var paramArray in param.ArrayParameters.Where(c => c.DatalinkColumn != null))
                         {
-                            paramArray.DatalinkColumnKey = paramArray.DatalinkColumn?.DatalinkColumnKey;
+                            paramArray.DatalinkColumnKey = paramArray.DatalinkColumn?.Key;
                             AddColumns(paramArray.DatalinkColumn, columns);
                             paramArray.DatalinkColumn = null;
                         }
@@ -290,7 +285,7 @@ namespace dexih.repository
             {
                 if (target.NodeDatalinkColumn != null)
                 {
-                    target.NodeDatalinkColumnKey = target.NodeDatalinkColumn?.DatalinkColumnKey;
+                    target.NodeDatalinkColumnKey = target.NodeDatalinkColumn?.Key;
                     AddColumns(target.NodeDatalinkColumn, columns);
                     target.NodeDatalinkColumn = null;
                 }
@@ -306,9 +301,9 @@ namespace dexih.repository
         /// <param name="columns"></param>
         private void AddColumns(DexihDatalinkColumn column, IDictionary<long, DexihDatalinkColumn> columns)
         {
-            if (column != null && !columns.ContainsKey(column.DatalinkColumnKey))
+            if (column != null && !columns.ContainsKey(column.Key))
             {
-                columns[column.DatalinkColumnKey] = column;
+                columns[column.Key] = column;
 
                 foreach (var childColumn in column.ChildColumns)
                 {
@@ -330,9 +325,9 @@ namespace dexih.repository
                 var childColumns = new HashSet<DexihDatalinkColumn>();
                 foreach (var childColumn in column.ChildColumns)
                 {
-                    if (columns.ContainsKey(childColumn.DatalinkColumnKey))
+                    if (columns.ContainsKey(childColumn.Key))
                     {
-                        childColumns.Add(columns[childColumn.DatalinkColumnKey]);
+                        childColumns.Add(columns[childColumn.Key]);
                     }
                     else
                     {
@@ -367,8 +362,8 @@ namespace dexih.repository
             {
                 foreach (var column in SourceDatalinkTable.DexihDatalinkColumns)
                 {
-                    newColumns.Add(columns.ContainsKey(column.DatalinkColumnKey)
-                        ? columns[column.DatalinkColumnKey]
+                    newColumns.Add(columns.ContainsKey(column.Key)
+                        ? columns[column.Key]
                         : column);
                 }
                 SourceDatalinkTable.DexihDatalinkColumns = newColumns;
@@ -395,9 +390,9 @@ namespace dexih.repository
                     newColumns = new HashSet<DexihDatalinkColumn>();
                     foreach (var column in datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns)
                     {
-                        if (columns.ContainsKey(column.DatalinkColumnKey))
+                        if (columns.ContainsKey(column.Key))
                         {
-                            newColumns.Add(columns[column.DatalinkColumnKey]);
+                            newColumns.Add(columns[column.Key]);
                         }
                         else
                         {
@@ -467,9 +462,9 @@ namespace dexih.repository
             }
 
             //reset all new key values to 0
-            foreach (var column in columns.Values.Where(c => c.DatalinkColumnKey < 0))
+            foreach (var column in columns.Values.Where(c => c.Key < 0))
             {
-                column.DatalinkColumnKey = 0;
+                column.Key = 0;
                 column.DatalinkTableKey = null;
             }
         }
@@ -488,25 +483,25 @@ namespace dexih.repository
                 ignoreDatalinks = new HashSet<long>();
             }
             
-            if (ignoreDatalinks.Contains(DatalinkKey))
+            if (ignoreDatalinks.Contains(Key))
             {
                 return tables.Values;
             }
 
-            ignoreDatalinks.Add(DatalinkKey);
+            ignoreDatalinks.Add(Key);
 
             if (SourceDatalinkTable?.SourceTableKey != null)
             {
                 var table = hub.GetTableFromKey(SourceDatalinkTable.SourceTableKey.Value);
                 if (table != null)
                 {
-                    tables.Add(table.TableKey, table);
+                    tables.Add(table.Key, table);
                 }
             }
 
             if (SourceDatalinkTable?.SourceDatalinkKey != null)
             {
-                var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.DatalinkKey == SourceDatalinkTable.SourceDatalinkKey);
+                var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.Key == SourceDatalinkTable.SourceDatalinkKey);
 
                 if (datalink != null)
                 {
@@ -514,9 +509,9 @@ namespace dexih.repository
 
                     foreach (var table in sourceTables)
                     {
-                        if (!tables.ContainsKey(table.TableKey))
+                        if (!tables.ContainsKey(table.Key))
                         {
-                            tables.Add(table.TableKey, table);
+                            tables.Add(table.Key, table);
                         }
                     }
 
@@ -528,15 +523,15 @@ namespace dexih.repository
                 if (transform.JoinDatalinkTable?.SourceTableKey != null)
                 {
                     var table = hub.GetTableFromKey(transform.JoinDatalinkTable.SourceTableKey.Value);
-                    if (table != null && !tables.ContainsKey(table.TableKey))
+                    if (table != null && !tables.ContainsKey(table.Key))
                     {
-                        tables.Add(table.TableKey, table);
+                        tables.Add(table.Key, table);
                     }
                 }
 
                 if (transform.JoinDatalinkTable?.SourceDatalinkKey != null)
                 {
-                    var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.DatalinkKey == transform.JoinDatalinkTable.SourceDatalinkKey);
+                    var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.Key == transform.JoinDatalinkTable.SourceDatalinkKey);
 
                     if (datalink != null)
                     {
@@ -544,9 +539,9 @@ namespace dexih.repository
 
                         foreach (var table in sourceTables)
                         {
-                            if (!tables.ContainsKey(table.TableKey))
+                            if (!tables.ContainsKey(table.Key))
                             {
-                                tables.Add(table.TableKey, table);
+                                tables.Add(table.Key, table);
                             }
                         }
 

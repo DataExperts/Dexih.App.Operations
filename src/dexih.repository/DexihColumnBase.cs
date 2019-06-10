@@ -7,18 +7,14 @@ namespace dexih.repository
     /// <summary>
     /// Base class for table columns.  Inherited by DexihTableColumn and DexihDatalinkColumn
     /// </summary>
-    public class DexihColumnBase: DexihHubBaseEntity
+    public class DexihColumnBase: DexihHubNamedEntity
     {
         public int Position { get; set; }
-
-        public string Name { get; set; }
 
         public string LogicalName { get; set; }
         
         public string ColumnGroup { get; set; }
-
-        public string Description { get; set; }
-
+        
         public ETypeCode DataType { get; set; }
 
         public int? MaxLength { get; set; }

@@ -6,9 +6,7 @@ namespace dexih.repository
   public partial class DexihFunctionArrayParameter : DexihFunctionParameterBase
   {
 
-    [CopyCollectionKey((long)0, true)]
-    public long FunctionArrayParameterKey { get; set; }
-    
+   
     /// <summary>
     /// Points to the parent parameter, when it is an array.
     /// </summary>

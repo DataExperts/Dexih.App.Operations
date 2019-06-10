@@ -36,41 +36,44 @@ namespace dexih.operations
 
                     if (downloadObject.ObjectType == SharedData.EObjectType.Table)
                     {
-                        foreach (var dbConnection in cache.Hub.DexihConnections)
-                        {
-                            var dbTable = dbConnection.DexihTables.SingleOrDefault(c => c.TableKey == downloadObject.ObjectKey);
-                            if (dbTable != null)
-                            {
-                                var connection = dbConnection.GetConnection(_transformSettings);
-                                var table = dbTable.GetTable(cache.Hub, connection, downloadObject.InputColumns, _transformSettings);
-                                name = table.Name;
+                        var dbTable = cache.Hub.DexihTables.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
 
-                                if (downloadObject.InputColumns != null)
+                        if (dbTable != null)
+                        {
+                            var dbConnection = cache.Hub.DexihConnections.SingleOrDefault( c => c.Key == dbTable.ConnectionKey);
+                            var connection = dbConnection.GetConnection(_transformSettings);
+                            var table = dbTable.GetTable(cache.Hub, connection, downloadObject.InputColumns,
+                                _transformSettings);
+                            name = table.Name;
+
+                            if (downloadObject.InputColumns != null)
+                            {
+                                foreach (var inputColumn in downloadObject.InputColumns)
                                 {
-                                    foreach (var inputColumn in downloadObject.InputColumns)
+                                    var column = table.Columns.SingleOrDefault(c => c.Name == inputColumn.Name);
+                                    if (column != null)
                                     {
-                                        var column = table.Columns.SingleOrDefault(c => c.Name == inputColumn.Name);
-                                        if (column != null)
-                                        {
-                                            column.DefaultValue = inputColumn.Value;
-                                        }
+                                        column.DefaultValue = inputColumn.Value;
                                     }
                                 }
-                                
-                                transform = connection.GetTransformReader(table, true);
-                                transform = new TransformQuery(transform, downloadObject.Query);
-                                var openResult = await transform.Open(0, null, cancellationToken);
-                                if (!openResult)
-                                {
-                                    throw new DownloadDataException($"The connection {connection.Name} with table {table.Name} failed to open for reading.");
-                                }
-                                transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, cache.CacheEncryptionKey);
                             }
+
+                            transform = connection.GetTransformReader(table, true);
+                            transform = new TransformQuery(transform, downloadObject.Query);
+                            var openResult = await transform.Open(0, null, cancellationToken);
+                            if (!openResult)
+                            {
+                                throw new DownloadDataException(
+                                    $"The connection {connection.Name} with table {table.Name} failed to open for reading.");
+                            }
+
+                            transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields,
+                                cache.CacheEncryptionKey);
                         }
                     }
                     else
                     {
-                        var dbDatalink = cache.Hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == downloadObject.ObjectKey);
+                        var dbDatalink = cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
 
                         if (dbDatalink == null)
                         {

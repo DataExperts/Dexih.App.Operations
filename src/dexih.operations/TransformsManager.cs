@@ -79,7 +79,7 @@ namespace dexih.operations
                     var dbColumn = originalTable.DexihTableColumns.SingleOrDefault(c => c.Name == column.Name);
                     if (dbColumn == null)
                     {
-                        dbColumn = new DexihTableColumn {ColumnKey = 0};
+                        dbColumn = new DexihTableColumn {Key = 0};
                         originalTable.DexihTableColumns.Add(dbColumn);
                     }
 
@@ -111,7 +111,7 @@ namespace dexih.operations
 
             DexihDatalinkColumn column = null;
 
-            column = hubDatalink.SourceDatalinkTable.DexihDatalinkColumns.SingleOrDefault(c => c.DatalinkColumnKey == (long)datalinkColumnKey);
+            column = hubDatalink.SourceDatalinkTable.DexihDatalinkColumns.SingleOrDefault(c => c.Key == (long)datalinkColumnKey);
             if(column != null)
                 return column;
 
@@ -139,7 +139,7 @@ namespace dexih.operations
 
 				if (datalinkTransform.JoinDatalinkTableKey != null)
 				{
-                    column = datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns.SingleOrDefault(c => c.DatalinkColumnKey == (long)datalinkColumnKey);
+                    column = datalinkTransform.JoinDatalinkTable.DexihDatalinkColumns.SingleOrDefault(c => c.Key == (long)datalinkColumnKey);
 					if (column != null)
 						return column;
 				}
@@ -200,13 +200,13 @@ namespace dexih.operations
                 switch (hubDatalinkTable.SourceType)
                 {
                     case ESourceType.Datalink:
-                        var datalink = hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == hubDatalinkTable.SourceDatalinkKey);
+                        var datalink = hub.DexihDatalinks.SingleOrDefault(c => c.Key == hubDatalinkTable.SourceDatalinkKey);
                         if (datalink == null)
                         {
                             throw new TransformManagerException($"The source datalink with the key {hubDatalinkTable.SourceDatalinkKey} was not found");
                         }
                         returnValue = CreateRunPlan(hub, datalink, inputColumns, null, false, transformWriterOptions);
-                        returnValue.sourceTransform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
+                        returnValue.sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
                         break;
                     case ESourceType.Table:
                         if (hubDatalinkTable.SourceTableKey == null)
@@ -220,7 +220,7 @@ namespace dexih.operations
                             throw new TransformManagerException($"The source table with the key {hubDatalinkTable.SourceTableKey.Value} could not be found.");
                         }
                         
-                        var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == sourceDbTable.ConnectionKey && c.IsValid);
+                        var sourceDbConnection = hub.DexihConnections.SingleOrDefault(c => c.Key == sourceDbTable.ConnectionKey && c.IsValid);
 
                         if (sourceDbConnection == null)
                         {
@@ -230,14 +230,14 @@ namespace dexih.operations
                         var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
                         var sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
                         var transform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
-                        transform.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
+                        transform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
                         returnValue =  (transform, sourceTable);
 
                         break;
                     case ESourceType.Rows:
                         var rowCreator2 = new ReaderRowCreator();
                         rowCreator2.InitializeRowCreator(hubDatalinkTable.RowsStartAt??1, hubDatalinkTable.RowsEndAt??1, hubDatalinkTable.RowsIncrement??1);
-                        rowCreator2.ReferenceTableAlias = hubDatalinkTable.DatalinkTableKey.ToString();
+                        rowCreator2.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
                         var table = rowCreator2.GetTable();
                         returnValue =  (rowCreator2, table);
                         break;
@@ -355,7 +355,7 @@ namespace dexih.operations
                     {
                         if (datalinkTransform.TransformType == TransformAttribute.ETransformType.Filter || (datalinkTransform.TransformType == TransformAttribute.ETransformType.Mapping && datalinkTransform.PassThroughColumns))
                         {
-                            if (datalinkTransform.DatalinkTransformKey == maxDatalinkTransformKey)
+                            if (datalinkTransform.Key == maxDatalinkTransformKey)
                                 break;
 
                             continue;
@@ -376,7 +376,7 @@ namespace dexih.operations
 
                     primaryTransform = transform;
 
-                    if (datalinkTransform.DatalinkTransformKey == maxDatalinkTransformKey)
+                    if (datalinkTransform.Key == maxDatalinkTransformKey)
                         break;
                 }
 

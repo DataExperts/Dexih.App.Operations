@@ -8,7 +8,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
-    public class DexihTrigger : DexihHubBaseEntity
+    public class DexihTrigger : DexihHubNamedEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EDayOfWeek
@@ -22,10 +22,7 @@ namespace dexih.repository
             Saturday = 6
         }
 
-
-        [CopyCollectionKey((long)0, true)]
-        public long TriggerKey { get; set; }
-		
+        
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
         public DateTime? StartDate { get; set; }

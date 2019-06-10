@@ -9,7 +9,7 @@ using dexih.transforms;
 
 namespace dexih.repository
 {
-    public class DexihConnection : DexihHubBaseEntity
+    public class DexihConnection : DexihHubNamedEntity
     {
         #region Enums
         [JsonConverter(typeof(StringEnumConverter))]
@@ -28,8 +28,6 @@ namespace dexih.repository
             DexihTables = new HashSet<DexihTable>();
         }
 
-        [CopyCollectionKey((long)0, true)]
-        public long ConnectionKey { get; set; }
 
 
         public string ConnectionAssemblyName { get; set; }
@@ -37,8 +35,6 @@ namespace dexih.repository
         
         public EConnectionPurpose Purpose { get; set; }
 
-        public string Name { get; set; }
-        public string Description { get; set; }
         public string Server { get; set; }
         public bool UseWindowsAuth { get; set; }
         public string Username { get; set; }
@@ -55,9 +51,11 @@ namespace dexih.repository
         //these store the raw (unencrypted values) and are not saved to the database.
         [NotMapped]
         public string PasswordRaw { get; set; }
+        
         [NotMapped]
         public string ConnectionStringRaw { get; set; }
 
+        [JsonIgnore]
         public ICollection<DexihTable> DexihTables { get; set; }
 
         [JsonIgnore, CopyIgnore]

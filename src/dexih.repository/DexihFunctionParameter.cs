@@ -11,8 +11,6 @@ namespace dexih.repository
             ArrayParameters = new HashSet<DexihFunctionArrayParameter>();
         }
 
-        [CopyCollectionKey((long)0, true)]
-		public long FunctionParameterKey { get; set; }
 		
         [CopyParentCollectionKey]
 		public long DatalinkTransformItemKey { get; set; }

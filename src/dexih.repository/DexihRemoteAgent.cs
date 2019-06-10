@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
+using Newtonsoft.Json;
 
 namespace dexih.repository
 {
@@ -12,6 +13,7 @@ namespace dexih.repository
         {
             DexihRemoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
         }
+        
         
         [CopyCollectionKey((long)0, true)]
         public long RemoteAgentKey { get; set; }

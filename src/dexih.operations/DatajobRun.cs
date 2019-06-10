@@ -60,7 +60,7 @@ namespace dexih.operations
 			if (datajob.AuditConnectionKey > 0)
 			{
 				var dbAuditConnection =
-					hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == datajob.AuditConnectionKey);
+					hub.DexihConnections.SingleOrDefault(c => c.Key == datajob.AuditConnectionKey);
 
 				if (dbAuditConnection == null)
 				{
@@ -81,7 +81,7 @@ namespace dexih.operations
 				AuditConnectionKey = datajob.AuditConnectionKey ?? 0,
 				AuditType = "Datajob",
 				HubKey = hub.HubKey,
-				ReferenceKey = datajob.DatajobKey,
+				ReferenceKey = datajob.Key,
 				ParentAuditKey = 0,
 				ReferenceName = datajob.Name,
 				SourceTableKey = 0,
@@ -109,7 +109,7 @@ namespace dexih.operations
 
 				if (Datajob.AuditConnectionKey > 0)
 				{
-					var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == Datajob.AuditConnectionKey);
+					var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.Key == Datajob.AuditConnectionKey);
 					if (dbAuditConnection == null)
 					{
 						throw new DatajobRunException("There is no audit connection specified.");
@@ -183,7 +183,7 @@ namespace dexih.operations
 				//start all jobs async
 				foreach (var step in Datajob.DexihDatalinkSteps.Where(c => c.IsValid))
 				{
-					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == step.DatalinkKey);
+					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.Key == step.DatalinkKey);
 
 					if (datalink == null)
 					{
@@ -191,7 +191,7 @@ namespace dexih.operations
 					}
 
 					var inputColumns = step.DexihDatalinkStepColumns.Select(c => c.ToInputColumn()).ToArray();
-					var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, inputColumns, _transformWriterOptions) { DatalinkStepKey = step.DatalinkStepKey};
+					var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, inputColumns, _transformWriterOptions) { DatalinkStepKey = step.Key};
 
 					DatalinkSteps.Add(datalinkRun);
 
@@ -306,7 +306,7 @@ namespace dexih.operations
 					//see if any of the pending jobs, should be started or abended
 					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterTarget.WriterResult == null || c.WriterTarget.WriterResult.RunStatus == ERunStatus.Initialised))
 					{
-						var dbStep = Datajob.DexihDatalinkSteps.Single(c => c.DatalinkStepKey == datalinkStep.DatalinkStepKey);
+						var dbStep = Datajob.DexihDatalinkSteps.Single(c => c.Key == datalinkStep.DatalinkStepKey);
 						if (dbStep.DexihDatalinkDependencies.Any(c => c.DependentDatalinkStepKey == datalinkRun.DatalinkStepKey))
 						{
 							//check if the jobs other dependencies have finished

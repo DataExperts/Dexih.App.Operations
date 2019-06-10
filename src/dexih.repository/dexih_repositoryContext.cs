@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
@@ -33,8 +34,6 @@ namespace dexih.repository
             optionsBuilder.EnableSensitiveDataLogging(true);
 #endif
 
-			//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
-			//optionsBuilder.UseSqlServer(@"Server=(localdb)\v11.0;Database=dexih_repository2;Trusted_Connection=True;");
         }
 
 		public DexihRepositoryContext(DbContextOptions options) : base(options)
@@ -50,16 +49,25 @@ namespace dexih.repository
         /// <returns></returns>
         public Task<int> SaveHub(long hubKey, bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihHubBaseEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
+            var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihHubEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
 
+            // before saving force all entities to contain the correct hub hbu.
             foreach (var entity in entities)
             {
-                var property = entity.Entity.GetType().GetProperties().SingleOrDefault(c => c.Name == "HubKey");
-                if(property != null)
+                if (entity.Entity is DexihHubEntity hubEntity)
                 {
-                    property.SetValue(entity.Entity, hubKey);
-                }
+                    hubEntity.HubKey = hubKey;
+                    var originalValues = entity.GetDatabaseValues();
 
+                    if (entity.State == EntityState.Modified)
+                    {
+                        // check hubkey hasn't changed since original.  This could impact an entity in another hub and causes an immedidate stop.
+                        if (!Object.Equals(originalValues[nameof(DexihHubEntity.HubKey)], entity.CurrentValues[nameof(DexihHubEntity.HubKey)]))
+                        {
+                            throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was {entity.GetType()}.");
+                        }
+                    }
+                }
             }
 
             return SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
@@ -117,11 +125,11 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihApi>(entity =>
             {
-                entity.HasKey(e => e.ApiKey).HasName("PK_dexih_api");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_api");
 
                 entity.ToTable("dexih_apis");
 
-                entity.Property(e => e.ApiKey).HasColumnName("api_key");
+                entity.Property(e => e.Key).HasColumnName("api_key");
                 entity.Property(e => e.HubKey).IsRequired().HasColumnName("hub_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description");
@@ -150,12 +158,12 @@ namespace dexih.repository
                         
             modelBuilder.Entity<DexihColumnValidation>(entity =>
             {
-                entity.HasKey(e => e.ColumnValidationKey).HasName("PK_dexih_column_validation");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_column_validation");
 
                 entity.ToTable("dexih_column_validation");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.ColumnValidationKey).HasColumnName("column_validation_key");
+                entity.Property(e => e.Key).HasColumnName("column_validation_key");
 
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
 
@@ -222,13 +230,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihConnection>(entity =>
             {
-                entity.HasKey(e => e.ConnectionKey).HasName("PK_dexih_connections");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_connections");
 
                 entity.ToTable("dexih_connections");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
 
-                entity.Property(e => e.ConnectionKey).HasColumnName("connection_key");
+                entity.Property(e => e.Key).HasColumnName("connection_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
@@ -269,12 +277,12 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihCustomFunction>(entity =>
             {
-                entity.HasKey(e => e.CustomFunctionKey).HasName("PK_dexih_custom_functions");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_custom_functions");
 
                 entity.ToTable("dexih_custom_functions");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
+                entity.Property(e => e.Key).HasColumnName("custom_function_key");
                 entity.Property(e => e.MethodCode).HasColumnName("method_code").HasMaxLength(8000);
                 entity.Property(e => e.ResultCode).HasColumnName("result_code").HasMaxLength(8000);
                 entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
@@ -302,14 +310,14 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihCustomFunctionParameter>(entity =>
             {
-                entity.HasKey(e => e.CustomFunctionParameterKey).HasName("PK_dexih_cust_function_parameters");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_cust_function_parameters");
 
                 entity.ToTable("dexih_custom_function_parameters");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.CustomFunctionParameterKey).HasColumnName("custom_function_parameter_key");
+                entity.Property(e => e.Key).HasColumnName("custom_function_parameter_key");
                 entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
-                entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
+                entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
                 // entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(250);
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
@@ -338,11 +346,11 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatajob>(entity =>
             {
-                entity.HasKey(e => e.DatajobKey).HasName("PK_dexih_datajob");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datajob");
 
                 entity.ToTable("dexih_datajobs");
 
-                entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
+                entity.Property(e => e.Key).HasColumnName("datajob_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
@@ -374,11 +382,11 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkColumn>(entity =>
             {
-                entity.HasKey(e => e.DatalinkColumnKey).HasName("PK_dexih_datalink_columns");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_columns");
 
                 entity.ToTable("dexih_datalink_columns");
 
-                entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_column_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
                 entity.Property(e => e.ParentDatalinkColumnKey).HasColumnName("parent_datalink_column_key");
@@ -434,11 +442,11 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkTable>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTableKey).HasName("PK_dexih_datalink_table");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_table");
 
                 entity.ToTable("dexih_datalink_tables");
 
-                entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_table_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
@@ -472,13 +480,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkDependency>(entity =>
             {
-                entity.HasKey(e => e.DatalinkDependencyKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_datalink_dependencies");
 
                 entity.ToTable("dexih_datalink_dependencies");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.DatalinkDependencyKey).HasColumnName("datalink_dependency_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_dependency_key");
                 entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
                 entity.Property(e => e.DependentDatalinkStepKey).HasColumnName("dependent_datalink_step_key");
 
@@ -501,13 +509,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkProfile>(entity =>
             {
-                entity.HasKey(e => e.DatalinkProfileKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_datalink_profile_rules");
 
                 entity.ToTable("dexih_datalink_profiles");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.DatalinkProfileKey).HasColumnName("datalink_profile_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_profile_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
 				entity.Property(e => e.DetailedResults).HasColumnName("detailed_results");
 
@@ -531,13 +539,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkStep>(entity =>
             {
-                entity.HasKey(e => e.DatalinkStepKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_datajobs_datalinks");
 
                 entity.ToTable("dexih_datalink_steps");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_step_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
 
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
@@ -562,11 +570,11 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihDatalinkStepColumn>(entity =>
             {
-                entity.HasKey(e => e.DatalinkStepColumnKey).HasName("PK_dexih_datalink_step_columns");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_step_columns");
 
                 entity.ToTable("dexih_datalink_step_columns");
 
-                entity.Property(e => e.DatalinkStepColumnKey).HasColumnName("datalink_step_column_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_step_column_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
@@ -612,11 +620,11 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihDatalinkTarget>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTargetKey).HasName("PK_dexih_datalink_target");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_target");
 
                 entity.ToTable("dexih_datalink_targets");
 
-                entity.Property(e => e.DatalinkTargetKey).HasColumnName("datalink_target_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_target_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
                 entity.Property(e => e.Position).HasColumnName("position");
@@ -648,11 +656,11 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihDatalinkTest>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTestKey).HasName("PK_dexih_datalink_tests");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_tests");
 
                 entity.ToTable("dexih_datalink_tests");
 
-                entity.Property(e => e.DatalinkTestKey).HasColumnName("datalink_test_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_test_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1000);
@@ -664,11 +672,11 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihDatalinkTestStep>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTestStepKey).HasName("PK_dexih_datalink_test_steps");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_test_steps");
 
                 entity.ToTable("dexih_datalink_test_steps");
 
-                entity.Property(e => e.DatalinkTestStepKey).HasColumnName("datalink_test_step_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_test_step_key");
                 entity.Property(e => e.DatalinkTestKey).HasColumnName("datalink_test_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Position).HasColumnName("position");
@@ -699,11 +707,11 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihDatalinkTestTable>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTestTableKey).HasName("PK_dexih_datalink_test_tables");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_test_tables");
 
                 entity.ToTable("dexih_datalink_test_tables");
 
-                entity.Property(e => e.DatalinkTestTableKey).HasColumnName("datalink_test_table_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_test_table_key");
                 entity.Property(e => e.DatalinkTestStepKey).HasColumnName("datalink_test_step_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 
@@ -734,11 +742,11 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkTransformItem>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTransformItemKey).HasName("PK_dexih_datalink_transform_items");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_transform_items");
                 entity.ToTable("dexih_datalink_transform_items");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.DatalinkTransformItemKey).HasColumnName("datalink_transform_item_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_transform_item_key");
                 entity.Property(e => e.DatalinkTransformKey).HasColumnName("datalink_transform_key");
 
                 entity.Property(e => e.FunctionCode).HasColumnName("function_code").HasMaxLength(8000);
@@ -850,11 +858,11 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalinkTransform>(entity =>
             {
-                entity.HasKey(e => e.DatalinkTransformKey).HasName("PK_dexih_datalink_transforms");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_transforms");
                 entity.ToTable("dexih_datalink_transforms");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.DatalinkTransformKey).HasColumnName("datalink_transform_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_transform_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
                 entity.Property(e => e.Position).HasColumnName("position");
 
@@ -917,10 +925,10 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihDatalink>(entity =>
             {
-                entity.HasKey(e => e.DatalinkKey).HasName("PK_dexih_datalink");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_datalink");
                 entity.ToTable("dexih_datalinks");
 
-                entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
 
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
@@ -981,12 +989,12 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihFileFormat>(entity =>
             {
-                entity.HasKey(e => e.FileFormatKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_file_format");
 
                 entity.ToTable("dexih_file_formats");
 
-                entity.Property(e => e.FileFormatKey).HasColumnName("file_format_key");
+                entity.Property(e => e.Key).HasColumnName("file_format_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
@@ -1022,13 +1030,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihFunctionParameter>(entity =>
             {
-                entity.HasKey(e => e.FunctionParameterKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_function_parameters");
 
                 entity.ToTable("dexih_function_parameters");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.FunctionParameterKey).HasColumnName("function_parameter_key");
+                entity.Property(e => e.Key).HasColumnName("function_parameter_key");
 
                 entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
                 entity.Property(e => e.DatalinkTransformItemKey).HasColumnName("datalink_transform_item_key");
@@ -1045,7 +1053,7 @@ namespace dexih.repository
                         v => v.ToString(),
                         v => (DexihParameterBase.EParameterDirection) Enum.Parse(typeof(DexihParameterBase.EParameterDirection), v));
                 
-                entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
+                entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
                 entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(1024);
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.Rank).HasColumnName("rank");
@@ -1072,15 +1080,15 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihFunctionArrayParameter>(entity =>
             {
-                entity.HasKey(e => e.FunctionArrayParameterKey).HasName("PK_dexih_function_array_param_key");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_function_array_param_key");
 
                 entity.ToTable("dexih_function_array_parameters");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.FunctionArrayParameterKey).HasColumnName("function_parameter_array_key");
+                entity.Property(e => e.Key).HasColumnName("function_parameter_array_key");
                 entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
                 entity.Property(e => e.FunctionParameterKey).HasColumnName("function_parameter_key");
-                entity.Property(e => e.ParameterName).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
+                entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
                 
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
                     .HasConversion(
@@ -1218,12 +1226,12 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihHubVariable>(entity =>
             {
-                entity.HasKey(e => e.HubVariableKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_hub_variable");
 
                 entity.ToTable("dexih_hub_variables");
 
-                entity.Property(e => e.HubVariableKey).HasColumnName("hub_variable_key");
+                entity.Property(e => e.Key).HasColumnName("hub_variable_key");
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(1024);
@@ -1241,13 +1249,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihTableColumn>(entity =>
             {
-                entity.HasKey(e => e.ColumnKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_table_columns");
 
                 entity.ToTable("dexih_table_columns");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.ColumnKey).HasColumnName("column_key");
+                entity.Property(e => e.Key).HasColumnName("column_key");
 
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
 
@@ -1310,12 +1318,12 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihTable>(entity =>
             {
-                entity.HasKey(e => e.TableKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_tables");
 
                 entity.ToTable("dexih_tables");
 
-                entity.Property(e => e.TableKey).HasColumnName("table_key");
+                entity.Property(e => e.Key).HasColumnName("table_key");
 				entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.ConnectionKey).HasColumnName("connection_key");
 
@@ -1379,13 +1387,13 @@ namespace dexih.repository
 
             modelBuilder.Entity<DexihTrigger>(entity =>
             {
-                entity.HasKey(e => e.TriggerKey)
+                entity.HasKey(e => e.Key)
                     .HasName("PK_dexih_triggers");
 
                 entity.ToTable("dexih_triggers");
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.TriggerKey).HasColumnName("trigger_key");
+                entity.Property(e => e.Key).HasColumnName("trigger_key");
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
 
                 entity.Property(e => e.StartDate).HasColumnName("start_date");
@@ -1411,11 +1419,11 @@ namespace dexih.repository
             
             modelBuilder.Entity<DexihView>(entity =>
             {
-                entity.HasKey(e => e.ViewKey).HasName("PK_dexih_view");
+                entity.HasKey(e => e.Key).HasName("PK_dexih_view");
 
                 entity.ToTable("dexih_views");
 
-                entity.Property(e => e.ViewKey).HasColumnName("view_key");
+                entity.Property(e => e.Key).HasColumnName("view_key");
                 entity.Property(e => e.HubKey).IsRequired().HasColumnName("hub_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description");
@@ -1455,7 +1463,7 @@ namespace dexih.repository
         }
 
         public DbSet<DexihApi> DexihApis { get; set; }
-        public DbSet<DexihColumnValidation> DexihColumnValidation { get; set; }
+        public DbSet<DexihColumnValidation> DexihColumnValidations { get; set; }
         public DbSet<DexihConnection> DexihConnections { get; set; }
 	    public DbSet<DexihCustomFunction> DexihCustomFunctions { get; set; }
         public DbSet<DexihDatajob> DexihDatajobs { get; set; }
@@ -1472,14 +1480,14 @@ namespace dexih.repository
         public DbSet<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
         public DbSet<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
         public DbSet<DexihDatalink> DexihDatalinks { get; set; }
-        public DbSet<DexihFileFormat> DexihFileFormat { get; set; }
+        public DbSet<DexihFileFormat> DexihFileFormats { get; set; }
         public DbSet<DexihFunctionParameter> DexihFunctionParameters { get; set; }
 	    public DbSet<DexihFunctionArrayParameter> DexihFunctionArrayParameters { get; set; }
         public DbSet<DexihRemoteAgent> DexihRemoteAgents { get; set; }
 	    public DbSet<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
         public DbSet<DexihHubUser> DexihHubUser { get; set; }
         public DbSet<DexihHub> DexihHubs { get; set; }
-        public DbSet<DexihHubVariable> DexihHubVariable { get; set; }
+        public DbSet<DexihHubVariable> DexihHubVariables { get; set; }
         public DbSet<DexihTableColumn> DexihTableColumns { get; set; }
         public DbSet<DexihTable> DexihTables { get; set; }
         public DbSet<DexihTrigger> DexihTriggers { get; set; }

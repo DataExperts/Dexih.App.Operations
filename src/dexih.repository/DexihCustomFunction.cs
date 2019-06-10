@@ -6,7 +6,7 @@ using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
-    public class DexihCustomFunction : DexihHubBaseEntity
+    public class DexihCustomFunction : DexihHubNamedEntity
     {
 
         public DexihCustomFunction()
@@ -15,12 +15,8 @@ namespace dexih.repository
             DexihCustomFunctionParameters = new HashSet<DexihCustomFunctionParameter>();
         }
 
-        [CopyCollectionKey((long)0, true)]
-        public long CustomFunctionKey { get; set; }
         public string MethodCode { get; set; }
         public string ResultCode { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
         public DataType.ETypeCode? ReturnType { get; set; }
         public EFunctionType? FunctionType { get; set; }
         public bool IsGeneric { get; set; }

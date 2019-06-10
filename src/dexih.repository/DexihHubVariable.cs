@@ -6,12 +6,8 @@ using Dexih.Utils.Crypto;
 
 namespace dexih.repository
 {
-    public partial class DexihHubVariable : DexihHubBaseEntity
+    public partial class DexihHubVariable : DexihHubNamedEntity
     {
-        [CopyCollectionKey((long)0, true)]
-        public long HubVariableKey { get; set; }
-        public string Name { get; set; }
-
         [NotMapped]
         public string ValueRaw { get; set; }
         public string Value { get; set; }

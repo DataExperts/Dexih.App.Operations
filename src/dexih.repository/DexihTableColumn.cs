@@ -15,10 +15,8 @@ namespace dexih.repository
 	    }
 	    
 
-        [CopyCollectionKey((long)0, true)]
-        public long ColumnKey { get; set; }
 		
-	    [CopyParentCollectionKey(nameof(DexihTable.TableKey))]
+	    [CopyParentCollectionKey(nameof(DexihTable.Key))]
 		public long? TableKey { get; set; }
 	    
 	    [JsonIgnore, CopyParentCollectionKey(nameof(ParentColumnKey))]

@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkTestTable: DexihHubBaseEntity
+    public class DexihDatalinkTestTable: DexihHubNamedEntity
     {
         public enum ETestTableAction
         {
@@ -14,8 +14,6 @@ namespace dexih.repository
             DropCreateCopy
         }
         
-        [CopyCollectionKey((long)0, true)]
-        public long DatalinkTestTableKey { get; set; }
         
         [CopyParentCollectionKey]
         public long DatalinkTestStepKey { get; set; }

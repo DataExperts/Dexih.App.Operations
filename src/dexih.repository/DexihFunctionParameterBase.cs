@@ -6,7 +6,7 @@ namespace dexih.repository
 {
     public class DexihFunctionParameterBase: DexihParameterBase
     {
-        [JsonIgnore]
+        // [JsonIgnore]
         public long? DatalinkColumnKey { get; set; }
         
         public string Value { get; set; }

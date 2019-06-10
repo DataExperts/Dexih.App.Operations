@@ -52,7 +52,7 @@ namespace dexih.repository
 
             if (Path.GetFileName(Network.CertificateFilename) == Network.CertificateFilename)
             {
-                return Path.Combine(Runtime.ConfigDirectory, Network.CertificateFilename);
+                return Path.Combine(Runtime.ConfigDirectory ?? "", Network.CertificateFilename);
             }
 
             return Network.CertificateFilename;
@@ -63,7 +63,7 @@ namespace dexih.repository
             string path;
             if (string.IsNullOrEmpty(AppSettings.AutoStartPath))
             {
-                path = Path.Combine(Runtime.ConfigDirectory, "autoStart");
+                path = Path.Combine(Runtime.ConfigDirectory ?? "", "autoStart");
             }
             else
             {
@@ -576,6 +576,8 @@ namespace dexih.repository
 
         public bool GenerateUserToken { get; set; } 
         
+        public bool SaveSettings { get; set; }
+        
 //        public List<FunctionReference> Functions { get; set; }
     }
 
@@ -649,9 +651,17 @@ namespace dexih.repository
                 Add(namingStandard);
             }
         }
+
+        private bool _defaultLoaded = false;
         
         public string ApplyNamingStandard(string name, string param1)
         {
+            if (!_defaultLoaded)
+            {
+                LoadDefault();
+                _defaultLoaded = true;
+            }
+            
             var namingStandard = this.SingleOrDefault(c => c.Name == name);
             if (namingStandard != null)
             {

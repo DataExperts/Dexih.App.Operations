@@ -19,11 +19,7 @@ namespace dexih.repository
 	        ChildColumns = new HashSet<DexihDatalinkColumn>();
         }
 
-
-	    [CopyCollectionKey(0L, false)]
-	    public long DatalinkColumnKey { get; set; }
-
-	    [CopyParentCollectionKey(nameof(DexihDatalinkTable.DatalinkTableKey))]
+	    [CopyParentCollectionKey(nameof(DexihDatalinkTable.Key))]
         public long? DatalinkTableKey { get; set; }
 	    
 	    [JsonIgnore, CopyIgnore]

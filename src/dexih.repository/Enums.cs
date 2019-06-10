@@ -11,4 +11,25 @@ namespace dexih.repository
         Rows,
         Function
     }
+
+    public enum ESharedObjectType
+    {
+        None,
+        Connection,
+        Table,
+        FileFormat,
+        Datalink,
+        Datajob,
+        DatalinkTransform,
+        DatalinkTransformItem,
+        RemoteAgent,
+        ColumnValidation,
+        TransformWriterResult,
+        HubVariable,
+        CustomFunction,
+        DatalinkTest,
+        View,
+        Api,
+        ApiStatus
+    }
 }

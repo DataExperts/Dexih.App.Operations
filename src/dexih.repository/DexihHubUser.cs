@@ -4,7 +4,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
-    public partial class DexihHubUser : DexihHubBaseEntity
+    public partial class DexihHubUser : DexihBaseEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EPermission
@@ -16,6 +16,9 @@ namespace dexih.repository
             Suspended = 5,
             None = 6
         }
+        
+        [JsonIgnore, CopyIgnore]
+        public long HubKey { get; set; }
 
         public string UserId { get; set; }
 

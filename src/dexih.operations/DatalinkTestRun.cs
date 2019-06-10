@@ -55,7 +55,7 @@ namespace dexih.operations
             if (datalinkTest.AuditConnectionKey > 0)
             {
                 var dbAuditConnection =
-                    _hub.DexihConnections.SingleOrDefault(c => c.ConnectionKey == datalinkTest.AuditConnectionKey);
+                    _hub.DexihConnections.SingleOrDefault(c => c.Key == datalinkTest.AuditConnectionKey);
 
                 if (dbAuditConnection == null)
                 {
@@ -78,7 +78,7 @@ namespace dexih.operations
                 AuditConnectionKey = datalinkTest.AuditConnectionKey ?? 0,
                 AuditType = "DatalinkTest",
                 HubKey = _hub.HubKey,
-                ReferenceKey = datalinkTest.DatalinkTestKey,
+                ReferenceKey = datalinkTest.Key,
                 ParentAuditKey = 0,
                 ReferenceName = datalinkTest.Name,
                 SourceTableKey = 0,
@@ -88,10 +88,10 @@ namespace dexih.operations
            
         }
 
-        private void UpdateProgress(int percent, string message, CancellationToken cancellationToken)
+        private void UpdateProgress(int percent, string message = null, Exception exception = null)
         {
             WriterResult.RowsCreated = percent;
-            WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Running, message, null);
+            WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Running, message, exception);
         }
         
         public void DatalinkTest_OnProgressUpdate(TransformWriterResult writer)
@@ -122,14 +122,15 @@ namespace dexih.operations
         {
             try
             {
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Started, null, null);
+                
                 var percent = 0;
 
                 foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
                 {
-                    WriterResult.RowsTotal = 1;
                     percent += 100 / _datalinkTest.DexihDatalinkTestSteps.Count;
 
-                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == step.DatalinkKey);
+                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.Key == step.DatalinkKey);
 
                     if (datalink == null)
                     {
@@ -145,28 +146,31 @@ namespace dexih.operations
                             var dbDatalinkTargetTable = _hub.GetTableFromKey(target.TableKey);
                             var dbDatalinkTargetConnection =
                                 _hub.DexihConnections.Single(
-                                    c => c.ConnectionKey == dbDatalinkTargetTable.ConnectionKey);
+                                    c => c.Key == dbDatalinkTargetTable.ConnectionKey);
+                            
                             var targetConnection = dbDatalinkTargetConnection.GetConnection(_transformSettings);
                             var targetTable = dbDatalinkTargetTable.GetTable(_hub, targetConnection, _transformSettings);
+
+                            var dbExpectedConnection =_hub.DexihConnections.Single(c => c.Key == step.ExpectedConnectionKey);
+                            var dbExpectedTable = dbDatalinkTargetTable.CloneProperties<DexihTable>();
+                            dbExpectedTable.Name = step.ExpectedTableName;
+                            dbExpectedTable.Schema = step.ExpectedSchema;
+                            var expectedConnection = dbExpectedConnection.GetConnection(_transformSettings);
+                            var expectedTable = dbExpectedTable.GetTable(_hub, targetConnection, _transformSettings);
+
+                            UpdateProgress(percent);
+
+                            await expectedConnection.CreateTable(expectedTable, true, cancellationToken);
+
                             using (var targetReader = targetConnection.GetTransformReader(targetTable))
+                            using (var targetReader2 = new ReaderConvertDataTypes(expectedConnection, targetReader))
                             {
-                                await targetReader.Open(0, null, cancellationToken);
-
-                                var dbExpectedConnection =
-                                    _hub.DexihConnections.Single(c => c.ConnectionKey == step.ExpectedConnectionKey);
-                                var dbExpectedTable = dbDatalinkTargetTable.CloneProperties<DexihTable>();
-                                dbExpectedTable.Name = step.ExpectedTableName;
-                                dbExpectedTable.Schema = step.ExpectedSchema;
-                                var expectedConnection = dbExpectedConnection.GetConnection(_transformSettings);
-                                var expectedTable = dbExpectedTable.GetTable(_hub, targetConnection, _transformSettings);
-
-                                UpdateProgress(percent,
-                                    $"Copying table {targetTable.Name} to the expected test data table {expectedTable.Name}.",
-                                    cancellationToken);
-
-                                await expectedConnection.CreateTable(expectedTable, true, cancellationToken);
-                                await expectedConnection.ExecuteInsertBulk(expectedTable, targetReader,
-                                    cancellationToken);
+                                await targetReader2.Open(0, null, cancellationToken);
+                                await expectedConnection.ExecuteInsertBulk(expectedTable, targetReader2, cancellationToken);
+                                
+                                WriterResult.IncrementRowsCreated(targetReader2.TransformRows);
+                                WriterResult.IncrementRowsReadPrimary(targetReader2.TotalRowsReadPrimary);
+                                
                             }
                         }
                     }
@@ -174,7 +178,7 @@ namespace dexih.operations
                     {
                         // if there is no target table, then copy the outputs of the datalink.
                         var dbExpectedConnection =
-                            _hub.DexihConnections.Single(c => c.ConnectionKey == step.ExpectedConnectionKey);
+                            _hub.DexihConnections.Single(c => c.Key == step.ExpectedConnectionKey);
                         var dbExpectedTable = datalink.GetOutputTable();
                         var expectedTable = dbExpectedTable.GetTable(null, null);
                         expectedTable.Name = step.ExpectedTableName;
@@ -185,41 +189,51 @@ namespace dexih.operations
                         var runPlan =
                             transformOperations.CreateRunPlan(_hub, datalink, null,null, null, _transformWriterOptions);
 
+                        UpdateProgress(percent);
+
+                        await expectedConnection.CreateTable(expectedTable, true, cancellationToken);
+
                         using (var transform = runPlan.sourceTransform)
+                        using (var transform2 = new ReaderConvertDataTypes(expectedConnection, transform))
                         {
-                            await transform.Open(0, null, cancellationToken);
-                            UpdateProgress(percent,
-                                $"Copying datalink {datalink.Name} output to the expected test data table {expectedTable.Name}.",
-                                cancellationToken);
-                            await expectedConnection.CreateTable(expectedTable, true, cancellationToken);
-                            await expectedConnection.ExecuteInsertBulk(expectedTable, transform, cancellationToken);
+                            await transform2.Open(0, null, cancellationToken);
+                            await expectedConnection.ExecuteInsertBulk(expectedTable, transform2, cancellationToken);
+                            
+                            WriterResult.IncrementRowsCreated(transform2.TransformRows);
+                            WriterResult.IncrementRowsReadPrimary(transform2.TotalRowsReadPrimary);
+
                         }
                     }
 
                     foreach (var testTable in step.DexihDatalinkTestTables)
                     {
                         var dbDatalinkTable = _hub.GetTableFromKey(testTable.TableKey);
-                        var dbDatalinkConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == dbDatalinkTable.ConnectionKey);
+                        var dbDatalinkConnection = _hub.DexihConnections.Single(c => c.Key == dbDatalinkTable.ConnectionKey);
                         var datalinkConnection = dbDatalinkConnection.GetConnection(_transformSettings);
                         var datalinkTable = dbDatalinkTable.GetTable(_hub, datalinkConnection, _transformSettings);
 
+                        var dbSourceConnection =
+                            _hub.DexihConnections.Single(c => c.Key == testTable.SourceConnectionKey);
+                        var dbSourceTable = dbDatalinkTable.CloneProperties<DexihTable>();
+                        dbSourceTable.Name = testTable.SourceTableName;
+                        dbSourceTable.Schema = testTable.SourceSchema;
+                        var testConnection = dbSourceConnection.GetConnection(_transformSettings);
+                        var testTable1 = dbSourceTable.GetTable(_hub, testConnection, _transformSettings);
+
+
+                        UpdateProgress(percent);
+
+
+                        await testConnection.CreateTable(testTable1, true, cancellationToken);
+
                         using (var datalinkReader = datalinkConnection.GetTransformReader(datalinkTable))
+                        using (var datalinkReader2 = new ReaderConvertDataTypes(testConnection, datalinkReader))
                         {
-                            await datalinkReader.Open(0, null, cancellationToken);
-                            var dbSourceConnection =
-                                _hub.DexihConnections.Single(c => c.ConnectionKey == testTable.SourceConnectionKey);
-                            var dbSourceTable = dbDatalinkTable.CloneProperties<DexihTable>();
-                            dbSourceTable.Name = testTable.SourceTableName;
-                            dbSourceTable.Schema = testTable.SourceSchema;
-                            var testConnection = dbSourceConnection.GetConnection(_transformSettings);
-                            var testTable1 = dbSourceTable.GetTable(_hub, testConnection, _transformSettings);
-
-
-                            UpdateProgress(percent,
-                                $"Copying table {datalinkTable.Name} to the expected source data table {testTable1.Name}.",
-                                cancellationToken);
-                            await testConnection.CreateTable(testTable1, true, cancellationToken);
-                            await testConnection.ExecuteInsertBulk(testTable1, datalinkReader, cancellationToken);
+                            await datalinkReader2.Open(0, null, cancellationToken);
+                            await testConnection.ExecuteInsertBulk(testTable1, datalinkReader2, cancellationToken);
+                            
+                            WriterResult.IncrementRowsCreated(datalinkReader2.TransformRows);
+                            WriterResult.IncrementRowsReadPrimary(datalinkReader2.TotalRowsReadPrimary);
                         }
                     }
                 }
@@ -246,17 +260,20 @@ namespace dexih.operations
             try
             {
                 var tempTargetTableKey = -10000;
+                
+                WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Started, null, null);
+
 
                 foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
                 {
-                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.DatalinkKey == step.DatalinkKey);
+                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.Key == step.DatalinkKey);
 
                     if (datalink == null)
                     {
                         throw new DatalinkTestRunException( $"The datalink test {_datalinkTest.Name} failed as the datalink with the key {step.DatalinkKey} could not be found.");
                     }
 
-                    UpdateProgress(1,$"Preparing test tables for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
+                    UpdateProgress(1);
 
                     // prepare all the relevant tables
                     foreach (var testTable in step.DexihDatalinkTestTables)
@@ -264,15 +281,15 @@ namespace dexih.operations
                         await PrepareTestTable(testTable, cancellationToken);
                     }
 
-                    UpdateProgress(1, "Preparing test tables for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
+                    UpdateProgress(2);
 
                     datalink.AuditConnectionKey = _datalinkTest.AuditConnectionKey;
 
-                    var dexihTargetConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == step.TargetConnectionKey);
+                    var dexihTargetConnection = _hub.DexihConnections.Single(c => c.Key == step.TargetConnectionKey);
                     ICollection<DexihTable> targetTables;
 
                     // add a target table to store the data when the datalink doesn't have one.
-                    if (datalink.DexihDatalinkTargets.Any())
+                    if (!datalink.DexihDatalinkTargets.Any())
                     {
                         var target = new DexihDatalinkTarget()
                         {
@@ -287,12 +304,12 @@ namespace dexih.operations
                         // var targetTable = datalink.GetOutputTable();
                         var table = new DexihTable()
                         {
-                            TableKey = target.TableKey,
+                            Key = target.TableKey,
                             DexihTableColumns = datalink.GetOutputTable().DexihDatalinkColumns
                                 .Select(c => c.CloneProperties<DexihTableColumn>()).ToArray()
                         };
 
-                        dexihTargetConnection.DexihTables.Add(table);
+                        // dexihTargetConnection.DexihTables.Add(table);
                         targetTables = new List<DexihTable>() {table};
                     }
                     else
@@ -300,17 +317,20 @@ namespace dexih.operations
                         targetTables = datalink.DexihDatalinkTargets.Select(c => _hub.GetTableFromKey(c.TableKey)).ToList();
                     }
 
+                    if (targetTables.Count() > 1)
+                    {
+                        throw new DatalinkTestRunException("Currently datalink tests can only be used with datalinks containing no more than one target table.");
+                    }
+
                     foreach (var table in targetTables)
                     {
-                        table.ConnectionKey = dexihTargetConnection.ConnectionKey;
+                        table.ConnectionKey = dexihTargetConnection.Key;
                         table.Name = step.TargetTableName;
                         table.Schema = step.TargetSchema;
                     }
 
 
-                    UpdateProgress(50,
-                        $"Running the datalink {datalink.Name} for datalink test {_datalinkTest.Name}, step {step.Name}",
-                        cancellationToken);
+                    UpdateProgress(50);
 
                     // run the datalink
                     var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions);
@@ -319,7 +339,7 @@ namespace dexih.operations
                     datalinkRun.Build(cancellationToken);
                     await datalinkRun.Run(cancellationToken);
 
-                    UpdateProgress(70, "Comparing the results for datalink test {_datalinkTest.Name}, step {step.Name}", cancellationToken);
+                    UpdateProgress(70);
 
                     foreach (var table in targetTables)
                     {
@@ -327,12 +347,12 @@ namespace dexih.operations
                         {
                             Name = step.Name,
                             StartDate = DateTime.Now,
-                            TestStepKey = step.DatalinkTestStepKey
+                            TestStepKey = step.Key
                         };
                         
-                        var dexihExpectedConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == step.ExpectedConnectionKey);
+                        var dexihExpectedConnection = _hub.DexihConnections.Single(c => c.Key == step.ExpectedConnectionKey);
                         var dexihExpectedTable = table.CloneProperties<DexihTable>();
-                        dexihExpectedTable.ConnectionKey = dexihExpectedConnection.ConnectionKey;
+                        dexihExpectedTable.ConnectionKey = dexihExpectedConnection.Key;
                         dexihExpectedTable.Name = step.ExpectedTableName;
                         dexihExpectedTable.Schema = step.ExpectedSchema;
 
@@ -412,7 +432,7 @@ namespace dexih.operations
             
             var dexihTable = _hub.GetTableFromKey(datalinkTestTable.TableKey);
 
-            var dexihTestConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == datalinkTestTable.SourceConnectionKey);
+            var dexihTestConnection = _hub.DexihConnections.Single(c => c.Key == datalinkTestTable.SourceConnectionKey);
             var testConnection = dexihTestConnection.GetConnection(_transformSettings);
             var testTable = dexihTable.GetTable(_hub, testConnection, _transformSettings);
 
@@ -439,7 +459,7 @@ namespace dexih.operations
                 return;
             }
 
-            var dexihSourceConnection = _hub.DexihConnections.Single(c => c.ConnectionKey == datalinkTestTable.SourceConnectionKey);
+            var dexihSourceConnection = _hub.DexihConnections.Single(c => c.Key == datalinkTestTable.SourceConnectionKey);
             var sourceConnection = dexihSourceConnection.GetConnection(_transformSettings);
             var sourceTable = dexihTable.GetTable(_hub, sourceConnection, _transformSettings);
 

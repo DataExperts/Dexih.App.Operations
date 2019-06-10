@@ -6,10 +6,6 @@ namespace dexih.repository
     public class DexihDatalinkStepColumn : DexihColumnBase
     {
 
-
-        [CopyCollectionKey((long)0)]
-        public long DatalinkStepColumnKey { get; set; }
-
         [CopyParentCollectionKey]
         public long DatalinkStepKey { get; set; }
         

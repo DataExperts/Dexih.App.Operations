@@ -6,18 +6,13 @@ using Newtonsoft.Json.Converters;
 
 namespace dexih.repository
 {
-    public class DexihView : DexihHubBaseEntity
+    public class DexihView : DexihHubNamedEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EViewType
         {
             Table, Chart            
         }
-        
-        public long ViewKey { get; set; }
-       
-        public string Name { get; set; }
-        public string Description { get; set; }
         
         public EViewType ViewType { get; set; }
 

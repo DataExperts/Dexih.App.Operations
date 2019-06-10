@@ -22,6 +22,7 @@ namespace dexih.repository
         public DexihHub()
         {
             DexihConnections = new HashSet<DexihConnection>();
+            DexihTables = new HashSet<DexihTable>();
             DexihDatajobs = new HashSet<DexihDatajob>();
             DexihDatalinks = new HashSet<DexihDatalink>();
             DexihHubUsers = new HashSet<DexihHubUser>();
@@ -46,6 +47,7 @@ namespace dexih.repository
  //       public bool IsInternal { get; set; }
 
         public ICollection<DexihConnection> DexihConnections { get; set; }
+        public ICollection<DexihTable> DexihTables { get; set; }
         public ICollection<DexihDatajob> DexihDatajobs { get; set; }
         public ICollection<DexihDatalink> DexihDatalinks { get; set; }
         public ICollection<DexihHubUser> DexihHubUsers { get; set; }
@@ -66,9 +68,9 @@ namespace dexih.repository
         /// <returns></returns>
         public (DexihTable table, DexihTableColumn column) GetTableColumnFromKey(long columnKey)
         {
-            foreach (var table in DexihConnections.SelectMany(c => c.DexihTables))
+            foreach (var table in DexihTables)
             {
-                var column = table.DexihTableColumns.SingleOrDefault(c => c.ColumnKey == columnKey);
+                var column = table.DexihTableColumns.SingleOrDefault(c => c.Key == columnKey);
                 if (column != null)
                 {
                     return (table, column);
@@ -85,7 +87,7 @@ namespace dexih.repository
         /// <returns></returns>
         public DexihTable GetTableFromKey(long tableKey)
         {
-            var table = DexihConnections.SelectMany(c => c.DexihTables).SingleOrDefault(c=>c.TableKey == tableKey && IsValid);
+            var table = DexihTables.SingleOrDefault(c=>c.Key == tableKey && IsValid);
             return table;
         }
     }

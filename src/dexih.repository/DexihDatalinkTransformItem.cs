@@ -23,7 +23,7 @@ using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
-	public class DexihDatalinkTransformItem : DexihHubBaseEntity
+	public class DexihDatalinkTransformItem : DexihHubNamedEntity
 	{
 		[JsonConverter(typeof(StringEnumConverter))]
 		public enum ETransformItemType
@@ -34,8 +34,6 @@ namespace dexih.repository
 		public DexihDatalinkTransformItem() => DexihFunctionParameters = new HashSet<DexihFunctionParameter>();
 
 
-		[CopyCollectionKey((long)0, true)]
-		public long DatalinkTransformItemKey { get; set; }
 
 		[CopyParentCollectionKey]
 		public long DatalinkTransformKey { get; set; }
@@ -113,27 +111,27 @@ namespace dexih.repository
 				case DexihParameterBase.EParameterDirection.ResultInput:
 					if (column != null)
 					{
-						return new ParameterColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);
+						return new ParameterColumn(parameter.Name, parameter.DataType, parameter.Rank, column);
 					}
 					else
 					{
-						return new ParameterValue(parameter.ParameterName, parameter.DataType, parameter.Value);
+						return new ParameterValue(parameter.Name, parameter.DataType, parameter.Value);
 					}
 
 					break;
 				case DexihParameterBase.EParameterDirection.Join:
 					if (column != null)
 					{
-						return new ParameterJoinColumn(parameter.ParameterName, column);
+						return new ParameterJoinColumn(parameter.Name, column);
 					}
 					else
 					{
-						return new ParameterValue(parameter.ParameterName, parameter.DataType, parameter.Value);
+						return new ParameterValue(parameter.Name, parameter.DataType, parameter.Value);
 					}
 
 					break;
 				default:
-					return new ParameterOutputColumn(parameter.ParameterName, parameter.DataType, parameter.Rank, column);				
+					return new ParameterOutputColumn(parameter.Name, parameter.DataType, parameter.Rank, column);				
 					break;
 			}
 		}
@@ -177,7 +175,7 @@ namespace dexih.repository
 								arrayParameters.Add(ConvertParameter(arrayParameter, arrayParameter.Direction));
 							}
 
-							newParameter = new ParameterArray(parameter.ParameterName, parameter.DataType, parameter.Rank, arrayParameters);
+							newParameter = new ParameterArray(parameter.Name, parameter.DataType, parameter.Rank, arrayParameters);
 						}
 						else
 						{
@@ -345,7 +343,7 @@ namespace dexih.repository
 	     	// if this is a reusable function, get the code, otherwise use the code already there.   
 	        if (hubCache != null && CustomFunctionKey != null)
 	        {
-		        var customFunction = hubCache.DexihCustomFunctions.SingleOrDefault(c => c.CustomFunctionKey == CustomFunctionKey && c.IsValid);
+		        var customFunction = hubCache.DexihCustomFunctions.SingleOrDefault(c => c.Key == CustomFunctionKey && c.IsValid);
 		        if (customFunction == null)
 		        {
 			        throw new RepositoryException($"Failed to load the custom function with the key {CustomFunctionKey}.");
@@ -467,9 +465,9 @@ $FunctionCode
 	            testFunction.Append("\t\t" + returnName + " = ");
                 testFunction.Append("CustomFunction(");
 	            var p = DexihFunctionParameters.OrderBy(c => c.Position)
-		            .Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input).Select(c => c.ParameterName)
+		            .Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input).Select(c => c.Name)
 		            .ToList();
-	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output).Select(c => "out " + c.ParameterName));
+	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output).Select(c => "out " + c.Name));
 	            
 	            testFunction.Append(string.Join(", ", p));
                 testFunction.Append(");");
@@ -478,9 +476,9 @@ $FunctionCode
                 var inputParameters = new StringBuilder();
                 foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input))
                 {
-                    inputParameters.Append("\t\t" + inputParameter.DataType + AddRank(inputParameter.Rank) + " " + inputParameter.ParameterName + " = ");
+                    inputParameters.Append("\t\t" + inputParameter.DataType + AddRank(inputParameter.Rank) + " " + inputParameter.Name + " = ");
 
-	                var parameter = parameters.Inputs?.SingleOrDefault(c => c.Name == inputParameter.ParameterName);
+	                var parameter = parameters.Inputs?.SingleOrDefault(c => c.Name == inputParameter.Name);
 	                if (parameter != null)
 	                {
 		                var basicType = GetBasicType(inputParameter.DataType);
@@ -558,9 +556,9 @@ $FunctionCode
 
                 foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
                 {
-                    outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.ParameterName + ";");
-                    testFunction.Append("out " + outputParameter.ParameterName + ", ");
-                    writeResults.AppendLine("\t\tConsole.WriteLine(\"" + outputParameter.ParameterName + " = {0}\", " + outputParameter.ParameterName + ");");
+                    outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.Name + ";");
+                    testFunction.Append("out " + outputParameter.Name + ", ");
+                    writeResults.AppendLine("\t\tConsole.WriteLine(\"" + outputParameter.Name + " = {0}\", " + outputParameter.Name + ");");
                 }
 
                 code.Replace("$OutputParameters", outputParameters.ToString());
@@ -569,8 +567,8 @@ $FunctionCode
 
                 foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
                 {
-                    outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.ParameterName + ";");
-                    testFunction.Append("out " + outputParameter.ParameterName + ", ");
+                    outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.Name + ";");
+                    testFunction.Append("out " + outputParameter.Name + ", ");
                 }
             }
             else
@@ -586,12 +584,12 @@ $FunctionCode
 			var parameterString = "";
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Input))
 			{
-				parameterString += t.DataType + AddRank(t.Rank) + " " + t.ParameterName + ",";
+				parameterString += t.DataType + AddRank(t.Rank) + " " + t.Name + ",";
 			}
 
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Output))
 			{
-				parameterString += "out " + t.DataType + AddRank(t.Rank) + " " + t.ParameterName + ",";
+				parameterString += "out " + t.DataType + AddRank(t.Rank) + " " + t.Name + ",";
 			}
 
             if (parameterString != "") //remove last comma

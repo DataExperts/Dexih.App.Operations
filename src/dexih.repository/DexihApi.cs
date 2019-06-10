@@ -6,9 +6,9 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihApi: DexihHubBaseEntity
+    public class DexihApi: DexihHubNamedEntity
     {        
-        public long ApiKey { get; set; }
+        public long Key { get; set; }
        
         public string Name { get; set; }
         public string Description { get; set; }

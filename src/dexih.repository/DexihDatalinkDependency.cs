@@ -3,11 +3,9 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public partial class DexihDatalinkDependency : DexihHubBaseEntity
+    public partial class DexihDatalinkDependency : DexihHubNamedEntity
     {
 
-        [CopyCollectionKey((long)0, true)]
-        public long DatalinkDependencyKey { get; set; }
 
 		[CopyParentCollectionKey]
         public long DatalinkStepKey { get; set; }
