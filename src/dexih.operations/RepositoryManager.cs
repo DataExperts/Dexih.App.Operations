@@ -1892,6 +1892,14 @@ namespace dexih.operations
                         throw new RepositoryManagerException($"A datajob with the name {datajob.Name} already exists in the repository.");
 					}
 
+					foreach (var trigger in datajob.DexihTriggers)
+					{
+						if (trigger.Key < 0)
+						{
+							trigger.Key = 0;
+						}
+					}
+
                     foreach(var step in datajob.DexihDatalinkSteps)
                     {
                         foreach(var dep in step.DexihDatalinkDependencies)
@@ -1900,7 +1908,7 @@ namespace dexih.operations
                             {
                                 dep.Key = 0;
                             }
-
+                            
                             if (dep.DependentDatalinkStepKey <= 0)
                             {
                                 dep.DependentDatalinkStep = datajob.DexihDatalinkSteps.SingleOrDefault(c => c.Key == dep.DependentDatalinkStepKey);
@@ -1909,13 +1917,13 @@ namespace dexih.operations
                         }
                     }
 
-//                    foreach (var step in datajob.DexihDatalinkSteps)
-//                    {
-//                        if (step.DatalinkStepKey < 0)
-//                        {
-//                            step.DatalinkStepKey = 0;
-//                        }
-//                    }
+                    foreach (var step in datajob.DexihDatalinkSteps)
+                    {
+                        if (step.Key < 0)
+                        {
+                            step.Key = 0;
+                        }
+                    }
 
                     if (datajob.Key <= 0) {
 						datajob.Key = 0;

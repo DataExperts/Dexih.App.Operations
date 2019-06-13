@@ -28,7 +28,6 @@ namespace dexih.repository
         public DateTime? StartDate { get; set; }
         public TimeSpan? IntervalTime { get; set; }
 
-        [CopyIgnore] 
         public EDayOfWeek[] DaysOfWeek { get; set; }
 
         public TimeSpan? StartTime { get; set; }
