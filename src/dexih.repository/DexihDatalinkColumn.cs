@@ -18,6 +18,10 @@ namespace dexih.repository
             DexihDatalinkTransformsNodeColumn = new HashSet<DexihDatalinkTransform>();
 	        ChildColumns = new HashSet<DexihDatalinkColumn>();
         }
+        
+        // don't reset negative keys here, as they need to be maintained when copying datalinks across.
+        [CopyCollectionKey((long)0, false)]
+        public long Key { get; set; }
 
 	    [CopyParentCollectionKey(nameof(DexihDatalinkTable.Key))]
         public long? DatalinkTableKey { get; set; }

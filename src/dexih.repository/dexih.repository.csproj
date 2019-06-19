@@ -3,7 +3,7 @@
     <Description>dexih_repository Class Library</Description>
     <VersionPrefix>0.2.1</VersionPrefix>
     <Authors>Gary</Authors>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <AssemblyName>dexih.repository</AssemblyName>
     <OutputType>Library</OutputType>
     <PackageId>dexih.repository</PackageId>

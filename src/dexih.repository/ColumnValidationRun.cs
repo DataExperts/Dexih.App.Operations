@@ -175,7 +175,7 @@ namespace dexih.operations
                             " which is below the minimum length of " + ColumnValidation.MinLength);
                     }
                     
-                    if (ColumnValidation.PatternMatch != null)
+                    if (!string.IsNullOrEmpty(ColumnValidation.PatternMatch))
                     {
                         if (stringValue.IsPattern(ColumnValidation.PatternMatch) == false)
                         {
@@ -183,7 +183,7 @@ namespace dexih.operations
                         }
                     }
 
-                    if (ColumnValidation.RegexMatch != null)
+                    if (!string.IsNullOrEmpty(ColumnValidation.RegexMatch))
                     {
                         if (Regex.Match(stringValue, ColumnValidation.RegexMatch).Success == false)
                         {

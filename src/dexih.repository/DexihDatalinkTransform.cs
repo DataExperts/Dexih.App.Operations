@@ -267,22 +267,22 @@ namespace dexih.repository
                 //if this is a validation transform. add the column validations also.
                 if (TransformType == ETransformType.Validation)
                 {
-                        if(targetTable == null)
-                        {
-                            throw new RepositoryException($"The validation transform failed, as a valid target table was not set.");
-                        }
+                    if(targetTable == null)
+                    {
+                        throw new RepositoryException($"The validation transform failed, as a valid target table was not set.");
+                    }
 
-                        foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
-                        {
-                            var columnValidation = hub.DexihColumnValidations.Single(c => c.Key == column.ColumnValidationKey);
-                            var validation =
-                                new ColumnValidationRun(transformSettings, columnValidation, hub)
-                                {
-                                    DefaultValue = column.DefaultValue
-                                };
-                            var function = validation.GetValidationMapping(column.Name);
-                            transform.Mappings.Add(function);
-                        }
+                    foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
+                    {
+                        var columnValidation = hub.DexihColumnValidations.Single(c => c.Key == column.ColumnValidationKey);
+                        var validation =
+                            new ColumnValidationRun(transformSettings, columnValidation, hub)
+                            {
+                                DefaultValue = column.DefaultValue
+                            };
+                        var function = validation.GetValidationMapping(column.Name);
+                        transform.Mappings.Add(function);
+                    }
 
                     logger?.LogTrace($"Adding validation.  Elapsed: {timer.Elapsed}");
                 }

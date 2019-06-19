@@ -64,7 +64,15 @@ namespace dexih.repository
                         // check hubkey hasn't changed since original.  This could impact an entity in another hub and causes an immedidate stop.
                         if (!Object.Equals(originalValues[nameof(DexihHubEntity.HubKey)], entity.CurrentValues[nameof(DexihHubEntity.HubKey)]))
                         {
-                            throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was {entity.GetType()}.");
+                            if (hubEntity is DexihHubNamedEntity hubNamedEntity)
+                            {
+                                throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}, key: {hubNamedEntity.Key}, name: {hubNamedEntity.Name}.");
+                            }
+                            else
+                            {
+                                throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}.");    
+                            }
+                            
                         }
                     }
                 }
