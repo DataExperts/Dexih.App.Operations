@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.File;
 
 namespace dexih.repository
 {
+    [Serializable]
 	public partial class DexihFileFormat : DexihHubNamedEntity
     {
 		public DexihFileFormat() => DexihTables = new HashSet<DexihTable>();

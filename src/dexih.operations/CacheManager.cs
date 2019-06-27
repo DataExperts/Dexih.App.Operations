@@ -12,6 +12,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.operations
 {
+	[Serializable]
     public class CacheManager
     {
         public DexihHub Hub { get; set; }
@@ -199,10 +200,10 @@ namespace dexih.operations
 			}
         }
 
-        public bool LoadGlobal(DexihRepositoryContext dbContext)
+        public bool LoadGlobal(string version, DateTime buildDate, DexihRepositoryContext dbContext)
         {
-            BuildVersion = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-            BuildDate = System.IO.File.GetLastWriteTime(Assembly.GetEntryAssembly().Location);
+            BuildVersion = version;
+            BuildDate = buildDate;
 
             // load the default remote libraries, which will be reference when a remote agent is not connected.
             DefaultRemoteLibraries = new RemoteLibraries()

@@ -1,8 +1,10 @@
-﻿using Dexih.Utils.CopyProperties;
+﻿using System;
+using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 
 namespace dexih.repository
 {
+    [Serializable]
     public partial class DexihDatalinkDependency : DexihHubNamedEntity
     {
 

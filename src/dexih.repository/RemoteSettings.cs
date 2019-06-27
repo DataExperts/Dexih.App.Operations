@@ -210,7 +210,7 @@ namespace dexih.repository
         /// </summary>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public DownloadUrl[] GetDownloadUrls(string defaultProxy)
+        public DownloadUrl[] GetDownloadUrls()
         {
             var urls = new List<DownloadUrl>();
 
@@ -285,7 +285,7 @@ namespace dexih.repository
 
             if (Privacy.AllowProxy)
             {
-                var proxy = !string.IsNullOrEmpty(Network.ProxyUrl) ? Network.ProxyUrl : defaultProxy;
+                var proxy = !string.IsNullOrEmpty(Network.ProxyUrl) ? Network.ProxyUrl : Runtime.DefaultProxyUrl;
 
                 if (!string.IsNullOrEmpty(proxy))
                 {
@@ -366,9 +366,9 @@ namespace dexih.repository
         public string EncryptionKey { get; set; }
 
         /// <summary>
-        /// The Ingregation Hub Web Server: http://dexih.dataexpertsgroup.com
+        /// The Ingregation Hub Web Server: http://dexih.com
         /// </summary>
-        public string WebServer { get; set; } = "https://dexih.dataexpertsgroup.com";
+        public string WebServer { get; set; } = "https://dexih.com";
         
         /// <summary>
         /// A name to represent this remote agent.
@@ -563,7 +563,8 @@ namespace dexih.repository
 
         public string ExternalIpAddress { get; set; }
         
-//        public string ProxyUrl { get; set; }
+        public string DefaultProxyUrl { get; set; }
+        public long RemoteAgentKey { get; set; }
         
         public ApplicationUser User { get; set; }
         

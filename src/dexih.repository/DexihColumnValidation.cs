@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using dexih.functions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -7,6 +8,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihColumnValidation : DexihHubNamedEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]

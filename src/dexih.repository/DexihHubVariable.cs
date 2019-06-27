@@ -6,6 +6,7 @@ using Dexih.Utils.Crypto;
 
 namespace dexih.repository
 {
+    [Serializable]
     public partial class DexihHubVariable : DexihHubNamedEntity
     {
         [NotMapped]

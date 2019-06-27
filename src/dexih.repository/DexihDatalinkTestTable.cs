@@ -1,8 +1,10 @@
+using System;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihDatalinkTestTable: DexihHubNamedEntity
     {
         public enum ETestTableAction

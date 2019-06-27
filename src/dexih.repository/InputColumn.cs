@@ -1,7 +1,9 @@
+using System;
 using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class InputColumn
     {
         public long DatalinkKey { get; set; }

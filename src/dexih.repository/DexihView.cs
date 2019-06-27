@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
@@ -6,6 +7,7 @@ using Newtonsoft.Json.Converters;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihView : DexihHubNamedEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]

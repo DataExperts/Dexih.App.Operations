@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Converters;
@@ -9,6 +10,7 @@ using dexih.transforms.Transforms;
 
 namespace dexih.repository
 {
+    [Serializable]
     public partial class DexihDatalink : DexihHubNamedEntity
     {
 

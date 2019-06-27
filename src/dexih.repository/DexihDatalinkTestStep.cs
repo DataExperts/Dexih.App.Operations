@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihDatalinkTestStep: DexihHubNamedEntity
     {
         public DexihDatalinkTestStep() => DexihDatalinkTestTables = new HashSet<DexihDatalinkTestTable>();

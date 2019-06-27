@@ -3,6 +3,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihBaseEntity
     {
         [CopyIfTargetDefault]

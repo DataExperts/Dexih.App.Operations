@@ -23,6 +23,7 @@ using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
+	[Serializable]
 	public class DexihDatalinkTransformItem : DexihHubNamedEntity
 	{
 		[JsonConverter(typeof(StringEnumConverter))]

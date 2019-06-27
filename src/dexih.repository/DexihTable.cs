@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -10,6 +11,7 @@ using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
+	[Serializable]
     public partial class DexihTable : DexihHubNamedEntity
     {
         public DexihTable()

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using static dexih.functions.TableColumn;
 using static Dexih.Utils.DataType.DataType;
 
@@ -7,6 +8,7 @@ namespace dexih.repository
     /// <summary>
     /// Base class for table columns.  Inherited by DexihTableColumn and DexihDatalinkColumn
     /// </summary>
+    [Serializable]
     public class DexihColumnBase: DexihHubNamedEntity
     {
         public int Position { get; set; }

@@ -9,6 +9,7 @@ using dexih.transforms;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihConnection : DexihHubNamedEntity
     {
         #region Enums

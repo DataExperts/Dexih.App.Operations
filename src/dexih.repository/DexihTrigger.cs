@@ -8,6 +8,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihTrigger : DexihHubNamedEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]

@@ -7,6 +7,7 @@ namespace dexih.repository
     /// <summary>
     /// Transform Settings is used to pass various parameters when creating the transforms.
     /// </summary>
+    [Serializable]
     public class TransformSettings
     {
         public DexihHubVariable[] HubVariables { get; set; }

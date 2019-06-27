@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
+    [Serializable]
     public partial class DexihRemoteAgentHub : DexihHubEntity
     {
         

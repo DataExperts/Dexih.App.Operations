@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
+    [Serializable]
     public partial class DexihHubUser : DexihBaseEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]

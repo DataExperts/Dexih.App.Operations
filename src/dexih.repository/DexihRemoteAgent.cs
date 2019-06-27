@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
+    [Serializable]
     public partial class DexihRemoteAgent : DexihBaseEntity
     {        
         public DexihRemoteAgent()

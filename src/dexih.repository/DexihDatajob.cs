@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
@@ -6,6 +7,7 @@ using System.Linq;
 
 namespace dexih.repository
 {
+    [Serializable]
     public partial class DexihDatajob : DexihHubNamedEntity
     {
         [JsonConverter(typeof(StringEnumConverter))]

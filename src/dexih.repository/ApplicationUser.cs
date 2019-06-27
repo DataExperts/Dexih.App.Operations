@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 namespace dexih.repository
 {
     // Add profile data for application users by adding properties to the ApplicationUser class
+    [Serializable]
     public class ApplicationUser : IdentityUser
     {
     

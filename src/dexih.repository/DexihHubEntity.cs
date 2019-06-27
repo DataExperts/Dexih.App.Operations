@@ -6,12 +6,15 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihHubEntity : DexihBaseEntity
     {
         [JsonIgnore, CopyIgnore]
         public long HubKey { get; set; }
         
     }
+    
+    [Serializable]
     public class DexihHubNamedEntity: DexihHubEntity
     {
         

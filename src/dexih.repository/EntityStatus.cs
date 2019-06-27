@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class EntityStatus
     {
         public EntityStatus()

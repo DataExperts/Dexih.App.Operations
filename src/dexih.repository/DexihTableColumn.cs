@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -7,6 +8,7 @@ using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
+	[Serializable]
     public partial class DexihTableColumn : DexihColumnBase
     {
 	    public DexihTableColumn()

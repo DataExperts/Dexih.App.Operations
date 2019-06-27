@@ -16,9 +16,11 @@ using System.Transactions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using dexih.operations.Extensions;
 
 namespace dexih.operations
 {
@@ -50,14 +52,17 @@ namespace dexih.operations
 		private readonly UserManager<ApplicationUser> _userManager;
 
 		public DexihRepositoryContext DbContext { get; set; }
-		public IMemoryCache MemoryCache { get; set; }
-		public readonly Func<Import, Task> HubChange;
+		
+		private IDistributedCache _distributedCache;
+		private IMemoryCache _memoryCache;
+		private readonly Func<Import, Task> _hubChange;
 
 		public RepositoryManager(
 			 string systemEncryptionKey, 
              DexihRepositoryContext dbContext,
 			 UserManager<ApplicationUser> userManager,
 			 IMemoryCache memoryCache,
+			 IDistributedCache distributedCache,
              ILoggerFactory loggerFactory,
 			 Func<Import, Task> hubChange
             )
@@ -67,20 +72,21 @@ namespace dexih.operations
 			_userManager = userManager;
 
 			DbContext = dbContext;
-			MemoryCache = memoryCache ?? new MemoryCache(new MemoryCacheOptions());
-			HubChange = hubChange;
+			_distributedCache = distributedCache;
+			_memoryCache = memoryCache;
+			_hubChange = hubChange;
 		}
 
 		public RepositoryManager(string systemEncryptionKey, 
 			DexihRepositoryContext dbContext,
 			UserManager<ApplicationUser> userManager,
-			IMemoryCache memoryCache
+			IDistributedCache distributedCache
 		)
 		{
 			_systemEncryptionKey = systemEncryptionKey;
 			_userManager = userManager;
 			DbContext = dbContext;
-			MemoryCache = memoryCache ?? new MemoryCache(new MemoryCacheOptions());
+			_distributedCache = distributedCache;
 		}
 		
 		public void Dispose()
@@ -204,6 +210,7 @@ namespace dexih.operations
 		public Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user) => _userManager.GeneratePasswordResetTokenAsync(user);
 		public Task<bool> VerifyUserTokenAsync(ApplicationUser user, string remoteAgentId, string token) => _userManager.VerifyUserTokenAsync(user, RemoteAgentProvider, remoteAgentId, token);
 		public Task<string> GenerateRemoteUserToken(ApplicationUser user, string remoteAgentId) => _userManager.GenerateUserTokenAsync(user, RemoteAgentProvider, remoteAgentId);
+		public Task<IdentityResult> RemoveRemoteUserToken(ApplicationUser user, string remoteAgentId) => _userManager.RemoveAuthenticationTokenAsync(user, RemoteAgentProvider, remoteAgentId);
 		public async Task ResetPasswordAsync(ApplicationUser user, string code, string password) => ThrowIdentityResult("reset password", await _userManager.ResetPasswordAsync(user, code, password));
 		public async Task ChangePasswordAsync(ApplicationUser user, string password, string newPassword) => ThrowIdentityResult("change password", await _userManager.ChangePasswordAsync(user, password, newPassword));
 		public async Task DeleteUserAsync(ApplicationUser user) => ThrowIdentityResult("delete user", await _userManager.DeleteAsync(user));
@@ -243,18 +250,24 @@ namespace dexih.operations
 		/// clears the cache for any permissions the user has.
 		/// </summary>
 		/// <param name="userId"></param>
-		public void ResetUserCache(string userId)
+		public Task ResetUserCache(string userId)
 		{
-			MemoryCache.Remove(CacheKeys.UserHubs((userId)));
+			return ResetCache(CacheKeys.UserHubs((userId)));
 		}
 
 		/// <summary>
 		/// clears the hub cache.
 		/// </summary>
 		/// <param name="hubKey"></param>
-		public void ResetHubCache(long hubKey)
+		public Task ResetHubCache(long hubKey)
 		{
-			MemoryCache.Remove($"HUB-{hubKey}");
+			return ResetCache($"HUB-{hubKey}");
+		}
+
+		public Task ResetCache(string key)
+		{
+			_memoryCache.Remove(key);
+			return _distributedCache.RemoveAsync(key);
 		}
 
 		
@@ -271,9 +284,9 @@ namespace dexih.operations
 				ResetUserCache(hubUser.Id);
 			}
 			
-			MemoryCache.Remove(CacheKeys.AdminHubs);
-			MemoryCache.Remove(CacheKeys.HubUserIds(hubKey));
-			MemoryCache.Remove(CacheKeys.HubUsers(hubKey));
+			ResetCache(CacheKeys.AdminHubs);
+			ResetCache(CacheKeys.HubUserIds(hubKey));
+			ResetCache(CacheKeys.HubUsers(hubKey));
 		}
 		
 		/// <summary>
@@ -283,7 +296,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public Task<DexihHub> GetHub(long hubKey)
 		{
-			var hubReturn = MemoryCache.GetOrCreateAsync(CacheKeys.Hub((hubKey)), async entry =>
+			var hubReturn = _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.Hub((hubKey)), async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromHours(1);
 				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey));
@@ -322,7 +335,7 @@ namespace dexih.operations
 		{
 			if (user.IsAdmin)
 			{
-				return MemoryCache.GetOrCreateAsync(CacheKeys.AdminHubs, async entry =>
+				return _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.AdminHubs, async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 				
@@ -336,7 +349,7 @@ namespace dexih.operations
 			}
 			else
 			{
-				return MemoryCache.GetOrCreateAsync(CacheKeys.UserHubs(user.Id), async entry =>
+				return _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.UserHubs(user.Id), async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 				
@@ -596,12 +609,12 @@ namespace dexih.operations
 	        if (import.Any())
 	        {
 		        // TODO: Better for performance to merge changes into cache, but leaving for now as do not want to risk out of sync scenarios
-		        ResetHubCache(hubKey);
+		        await ResetHubCache(hubKey);
 		        
 		        // raise event to send changes back to client.
-		        if (HubChange != null)
+		        if (_hubChange != null)
 		        {
-			        await HubChange.Invoke(import);
+			        await _hubChange.Invoke(import);
 		        }
 	        }
         }
@@ -613,7 +626,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public Task<string[]> GetHubUserIds(long hubKey)
 		{
-			return MemoryCache.GetOrCreateAsync(CacheKeys.HubUserIds(hubKey), async entry =>
+			return _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.HubUserIds(hubKey), async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 
@@ -655,7 +668,7 @@ namespace dexih.operations
         {
             try
             {
-	            var returnList = MemoryCache.GetOrCreateAsync(CacheKeys.HubUsers(hubKey), async entry =>
+	            var returnList = _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.HubUsers(hubKey), async entry =>
 	            {
 		            entry.SlidingExpiration = TimeSpan.FromHours(1);
 
@@ -774,8 +787,8 @@ namespace dexih.operations
 				
                 //save the hub to generate a hub key.
                 await DbContext.SaveChangesAsync();
-				ResetHubCache(hub.HubKey);
-				ResetHubPermissions(hub.HubKey);
+				await ResetHubCache(hub.HubKey);
+				await ResetHubPermissions(hub.HubKey);
 
 				// if new hub, then update with current user, and update the quota.
 				if (isNew && !user.IsAdmin)
@@ -814,7 +827,7 @@ namespace dexih.operations
 
 					dbHub.IsValid = false;
 
-					ResetHubCache(dbHub.HubKey);
+					await ResetHubCache(dbHub.HubKey);
 					await ResetHubPermissions(dbHub.HubKey);
 				}
 				
@@ -921,7 +934,7 @@ namespace dexih.operations
 		/// <exception cref="ApplicationUserException"></exception>
 		public Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey)
 		{
-			var validate = MemoryCache.GetOrCreateAsync(CacheKeys.UserHubPermission(user.Id, hubKey), async entry =>
+			var validate = _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.UserHubPermission(user.Id, hubKey), async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromMinutes(1);
 
@@ -2095,12 +2108,17 @@ namespace dexih.operations
             }
         }
 		
-		public async Task<bool> DeleteRemoteAgent(long remoteAgentKey)
+		public async Task<bool> DeleteRemoteAgent(ApplicationUser user, long remoteAgentKey)
 		{
 			try
 			{
 				var dbItem = await DbContext.DexihRemoteAgents
 					.SingleAsync(c => c.RemoteAgentKey == remoteAgentKey);
+
+				if (dbItem.UserId != user.Id && !user.IsAdmin)
+				{
+					throw new RepositoryManagerException($"The remote agent {dbItem.Name} could not be removed as the current user {user.Email} did not create the remote agent.");
+				}
 
 				dbItem.IsValid = false;
 
@@ -2129,7 +2147,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(string iPAddress, RemoteSettings remoteSettings)
 		{
-			return await MemoryCache.GetOrCreateAsync(CacheKeys.RemoteAgentHubs(remoteSettings.AppSettings.RemoteAgentId),
+			return await _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.RemoteAgentHubs(remoteSettings.AppSettings.RemoteAgentId),
 				async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
@@ -2154,7 +2172,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public async Task<DexihRemoteAgentHub[]> AuthorizedUserRemoteAgentHubs(ApplicationUser user)
 		{
-			return await MemoryCache.GetOrCreateAsync(CacheKeys.RemoteAgentUserHubs(user.Id),
+			return await _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.RemoteAgentUserHubs(user.Id),
 				async entry =>
 				{
 					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
@@ -2163,6 +2181,26 @@ namespace dexih.operations
 			
 					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Include(c => c.RemoteAgent).Where(c => 
 						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
+						c.IsAuthorized &&
+						c.IsValid).ToArrayAsync();
+
+					return remoteAgents;
+				});
+		}
+		
+		/// <summary>
+		/// Gets a list of all hubs which have been authorized for the remote agent.
+		/// </summary>
+		/// <returns></returns>
+		public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(long remoteAgentKey)
+		{
+			return await _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.RemoteAgentKeyHubs(remoteAgentKey),
+				async entry =>
+				{
+					entry.SlidingExpiration = TimeSpan.FromMinutes(1); 
+
+					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Where(c => 
+						c.RemoteAgentKey == remoteAgentKey &&
 						c.IsAuthorized &&
 						c.IsValid).ToArrayAsync();
 

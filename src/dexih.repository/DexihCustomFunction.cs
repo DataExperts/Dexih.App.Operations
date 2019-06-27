@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
@@ -6,6 +7,7 @@ using Dexih.Utils.DataType;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihCustomFunction : DexihHubNamedEntity
     {
 

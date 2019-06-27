@@ -17,6 +17,7 @@ using static dexih.transforms.Transforms.TransformAttribute;
 
 namespace dexih.repository
 {
+    [Serializable]
     public class DexihDatalinkTransform : DexihHubNamedEntity
     {
 		public DexihDatalinkTransform() => DexihDatalinkTransformItems = new HashSet<DexihDatalinkTransformItem>();
