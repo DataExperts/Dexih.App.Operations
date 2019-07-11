@@ -5,10 +5,11 @@ using dexih.transforms.Transforms;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using Dexih.Utils.CopyProperties;
+using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
 {
@@ -24,30 +25,28 @@ namespace dexih.operations
         public string MicrosoftClientId { get; set; }
         public string GoogleMapsAPIKey { get; set; }
 
+        public ILogger _logger;
+
         public RemoteLibraries DefaultRemoteLibraries { get; set; }
 
 		public CacheManager()
 		{
-			
 		}
 
-        public CacheManager(long hubKey, string cacheEncryptionKey)
+        public CacheManager(long hubKey, string cacheEncryptionKey, ILogger logger = null)
         {
+	        _logger = logger;
             HubKey = hubKey;
             CacheEncryptionKey = cacheEncryptionKey;
             Initialize(hubKey);
         }
-
-        public CacheManager(long hubKey, string cacheEncryptionKey, string secondaryEncryptionKey)
-        {
-            CacheEncryptionKey = cacheEncryptionKey;
-            Initialize(hubKey);
-        }
-
+        
         private void Initialize(long hubKey)
         {
             Hub = new DexihHub() { HubKey = hubKey };
 		}
+
+        
 
         public long HubKey { get; set; }
         
@@ -82,7 +81,8 @@ namespace dexih.operations
         {
 			try
 			{
-
+				var stopWatch = Stopwatch.StartNew();
+				
                 await InitHub(dbContext);
 
 				if (Hub == null)
@@ -94,20 +94,18 @@ namespace dexih.operations
                     .Where(c => c.IsValid && c.HubKey == HubKey);
 
                 Hub.DexihHubVariables = await variables.ToArrayAsync();
+                
+                
+                Hub.DexihConnections = await dbContext.DexihConnections
+					.Where(c => c.IsValid && c.HubKey == HubKey).ToArrayAsync();
 
-                // load connections
-                var connections = dbContext.DexihConnections
-					.Where(c => c.IsValid && c.HubKey == HubKey);
+                await dbContext.DexihTableColumns
+	                .Where(c => c.IsValid && c.HubKey == HubKey)
+	                .LoadAsync();
 
-				await dbContext.DexihTables
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				await dbContext.DexihTableColumns
-                    .Where(c => c.IsValid && c.HubKey == HubKey)
-                    .LoadAsync();
-
-				Hub.DexihConnections = await connections.ToArrayAsync();
+                Hub.DexihTables = await dbContext.DexihTables
+	                .Where(c => c.IsValid && c.HubKey == HubKey)
+	                .ToArrayAsync();
 
 
                 // load the datalinks
@@ -193,6 +191,8 @@ namespace dexih.operations
 				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 				Hub.DexihApis = await dbContext.DexihApis.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
 
+				_logger?.LogTrace($"Load hub name {Hub.Name} took {stopWatch.ElapsedMilliseconds}ms.");
+
 				return Hub;
 			} catch(Exception ex)
 			{
@@ -218,7 +218,7 @@ namespace dexih.operations
 
         public async Task LoadConnectionTables(DexihConnection connection, DexihRepositoryContext dbContext)
         {
-	        var tables = dbContext.DexihTables.Where(c => c.HubKey == HubKey && c.ConnectionKey == connection.Key && c.IsValid);
+	        var tables = dbContext.DexihTables.Where(c => c.HubKey == HubKey && c.ConnectionKey == connection.Key && c.IsValid).AsNoTracking();
 
             foreach (var table in tables)
             {
@@ -229,7 +229,7 @@ namespace dexih.operations
 
         public async Task LoadTableColumns(DexihTable hubTable, DexihRepositoryContext dbContext)
         {
-            await dbContext.Entry(hubTable).Collection(a => a.DexihTableColumns).Query().Where(c => c.IsValid && hubTable.Key == c.TableKey).LoadAsync();
+            await dbContext.Entry(hubTable).Collection(a => a.DexihTableColumns).Query().Where(c => c.IsValid && hubTable.Key == c.TableKey).AsNoTracking().LoadAsync();
 
             var columnValidationKeys = hubTable.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
             await AddColumnValidations(columnValidationKeys, dbContext);

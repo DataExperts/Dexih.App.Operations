@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace dexih.operations
 {
-    public class ResponseMessage : RemoteMessage
+    public sealed class ResponseMessage : RemoteMessage
     {
         public ResponseMessage(string securityToken, string messageId, ReturnValue<JToken> returnMessage)
         {

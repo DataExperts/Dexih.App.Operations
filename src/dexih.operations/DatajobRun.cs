@@ -4,17 +4,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using static dexih.repository.DexihDatajob;
 using static dexih.transforms.TransformWriterResult;
 using System.Threading.Tasks.Dataflow;
+using Dexih.Utils.ManagedTasks;
 using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
 {
-	public class DatajobRun
+	public class DatajobRun: ManagedObject
 	{
 		#region Events
 
@@ -41,6 +41,7 @@ namespace dexih.operations
 		public List<DatalinkRun> DatalinkSteps { get; set; }
 		private readonly DexihHub _hub;
 		public TransformWriterResult WriterResult { get; private set; }
+		private Connection _auditConnection;
 
 		private readonly TransformSettings _transformSettings;
 		private readonly TransformWriterOptions _transformWriterOptions;
@@ -55,7 +56,7 @@ namespace dexih.operations
 
 			_transformWriterOptions = transformWriterOptions;
 
-			Connection auditConnection;
+			
 
 			if (datajob.AuditConnectionKey > 0)
 			{
@@ -68,29 +69,36 @@ namespace dexih.operations
 						$"Audit connection with key {datajob.AuditConnectionKey} was not found.");
 				}
 
-				auditConnection = dbAuditConnection.GetConnection(_transformSettings);
+				_auditConnection = dbAuditConnection.GetConnection(_transformSettings);
 			}
 			else
 			{
-				auditConnection = new ConnectionMemory();
+				_auditConnection = new ConnectionMemory();
 			}
 			
+			
+			Datajob = datajob;
+			_hub = hub;
+		}
+
+		public void ResetWriterResult()
+		{
 			WriterResult = new TransformWriterResult
 			{
-				AuditConnection = auditConnection,
-				AuditConnectionKey = datajob.AuditConnectionKey ?? 0,
+				AuditConnection = _auditConnection,
+				AuditConnectionKey = Datajob.AuditConnectionKey ?? 0,
 				AuditType = "Datajob",
-				HubKey = hub.HubKey,
-				ReferenceKey = datajob.Key,
+				HubKey = _hub.HubKey,
+				ReferenceKey = Datajob.Key,
 				ParentAuditKey = 0,
-				ReferenceName = datajob.Name,
+				ReferenceName = Datajob.Name,
 				SourceTableKey = 0,
 				SourceTableName = "",
 				TransformWriterOptions = _transformWriterOptions,
 			};
 			
-			Datajob = datajob;
-			_hub = hub;
+			WriterResult.OnProgressUpdate += Datajob_OnProgressUpdate;
+			WriterResult.OnStatusUpdate += Datajob_OnStatusUpdate;
 		}
 
 		public void ResetEvents()
@@ -101,29 +109,19 @@ namespace dexih.operations
 			OnDatalinkStart = null;
 		}
 
-		public async Task<bool> Initialize(CancellationToken cancellationToken)
+		public async Task Initialize(CancellationToken cancellationToken)
 		{
 			try
 			{
+				if (WriterResult == null)
+				{
+					ResetWriterResult();	
+				}
+				
+				WriterResult.Initialize(cancellationToken);
+				
 				DatalinkSteps = new List<DatalinkRun>();
 
-				if (Datajob.AuditConnectionKey > 0)
-				{
-					var dbAuditConnection = _hub.DexihConnections.SingleOrDefault(c => c.Key == Datajob.AuditConnectionKey);
-					if (dbAuditConnection == null)
-					{
-						throw new DatajobRunException("There is no audit connection specified.");
-					}
-					dbAuditConnection.GetConnection(_transformSettings);
-				}
-				else
-				{
-					throw new DatajobRunException("There is no audit connection specified.");
-				}
-
-				WriterResult.OnProgressUpdate += Datajob_OnProgressUpdate;
-				WriterResult.OnStatusUpdate += Datajob_OnStatusUpdate;
-				return await WriterResult.Initialize(cancellationToken);
 			}
 			catch (Exception ex)
 			{
@@ -144,14 +142,11 @@ namespace dexih.operations
 			_completedDatalinks.Post(writer);
 		}
 
-		public void Schedule(DateTime scheduledTime, CancellationToken cancellationToken)
+		public Task Schedule(DateTime scheduledTime)
 		{
+			ResetWriterResult();	
 			WriterResult.ScheduledTime = scheduledTime;
-			var runStatus = WriterResult.SetRunStatus(ERunStatus.Scheduled, null, null);
-			if (!runStatus)
-			{
-				throw new DatajobRunException($"Failed to set status");
-			}
+			return WriterResult.Schedule();
 		}
 
 		public void CancelSchedule(CancellationToken cancellationToken)
@@ -243,9 +238,38 @@ namespace dexih.operations
 				OnFinish?.Invoke(this);
 			}
 		}
+		
+		public override object Data { get => WriterResult; set => throw new NotSupportedException(); }
+
+		public override async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
+		{
+			void DatajobProgressUpdate(TransformWriterResult writerResult)
+			{
+				progress.Report(writerResult.PercentageComplete, writerResult.RowsTotal, writerResult.IsFinished ? "" : "Running datajob...");
+			}
+			
+			ResetEvents();
+
+			OnDatajobProgressUpdate += DatajobProgressUpdate;
+			OnDatajobStatusUpdate += DatajobProgressUpdate;
+			// OnDatalinkStart += DatalinkStart;
+
+			progress.Report(0, 0, "Initializing datajob...");
+
+			await Initialize(cancellationToken);
+
+			progress.Report(0, 0, "Running datajob...");
+
+			await Run(cancellationToken);
+		}
+		
+		
+		
+		
 
 		public void Cancel()
 		{
+			CancelSchedule(CancellationToken.None);
 			foreach (var step in DatalinkSteps)
 			{
 				step.Cancel();

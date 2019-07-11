@@ -8,7 +8,7 @@ namespace dexih.repository
   public partial class DexihCustomFunctionParameter : DexihParameterBase
   {
    
-    [CopyParentCollectionKey(nameof(DexihCustomFunction.Key))]
+    [CopyParentCollectionKey(nameof(Key))]
     public long CustomFunctionKey { get; set; }
       
     

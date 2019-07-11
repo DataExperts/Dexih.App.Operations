@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 using dexih.repository;
 using dexih.transforms;
 using Dexih.Utils.CopyProperties;
+using Dexih.Utils.ManagedTasks;
 using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
 {
-    public class DatalinkTestRun
+    public enum EStartMode { RunSnapshot, RunTests}
+    public class DatalinkTestRun: IManagedObject
     {        
         #region Events
         public delegate void ProgressUpdate(TransformWriterResult writerResult);
@@ -29,9 +31,14 @@ namespace dexih.operations
         private readonly TransformSettings _transformSettings;
         private readonly TransformWriterOptions _transformWriterOptions;
 
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        
         public List<TestResult> TestResults;
 
         private readonly ILogger _logger;
+
+        //determines whether the "Start" action runs the tests or a snapshot.
+        public EStartMode StartMode = EStartMode.RunTests;
 
         public DatalinkTestRun(
             TransformSettings transformSettings,
@@ -122,6 +129,12 @@ namespace dexih.operations
         {
             try
             {
+                var ct = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token,
+                    cancellationToken);
+
+                var token = ct.Token;
+                token.ThrowIfCancellationRequested();
+                
                 WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Started, null, null);
                 
                 var percent = 0;
@@ -160,13 +173,13 @@ namespace dexih.operations
 
                             UpdateProgress(percent);
 
-                            await expectedConnection.CreateTable(expectedTable, true, cancellationToken);
+                            await expectedConnection.CreateTable(expectedTable, true, token);
 
                             using (var targetReader = targetConnection.GetTransformReader(targetTable))
                             using (var targetReader2 = new ReaderConvertDataTypes(expectedConnection, targetReader))
                             {
-                                await targetReader2.Open(0, null, cancellationToken);
-                                await expectedConnection.ExecuteInsertBulk(expectedTable, targetReader2, cancellationToken);
+                                await targetReader2.Open(0, null, token);
+                                await expectedConnection.ExecuteInsertBulk(expectedTable, targetReader2, token);
                                 
                                 WriterResult.IncrementRowsCreated(targetReader2.TransformRows);
                                 WriterResult.IncrementRowsReadPrimary(targetReader2.TotalRowsReadPrimary);
@@ -259,6 +272,12 @@ namespace dexih.operations
         {
             try
             {
+                var ct = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token,
+                    cancellationToken);
+
+                var token = ct.Token;
+                token.ThrowIfCancellationRequested();
+                
                 var tempTargetTableKey = -10000;
                 
                 WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Started, null, null);
@@ -278,7 +297,7 @@ namespace dexih.operations
                     // prepare all the relevant tables
                     foreach (var testTable in step.DexihDatalinkTestTables)
                     {
-                        await PrepareTestTable(testTable, cancellationToken);
+                        await PrepareTestTable(testTable, token);
                     }
 
                     UpdateProgress(2);
@@ -336,8 +355,8 @@ namespace dexih.operations
                     var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions);
 
                     // await datalinkRun.Initialize(cancellationToken);
-                    datalinkRun.Build(cancellationToken);
-                    await datalinkRun.Run(cancellationToken);
+                    datalinkRun.Build(token);
+                    await datalinkRun.Run(token);
 
                     UpdateProgress(70);
 
@@ -368,10 +387,10 @@ namespace dexih.operations
                         var delta = new TransformDelta(targetTransform, expectedTransform,
                             TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve, 0, false);
 
-                        await delta.Open(0, null, cancellationToken);
+                        await delta.Open(0, null, token);
 
                         testResult.RowCountMatch = true;
-                        while (await delta.ReadAsync(cancellationToken))
+                        while (await delta.ReadAsync(token))
                         {
                             testResult.RowCountMatch = false;
                             WriterResult.IncrementRowsCreated();
@@ -482,6 +501,52 @@ namespace dexih.operations
             dexihTable.Name = datalinkTestTable.TestTableName;
             dexihTable.Schema = datalinkTestTable.TestSchema;
 
+        }
+        
+        public object Data { get => WriterResult; set => throw new NotSupportedException(); }
+
+
+        public void Dispose()
+        {
+            return;
+        }
+
+        public async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
+        {
+            void ProgressUpdate(TransformWriterResult writerResult)
+            {
+                progress.Report(writerResult.PercentageComplete, writerResult.Passed + writerResult.Failed, writerResult.IsFinished ? "" : "Running datalink tests...");
+            }
+
+            OnProgressUpdate += ProgressUpdate;
+                            
+            await Initialize("DatalinkTest", cancellationToken);
+
+            progress.Report(0, 0, $"Running datalink test {_datalinkTest.Name}...");
+
+            switch (StartMode)
+            {
+                case EStartMode.RunSnapshot:
+                    await RunSnapshot(cancellationToken);
+                    break;
+                case EStartMode.RunTests:
+                    await Run(cancellationToken);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            
+
+        }
+
+        public void Cancel()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 }

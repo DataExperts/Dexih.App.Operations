@@ -23,15 +23,15 @@ namespace dexih.repository
         
         // don't reset negative keys here, as they need to be maintained when copying datalinks across.
         [CopyCollectionKey((long)0, false)]
-        public long Key { get; set; }
+        public new long Key { get; set; }
 
-	    [CopyParentCollectionKey(nameof(DexihDatalinkTable.Key))]
+	    [CopyParentCollectionKey(nameof(DexihDatalinkTable.Key), nameof(DexihDatalinkTable))]
         public long? DatalinkTableKey { get; set; }
 	    
 	    [JsonIgnore, CopyIgnore]
 	    public DexihDatalinkColumn ParentColumn { get; set; }
 	    
-	    [JsonIgnore, CopyParentCollectionKey(nameof(ParentDatalinkColumnKey))]
+	    [JsonIgnore, CopyParentCollectionKey(nameof(DexihDatalinkColumn.Key), nameof(DexihDatalinkColumn))]
 	    public long? ParentDatalinkColumnKey { get; set; }
 	    
 	    public ICollection<DexihDatalinkColumn> ChildColumns { get; set; }

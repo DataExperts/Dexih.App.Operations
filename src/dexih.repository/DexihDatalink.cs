@@ -301,15 +301,20 @@ namespace dexih.repository
         /// </summary>
         /// <param name="column"></param>
         /// <param name="columns"></param>
-        private void AddColumns(DexihDatalinkColumn column, IDictionary<long, DexihDatalinkColumn> columns)
+        private void AddColumns(DexihDatalinkColumn column, IDictionary<long, DexihDatalinkColumn> columns, long? parentColumnKey = null)
         {
             if (column != null && !columns.ContainsKey(column.Key))
             {
+                if (column.ParentDatalinkColumnKey == null)
+                {
+                    column.ParentDatalinkColumnKey = parentColumnKey;    
+                }
+                
                 columns[column.Key] = column;
 
                 foreach (var childColumn in column.ChildColumns)
                 {
-                    AddColumns(childColumn, columns);
+                    AddColumns(childColumn, columns, column.Key);
                 }
             }
         }

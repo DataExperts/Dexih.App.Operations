@@ -2,7 +2,6 @@
 using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -12,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 using System.Threading;
-using System.Transactions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
 using Microsoft.AspNetCore.Identity;
@@ -53,8 +51,8 @@ namespace dexih.operations
 
 		public DexihRepositoryContext DbContext { get; set; }
 		
-		private IDistributedCache _distributedCache;
-		private IMemoryCache _memoryCache;
+		private readonly IDistributedCache _distributedCache;
+		private readonly IMemoryCache _memoryCache;
 		private readonly Func<Import, Task> _hubChange;
 
 		public RepositoryManager(
@@ -279,14 +277,18 @@ namespace dexih.operations
 		public async Task ResetHubPermissions(long hubKey)
 		{
 			var hubUsers = await GetHubUsers(hubKey);
+
+			var tasks = new List<Task>();
 			foreach (var hubUser in hubUsers)
 			{
-				ResetUserCache(hubUser.Id);
+				tasks.Add(ResetUserCache(hubUser.Id));
 			}
 			
-			ResetCache(CacheKeys.AdminHubs);
-			ResetCache(CacheKeys.HubUserIds(hubKey));
-			ResetCache(CacheKeys.HubUsers(hubKey));
+			tasks.Add(ResetCache(CacheKeys.AdminHubs));
+			tasks.Add(ResetCache(CacheKeys.HubUserIds(hubKey)));
+			tasks.Add(ResetCache(CacheKeys.HubUsers(hubKey)));
+
+			await Task.WhenAll(tasks.ToArray());
 		}
 		
 		/// <summary>
@@ -299,7 +301,7 @@ namespace dexih.operations
 			var hubReturn = _distributedCache.GetOrCreateAsync(_memoryCache, CacheKeys.Hub((hubKey)), async entry =>
 			{
 				entry.SlidingExpiration = TimeSpan.FromHours(1);
-				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey));
+				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey), _logger);
 				var hub = await cache.LoadHub(DbContext);
 				return hub;
 			});
@@ -387,21 +389,19 @@ namespace dexih.operations
 					// no user can only see public hubs
 					return await DbContext.DexihHubs.Where(c => c.SharedAccess == DexihHub.ESharedAccess.Public && c.IsValid).ToArrayAsync();
 				}
-				else
-				{
-					// all hubs the user has reader access to.
-					var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && (c.Permission == DexihHubUser.EPermission.FullReader || c.Permission == DexihHubUser.EPermission.User || c.Permission == DexihHubUser.EPermission.Owner || c.Permission == DexihHubUser.EPermission.PublishReader) && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+
+				// all hubs the user has reader access to.
+				var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && (c.Permission == DexihHubUser.EPermission.FullReader || c.Permission == DexihHubUser.EPermission.User || c.Permission == DexihHubUser.EPermission.Owner || c.Permission == DexihHubUser.EPermission.PublishReader) && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
 					
-					// all hubs the user has reader access to, or are public
-					return await DbContext.DexihHubs.Where(c => 
-						c.IsValid &&
-						(
-							c.SharedAccess == DexihHub.ESharedAccess.Public ||
-							c.SharedAccess == DexihHub.ESharedAccess.Registered ||
-							readerHubKeys.Contains(c.HubKey)
-						)
-						).ToArrayAsync();
-				}
+				// all hubs the user has reader access to, or are public
+				return await DbContext.DexihHubs.Where(c => 
+					c.IsValid &&
+					(
+						c.SharedAccess == DexihHub.ESharedAccess.Public ||
+						c.SharedAccess == DexihHub.ESharedAccess.Registered ||
+						readerHubKeys.Contains(c.HubKey)
+					)
+				).ToArrayAsync();
 			}
 		}
 
@@ -831,9 +831,8 @@ namespace dexih.operations
 					await ResetHubPermissions(dbHub.HubKey);
 				}
 				
-				ResetUserCache(user.Id);
-
-                await DbContext.SaveChangesAsync();
+				await ResetUserCache(user.Id);
+				await DbContext.SaveChangesAsync();
 				
 
                 return dbHubs;
@@ -872,8 +871,8 @@ namespace dexih.operations
 		                userHub.IsValid = true;
 	                }
 
+	                await ResetUserCache(userId);
                     await DbContext.SaveChangesAsync();
-	                ResetUserCache(userId);
                 }
 	            
 	            await ResetHubPermissions(hubKey);
@@ -893,7 +892,7 @@ namespace dexih.operations
 	            foreach (var userHub in usersHub)
 	            {
 		            userHub.IsValid = false;
-		            ResetUserCache(userHub.UserId);
+		            await ResetUserCache(userHub.UserId);
 	            }
 	            await DbContext.SaveChangesAsync();
 	            await ResetHubPermissions(hubKey);
@@ -1098,7 +1097,7 @@ namespace dexih.operations
 
                 if (includeTables)
                 {
-                    var cache = new CacheManager(dbConnection.HubKey, "");
+                    var cache = new CacheManager(dbConnection.HubKey, "", _logger);
                     await cache.AddConnections(new[] { connectionKey }, true, DbContext);
                     dbConnection = cache.Hub.DexihConnections.First();
                 }
@@ -1406,7 +1405,7 @@ namespace dexih.operations
 
 	            if (hubTable == null)
 		            return TransformDelta.EUpdateStrategy.Reload;
-	            else if (hubTable.DexihTableColumns.Count(c => c.DeltaType == TableColumn.EDeltaType.NaturalKey) == 0)
+	            else if (hubTable.DexihTableColumns.Count(c => c.DeltaType == EDeltaType.NaturalKey) == 0)
 	            {
 		            // no natrual key.  Reload is the only choice
 		            return TransformDelta.EUpdateStrategy.Reload;
@@ -1456,7 +1455,7 @@ namespace dexih.operations
 					}
 					else
 					{
-						var cacheManager = new CacheManager(hubKey, "");
+						var cacheManager = new CacheManager(hubKey, "", _logger);
 						existingDatalink = await cacheManager.GetDatalink(datalink.Key, DbContext);
 					}
 
@@ -1543,7 +1542,7 @@ namespace dexih.operations
 //                    }
 //                    else 
 //                    {
-//	                    var cacheManager = new CacheManager(hubKey, "");
+//	                    var cacheManager = new CacheManager(hubKey, "", _logger);
 //                        var existingDatalink = await cacheManager.GetDatalink(datalink.DatalinkKey, DbContext);
 //
 //                        // get columns from the repository instance, and merge the tracked instances into the new one.
@@ -1599,7 +1598,7 @@ namespace dexih.operations
 		{
 			try
 			{
-				var cache = new CacheManager(hubKey, "");
+				var cache = new CacheManager(hubKey, "", _logger);
 				var dbDatalinks = await cache.GetDatalinks(datalinkKeys, DbContext);
 
 				foreach (var dbDatalink in dbDatalinks)
@@ -1658,7 +1657,7 @@ namespace dexih.operations
         {
             try
             {
-	            var cache = new CacheManager(hubKey, "");
+	            var cache = new CacheManager(hubKey, "", _logger);
 	            var dbDatalinks = await cache.GetDatalinks(datalinkKeys, DbContext); 
 	                
                 foreach (var dbDatalink in dbDatalinks)
@@ -2397,7 +2396,7 @@ namespace dexih.operations
 	                }
 	                
 	                // if there is a auto increment key in the source table, then map it to a column to maintain lineage.
-	                if (sourceTable.DexihTableColumns.Count(c => c.DeltaType == TableColumn.EDeltaType.AutoIncrement) > 0)
+	                if (sourceTable.DexihTableColumns.Count(c => c.DeltaType == EDeltaType.AutoIncrement) > 0)
 	                {
 		                hubTable.DexihTableColumns.Add(NewDefaultTableColumn("SourceSurrogateKey", namingStandards, hubTable.Name, ETypeCode.Int64, EDeltaType.SourceSurrogateKey, position++));
 	                }
@@ -2409,7 +2408,7 @@ namespace dexih.operations
 		            var exists = hubTable.DexihTableColumns.FirstOrDefault(c => c.DeltaType == auditColumn && c.IsValid);
 		            if (exists == null)
 		            {
-			            var dataType = TableColumn.GetDeltaDataType(auditColumn);
+			            var dataType = GetDeltaDataType(auditColumn);
 			            var newColumn =
 				            NewDefaultTableColumn(auditColumn.ToString(), namingStandards, hubTable.Name, dataType, auditColumn, position++);
 
@@ -2934,7 +2933,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (datalinkTest.Key > 0)
                 {
-	                var cacheManager = new CacheManager(hubKey, "");
+	                var cacheManager = new CacheManager(hubKey, "", _logger);
 	                dbDatalinkTest = await cacheManager.GetDatalinkTest(datalinkTest.Key, DbContext);
                     if (dbDatalinkTest != null)
                     {
@@ -3044,7 +3043,7 @@ namespace dexih.operations
 			return datalinkTest;
 		}
 
-        private async Task<(Dictionary<long, long> keyMappings, ImportObjects<T> importObjects)> AddImportItems<T>(long hubKey, ICollection<T> items, DbSet<T> dbItems, EImportAction importAction) where T : DexihHubNamedEntity
+        private (Dictionary<long, long> keyMappings, ImportObjects<T> importObjects) AddImportItems<T>(long hubKey, ICollection<T> items, DbSet<T> dbItems, EImportAction importAction) where T : DexihHubNamedEntity
         {
 	        var keyMappings = new Dictionary<long, long>();
 	        var importObjects = new ImportObjects<T>();
@@ -3170,23 +3169,23 @@ namespace dexih.operations
 			var actions = importActions.ToDictionary(c => c.ObjectType, c => c.Action);
 			
 			// add all the top level shared objects 
-			var hubVariables = await AddImportItems<DexihHubVariable>(hubKey, hub.DexihHubVariables, DbContext.DexihHubVariables, actions[ESharedObjectType.HubVariable]);
-			var connections = await AddImportItems<DexihConnection>(hubKey, hub.DexihConnections, DbContext.DexihConnections, actions[ESharedObjectType.Connection]);
-			var datajobs = await AddImportItems<DexihDatajob>(hubKey, hub.DexihDatajobs, DbContext.DexihDatajobs, actions[ESharedObjectType.Datajob]);
-			var datalinks = await AddImportItems<DexihDatalink>(hubKey, hub.DexihDatalinks, DbContext.DexihDatalinks, actions[ESharedObjectType.Datalink]);
-			var columnValidations = await AddImportItems<DexihColumnValidation>(hubKey, hub.DexihColumnValidations, DbContext.DexihColumnValidations, actions[ESharedObjectType.ColumnValidation]);
-			var customFunctions = await AddImportItems<DexihCustomFunction>(hubKey, hub.DexihCustomFunctions, DbContext.DexihCustomFunctions, actions[ESharedObjectType.CustomFunction]);
-			var fileFormats = await AddImportItems<DexihFileFormat>(hubKey, hub.DexihFileFormats, DbContext.DexihFileFormats, actions[ESharedObjectType.FileFormat]);
-			var apis = await AddImportItems<DexihApi>(hubKey, hub.DexihApis, DbContext.DexihApis, actions[ESharedObjectType.Api]);
-			var views = await AddImportItems<DexihView>(hubKey, hub.DexihViews, DbContext.DexihViews, actions[ESharedObjectType.View]);
-			var datalinkTests = await AddImportItems<DexihDatalinkTest>(hubKey, hub.DexihDatalinkTests, DbContext.DexihDatalinkTests, actions[ESharedObjectType.DatalinkTest]);
+			var hubVariables = AddImportItems<DexihHubVariable>(hubKey, hub.DexihHubVariables, DbContext.DexihHubVariables, actions[ESharedObjectType.HubVariable]);
+			var connections = AddImportItems<DexihConnection>(hubKey, hub.DexihConnections, DbContext.DexihConnections, actions[ESharedObjectType.Connection]);
+			var datajobs = AddImportItems<DexihDatajob>(hubKey, hub.DexihDatajobs, DbContext.DexihDatajobs, actions[ESharedObjectType.Datajob]);
+			var datalinks = AddImportItems<DexihDatalink>(hubKey, hub.DexihDatalinks, DbContext.DexihDatalinks, actions[ESharedObjectType.Datalink]);
+			var columnValidations = AddImportItems<DexihColumnValidation>(hubKey, hub.DexihColumnValidations, DbContext.DexihColumnValidations, actions[ESharedObjectType.ColumnValidation]);
+			var customFunctions = AddImportItems<DexihCustomFunction>(hubKey, hub.DexihCustomFunctions, DbContext.DexihCustomFunctions, actions[ESharedObjectType.CustomFunction]);
+			var fileFormats = AddImportItems<DexihFileFormat>(hubKey, hub.DexihFileFormats, DbContext.DexihFileFormats, actions[ESharedObjectType.FileFormat]);
+			var apis = AddImportItems<DexihApi>(hubKey, hub.DexihApis, DbContext.DexihApis, actions[ESharedObjectType.Api]);
+			var views = AddImportItems<DexihView>(hubKey, hub.DexihViews, DbContext.DexihViews, actions[ESharedObjectType.View]);
+			var datalinkTests = AddImportItems<DexihDatalinkTest>(hubKey, hub.DexihDatalinkTests, DbContext.DexihDatalinkTests, actions[ESharedObjectType.DatalinkTest]);
 
 			// update the table connection keys to the target connection keys, as these are required updated before matching
 			foreach (var table in hub.DexihTables)
 			{
 				table.ConnectionKey = UpdateConnectionKey(table.ConnectionKey) ?? 0;
 			}
-			var tables = await AddImportItems<DexihTable>(hubKey, hub.DexihTables, DbContext.DexihTables, actions[ESharedObjectType.Table]);
+			var tables = AddImportItems<DexihTable>(hubKey, hub.DexihTables, DbContext.DexihTables, actions[ESharedObjectType.Table]);
 			
 			plan.HubVariables = hubVariables.importObjects;
 			plan.Connections = connections.importObjects;
@@ -3402,12 +3401,14 @@ namespace dexih.operations
 				}
 
 				datalink.SourceDatalinkTableKey = 0;
+				
 				ResetDatalinkTable(datalink.SourceDatalinkTable);
 
 				// reset the mappings for target tables that have been saved and keys changed.
 				var newTargets = new List<DexihDatalinkTarget>();
 				foreach (var target in datalink.DexihDatalinkTargets)
 				{
+					target.Key = 0;
 					if (tables.keyMappings.TryGetValue(target.TableKey, out var tableKey))
 					{
 						target.TableKey = tableKey;

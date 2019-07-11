@@ -296,8 +296,8 @@ namespace dexih.repository
                     // create a path through hierarchy from the parent to the child column.
                     var columnPath = FindNodeColumnPath(NodeDatalinkColumn, parentTable.Columns);
 
-                    var currentColumn = columnPath[0];
-                    var nodeColumn = parentTable.Columns[currentColumn.Name, currentColumn.ColumnGroup];
+//                    var currentColumn = columnPath[0];
+//                    var nodeColumn = parentTable.Columns[currentColumn.Name, currentColumn.ColumnGroup];
                     transform = transform.CreateNodeMapping(parentTransform, referenceTransform, mappings, columnPath);
                 }
                 else
@@ -318,12 +318,14 @@ namespace dexih.repository
         }
         
         // used to find a node column within a node structure.
-        private TableColumn[] FindNodeColumnPath(DexihDatalinkColumn column, TableColumns columns) {
-            if (column == null || columns == null || !columns.Any()) {
+        private TableColumn[] FindNodeColumnPath(DexihDatalinkColumn datalinkColumn, TableColumns columns) {
+            if (datalinkColumn == null || columns == null || !columns.Any()) {
                 return null;
             }
 
-            var nodeColumn = columns[column.Name, column.ColumnGroup];
+            var column = datalinkColumn.GetTableColumn(null);
+
+            var nodeColumn = columns[column];
             if (nodeColumn != null)
             {
                 return new [] { nodeColumn };
@@ -331,7 +333,7 @@ namespace dexih.repository
             
             foreach(var col in columns) {
                 if (col.ChildColumns != null) {
-                    var returnCol = FindNodeColumnPath(column, col.ChildColumns);
+                    var returnCol = FindNodeColumnPath(datalinkColumn, col.ChildColumns);
                     if (returnCol != null) {
                         return returnCol.Prepend(col).ToArray();
                     }

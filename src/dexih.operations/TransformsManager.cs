@@ -228,7 +228,8 @@ namespace dexih.operations
                         }
 
                         var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
-                        var sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
+                        // var sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
+                        var sourceTable = hubDatalinkTable.GetTable(null, inputColumns);
                         var transform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
                         transform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
                         returnValue =  (transform, sourceTable);
@@ -310,10 +311,11 @@ namespace dexih.operations
 				var primaryTransformResult = GetSourceTransform(hub, hubDatalink.SourceDatalinkTable, inputColumns, transformWriterOptions);
 				var primaryTransform = primaryTransformResult.sourceTransform;
 				var sourceTable = primaryTransformResult.sourceTable;
-				foreach(var column in primaryTransform.CacheTable.Columns)
-				{
-					column.ReferenceTable = hubDatalink.SourceDatalinkTableKey.ToString();
-				}
+                var sourceDatalinkTableKey = hubDatalink.SourceDatalinkTable?.Key ?? hubDatalink.SourceDatalinkTableKey;
+//				foreach(var column in primaryTransform.CacheTable.Columns)
+//				{
+//					column.ReferenceTable = sourceDatalinkTableKey.ToString();
+//				}
 
                 //add a filter for the incremental column (if there is one)
                 var incrementalCol = sourceTable?.GetAutoIncrementColumn();

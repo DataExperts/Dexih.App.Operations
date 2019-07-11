@@ -118,8 +118,6 @@ namespace dexih.repository
 					{
 						return new ParameterValue(parameter.Name, parameter.DataType, parameter.Value);
 					}
-
-					break;
 				case DexihParameterBase.EParameterDirection.Join:
 					if (column != null)
 					{
@@ -129,11 +127,8 @@ namespace dexih.repository
 					{
 						return new ParameterValue(parameter.Name, parameter.DataType, parameter.Value);
 					}
-
-					break;
 				default:
 					return new ParameterOutputColumn(parameter.Name, parameter.DataType, parameter.Rank, column);				
-					break;
 			}
 		}
 		

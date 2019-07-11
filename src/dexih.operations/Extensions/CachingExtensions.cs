@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,7 +27,7 @@ namespace dexih.operations.Extensions
             string key,
             Func<DistributedCacheEntryOptions, Task<TItem>> factory, CancellationToken cancellationToken = default)
         {
-            return memoryCache.GetOrCreateAsync<TItem>(key, async entry =>
+            return memoryCache.GetOrCreateAsync(key, async entry =>
             {
                 var value = await cache.GetAsync(key, cancellationToken);
                 if (value == null)

@@ -26,5 +26,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.functions\dexih.functions.csproj" />
     <ProjectReference Include="..\..\..\dexih.transforms\src\dexih.transforms\dexih.transforms.csproj" />
+    <ProjectReference Include="..\..\..\Dexih.Utils.ManagedTasks\src\Dexih.Utils.ManagedTasks\Dexih.Utils.ManagedTasks.csproj" />
   </ItemGroup>
 </Project>

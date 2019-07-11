@@ -5,13 +5,13 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CsvHelper.Configuration.Attributes;
+using Dexih.Utils.ManagedTasks;
 using Microsoft.Extensions.Logging;
 using static dexih.transforms.TransformWriterResult;
 
 namespace dexih.operations
 {
-    public class DatalinkRun
+    public class DatalinkRun: IManagedObject
     {
         #region Events
         public delegate void ProgressUpdate(DatalinkRun datalinkRun, TransformWriterResult writerResult);
@@ -42,7 +42,7 @@ namespace dexih.operations
         
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        private TaskCompletionSource<bool> _taskCompletionSource;
+        private readonly TaskCompletionSource<bool> _taskCompletionSource;
 
         public Task WaitForFinish()
         {
@@ -199,6 +199,8 @@ namespace dexih.operations
                 token.ThrowIfCancellationRequested();
                 await WriterTarget.WriteRecordsAsync(Reader.sourceTransform, Datalink.UpdateStrategy,
                     Datalink.LoadStrategy, token);
+                
+                Reader.sourceTransform.Dispose();
             }
             finally
             {
@@ -206,10 +208,39 @@ namespace dexih.operations
             }
         }
 
+        public async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
+        {
+            progress.Report(0, 0, "Compiling datalink...");
+            Build(cancellationToken);
+
+            void ProgressUpdate(DatalinkRun datalinkRun2, TransformWriterResult writerResult)
+            {
+                if (writerResult.AuditType == "Datalink")
+                {
+                    progress.Report(writerResult.PercentageComplete,
+                        writerResult.RowsTotal + writerResult.RowsReadPrimary,
+                        writerResult.IsFinished ? "" : "Running datalink...");
+                }
+            }
+
+            OnProgressUpdate += ProgressUpdate;
+            OnStatusUpdate += ProgressUpdate;
+
+            progress.Report(0, 0, "Running datalink...");
+            await Run(cancellationToken);
+        }
+
         public void Cancel()
         {
             _cancellationTokenSource.Cancel();
         }
+
+        public Task Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public object Data { get => WriterTarget.WriterResult; set => throw new NotSupportedException(); }
 
         public void Datalink_OnProgressUpdate(TransformWriterResult writer)
         {
@@ -219,6 +250,11 @@ namespace dexih.operations
         public void Datalink_OnStatusUpdate(TransformWriterResult writer)
         {
             OnStatusUpdate?.Invoke(this, writer);
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 }

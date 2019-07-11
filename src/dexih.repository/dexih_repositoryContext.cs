@@ -11,13 +11,14 @@ using dexih.transforms;
 using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
+using Dexih.Utils.ManagedTasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-	public sealed partial class DexihRepositoryContext : IdentityDbContext<ApplicationUser>
+	public sealed class DexihRepositoryContext : IdentityDbContext<ApplicationUser>
 	{
 		public enum EDatabaseType
 		{
@@ -1411,7 +1412,7 @@ namespace dexih.repository
                 entity.Property(e => e.DaysOfWeek).HasColumnName("days_of_week").HasMaxLength(200)
                     .HasConversion(
                         v => String.Join(",", v.Select(c=>c.ToString())),
-                        v => string.IsNullOrEmpty(v) ? new DexihTrigger.EDayOfWeek[] { } : v.Split(',', StringSplitOptions.None).Select(c => (DexihTrigger.EDayOfWeek)Enum.Parse(typeof(DexihTrigger.EDayOfWeek), c)).ToArray());
+                        v => string.IsNullOrEmpty(v) ? new ManagedTaskSchedule.EDayOfWeek[] { } : v.Split(',', StringSplitOptions.None).Select(c => (ManagedTaskSchedule.EDayOfWeek)Enum.Parse(typeof(ManagedTaskSchedule.EDayOfWeek), c)).ToArray());
                 entity.Property(e => e.MaxRecurs).HasColumnName("max_recurrs");
                 entity.Property(e => e.CronExpression).HasColumnName("cron_expression").HasMaxLength(500);
 

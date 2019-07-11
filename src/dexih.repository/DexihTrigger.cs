@@ -5,23 +5,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
+using Dexih.Utils.ManagedTasks;
 
 namespace dexih.repository
 {
     [Serializable]
     public class DexihTrigger : DexihHubNamedEntity
     {
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum EDayOfWeek
-        {
-            Sunday = 0,
-            Monday = 1,
-            Tuesday = 2,
-            Wednesday = 3,
-            Thursday = 4,
-            Friday = 5,
-            Saturday = 6
-        }
+
 
         
         [CopyParentCollectionKey]
@@ -29,7 +20,7 @@ namespace dexih.repository
         public DateTime? StartDate { get; set; }
         public TimeSpan? IntervalTime { get; set; }
 
-        public EDayOfWeek[] DaysOfWeek { get; set; }
+        public ManagedTaskSchedule.EDayOfWeek[] DaysOfWeek { get; set; }
 
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
@@ -62,6 +53,27 @@ namespace dexih.repository
 
         [JsonIgnore, CopyIgnore]
         public virtual DexihDatajob Datajob { get; set; }
+
+        public ManagedTaskSchedule CreateManagedTaskSchedule()
+        {
+            var managedTaskSchedule = new ManagedTaskSchedule()
+            {
+                Details =  Description,
+                EndDate = null,
+                EndTime = EndTime,
+                IntervalTime =  IntervalTime,
+                DaysOfWeek = DaysOfWeek,
+                IntervalType = ManagedTaskSchedule.EIntervalType.Interval,
+                MaxRecurs =  MaxRecurs,
+                SkipDates = null,
+                StartDate = StartDate,
+                StartTime = StartTime,
+                DaysOfMonth = null,
+                WeeksOfMonth = null
+            };
+
+            return managedTaskSchedule;
+        }
         
     }
 }

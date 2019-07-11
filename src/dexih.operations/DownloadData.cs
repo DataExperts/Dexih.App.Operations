@@ -14,13 +14,21 @@ namespace dexih.operations
     public class DownloadData
     {
         private readonly TransformSettings _transformSettings;
+        private readonly CacheManager _cache;
+        private readonly DownloadObject[] _downloadObjects;
+        private readonly EDownloadFormat _downloadFormat;
+        private readonly bool _zipFiles;
 
-        public DownloadData(TransformSettings transformSettings)
+        public DownloadData(TransformSettings transformSettings, CacheManager cache, DownloadObject[] downloadObjects, EDownloadFormat downloadFormat, bool zipFiles)
         {
             _transformSettings = transformSettings;
+            _cache = cache;
+            _downloadObjects = downloadObjects;
+            _downloadFormat = downloadFormat;
+            _zipFiles = zipFiles;
         }
 
-        public async Task<(string FileName, Stream Stream)> GetStream(CacheManager cache, DownloadObject[] downloadObjects, EDownloadFormat downloadFormat, bool zipFiles, CancellationToken cancellationToken)
+        public async Task<(string FileName, Stream Stream)> GetStream(CancellationToken cancellationToken)
         {
             try
             {
@@ -29,20 +37,20 @@ namespace dexih.operations
                 var zipStream = new MemoryStream();
                 var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true);
 
-                foreach (var downloadObject in downloadObjects)
+                foreach (var downloadObject in _downloadObjects)
                 {
                     Transform transform = null;
                     var name = "";
 
                     if (downloadObject.ObjectType == SharedData.EObjectType.Table)
                     {
-                        var dbTable = cache.Hub.DexihTables.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                        var dbTable = _cache.Hub.DexihTables.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
 
                         if (dbTable != null)
                         {
-                            var dbConnection = cache.Hub.DexihConnections.SingleOrDefault( c => c.Key == dbTable.ConnectionKey);
+                            var dbConnection = _cache.Hub.DexihConnections.SingleOrDefault( c => c.Key == dbTable.ConnectionKey);
                             var connection = dbConnection.GetConnection(_transformSettings);
-                            var table = dbTable.GetTable(cache.Hub, connection, downloadObject.InputColumns,
+                            var table = dbTable.GetTable(_cache.Hub, connection, downloadObject.InputColumns,
                                 _transformSettings);
                             name = table.Name;
 
@@ -68,12 +76,12 @@ namespace dexih.operations
                             }
 
                             transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields,
-                                cache.CacheEncryptionKey);
+                                _cache.CacheEncryptionKey);
                         }
                     }
                     else
                     {
-                        var dbDatalink = cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                        var dbDatalink = _cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
 
                         if (dbDatalink == null)
                         {
@@ -86,7 +94,7 @@ namespace dexih.operations
                         };
                         
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(cache.Hub, dbDatalink, downloadObject.InputColumns, null, downloadObject.DatalinkTransformKey, transformWriterOptions);
+                        var runPlan = transformManager.CreateRunPlan(_cache.Hub, dbDatalink, downloadObject.InputColumns, null, downloadObject.DatalinkTransformKey, transformWriterOptions);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)
@@ -102,12 +110,12 @@ namespace dexih.operations
 
                     Stream fileStream = null;
 
-                    switch (downloadFormat)
+                    switch (_downloadFormat)
                     {
                         case EDownloadFormat.Csv:
                             name = name + ".csv";
                             fileStream = new StreamCsv(transform);
-                            if (!zipFiles)
+                            if (!_zipFiles)
                             {
                                 return (name, fileStream);
                             }
@@ -115,7 +123,7 @@ namespace dexih.operations
                         case EDownloadFormat.Json:
                             name = name + ".json";
                             fileStream = new StreamJson(name, transform);
-                            if (!zipFiles)
+                            if (!_zipFiles)
                             {
                                 return (name, fileStream);
                             }
@@ -123,14 +131,14 @@ namespace dexih.operations
                         case EDownloadFormat.JsonCompact:
                             name = name + ".json";
                             fileStream = new StreamJsonCompact(name, transform);
-                            if (!zipFiles)
+                            if (!_zipFiles)
                             {
                                 return (name, fileStream);
                             }
                             break;
                             
                         default:
-                            throw new Exception("The file format " + downloadFormat + " is not currently supported for downloading data.");
+                            throw new Exception("The file format " + _downloadFormat + " is not currently supported for downloading data.");
                     }
 
                     var entry = archive.CreateEntry(name);
@@ -140,7 +148,7 @@ namespace dexih.operations
                     }
                 }
 
-                if (zipFiles)
+                if (_zipFiles)
                 {
                     archive.Dispose();
                     zipStream.Seek(0, SeekOrigin.Begin);
