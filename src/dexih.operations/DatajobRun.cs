@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
 {
-	public class DatajobRun: ManagedObject
+	public class DatajobRun: IManagedObject
 	{
 		#region Events
 
@@ -32,7 +32,7 @@ namespace dexih.operations
 
 		private readonly List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
 
-		private readonly BufferBlock<TransformWriterResult> _completedDatalinks = new BufferBlock<TransformWriterResult>();
+		// private readonly BufferBlock<TransformWriterResult> _completedDatalinks = new BufferBlock<TransformWriterResult>();
 		
 		#endregion
 
@@ -106,10 +106,9 @@ namespace dexih.operations
 			OnDatajobProgressUpdate = null;
 			OnDatajobStatusUpdate = null;
 			OnFinish = null;
-			OnDatalinkStart = null;
 		}
 
-		public async Task Initialize(CancellationToken cancellationToken)
+		public Task Initialize(CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -121,7 +120,7 @@ namespace dexih.operations
 				WriterResult.Initialize(cancellationToken);
 				
 				DatalinkSteps = new List<DatalinkRun>();
-
+				return Task.CompletedTask;
 			}
 			catch (Exception ex)
 			{
@@ -139,15 +138,14 @@ namespace dexih.operations
 		public void Datajob_OnStatusUpdate(TransformWriterResult writer)
 		{
 			OnDatajobStatusUpdate?.Invoke(writer);
-			_completedDatalinks.Post(writer);
 		}
 
-		public Task Schedule(DateTime scheduledTime)
-		{
-			ResetWriterResult();	
-			WriterResult.ScheduledTime = scheduledTime;
-			return WriterResult.Schedule();
-		}
+//		public Task Schedule(DateTime scheduledTime)
+//		{
+//			ResetWriterResult();	
+//			WriterResult.ScheduledTime = scheduledTime;
+//			return WriterResult.Schedule();
+//		}
 
 		public void CancelSchedule(CancellationToken cancellationToken)
 		{
@@ -193,18 +191,7 @@ namespace dexih.operations
 					//start datalinks that have no dependencies.
 					if (step.DexihDatalinkDependencies == null || step.DexihDatalinkDependencies.Count == 0)
 					{
-						datalinkRun.OnStatusUpdate += DatalinkStatus;
-						datalinkRun.OnFinish += DatalinkStatus;
-						
-						//raise an event to have the datalink started.
-						if (OnDatalinkStart != null)
-						{
-							OnDatalinkStart.Invoke(datalinkRun);
-						}
-						else
-						{
-							throw new DatajobRunException($"Could not start the datalink {datalink.Name} due to a missing start event.");
-						}
+						StartDatalink(datalinkRun);
 					}
 				}
 
@@ -238,10 +225,34 @@ namespace dexih.operations
 				OnFinish?.Invoke(this);
 			}
 		}
-		
-		public override object Data { get => WriterResult; set => throw new NotSupportedException(); }
 
-		public override async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
+		public void StartDatalink(DatalinkRun datalinkRun)
+		{
+//			datalinkRun.OnStatusUpdate += DatalinkStatus;
+//			datalinkRun.OnFinish += DatalinkStatus;
+						
+			//raise an event to have the datalink started.
+			if (OnDatalinkStart != null)
+			{
+				datalinkRun.ActivateDatalink();
+				OnDatalinkStart.Invoke(datalinkRun);
+			}
+			else
+			{
+				throw new DatajobRunException($"Could not start the datalink {datalinkRun.Datalink.Name} due to a missing start event.");
+			}
+
+		}
+
+		public Task Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+		{
+			ResetWriterResult();	
+			return WriterResult.Schedule(startsAt, cancellationToken);
+		}
+
+		public object Data { get => WriterResult; set => throw new NotSupportedException(); }
+
+		public async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
 		{
 			void DatajobProgressUpdate(TransformWriterResult writerResult)
 			{
@@ -262,25 +273,54 @@ namespace dexih.operations
 
 			await Run(cancellationToken);
 		}
-		
-		
-		
-		
 
 		public void Cancel()
 		{
 			CancelSchedule(CancellationToken.None);
+			if (DatalinkSteps == null)
+			{
+				return;
+				
+			}
+			
 			foreach (var step in DatalinkSteps)
 			{
 				step.Cancel();
 			}
 		}
 
+		public void Dispose()
+		{
+			OnDatajobProgressUpdate = null;
+			OnDatajobStatusUpdate = null;
+			OnDatalinkStart = null;
+			OnFinish = null;
+		}
+		
+		
+
+
 		private async Task WaitUntilFinished()
 		{
-			var tasks = DatalinkSteps.Select(c => c.WaitForFinish()).ToArray();
-			await Task.WhenAll(tasks);
-			
+			while (true)
+			{
+				var tasks = DatalinkSteps.Select(c => c.WaitForFinish()).Where(c=> c != null).ToArray();
+				if (tasks.Length == 0)
+				{
+					break;
+				}
+
+				await Task.WhenAny(tasks);
+
+				foreach (var task in tasks)
+				{
+					if (task.IsCompleted)
+					{
+						DatalinkStatus(task.Result.datalinkRun, task.Result.writerResult);
+					}
+				}
+			}
+
 //			//wait until all other datalinks have finished
 //			while (WriterResult.RunStatus != ERunStatus.Finished &&
 //			       WriterResult.RunStatus != ERunStatus.FinishedErrors &&
@@ -347,26 +387,7 @@ namespace dexih.operations
 							}
 							if (allFinished) //all dependent jobs finished, then run the datalink.
 							{
-								datalinkStep.OnStatusUpdate += DatalinkStatus;
-								datalinkStep.OnFinish += DatalinkStatus;
-
-								//raise an event to have the datalink started.
-								if (OnDatalinkStart != null)
-									try
-									{
-										OnDatalinkStart(datalinkStep);
-									}
-									catch(Exception ex)
-									{
-										WriterResult?.SetRunStatus(ERunStatus.Abended, ex.Message, ex);
-										return;
-									}
-								
-								else
-								{
-									WriterResult.SetRunStatus(ERunStatus.Abended, "Could not start the datalink due to a missing start event.", null);
-									return;
-								}
+								StartDatalink(datalinkRun);
 							}
 							break;
 						}
@@ -425,5 +446,7 @@ namespace dexih.operations
 
 			OnDatajobProgressUpdate?.Invoke(WriterResult);
 		}
+
+
 	}
 }

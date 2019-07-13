@@ -42,12 +42,18 @@ namespace dexih.operations
         
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        private readonly TaskCompletionSource<bool> _taskCompletionSource;
+        private TaskCompletionSource<(DatalinkRun datalinkRun, TransformWriterResult writerResult)> _taskCompletionSource;
 
-        public Task WaitForFinish()
+        public Task<(DatalinkRun datalinkRun, TransformWriterResult writerResult)> WaitForFinish()
         {
-            if(_taskCompletionSource == null) return Task.CompletedTask;
-            return _taskCompletionSource.Task;
+            if (_taskCompletionSource == null)
+            {
+                return null;
+            }
+            else
+            {
+                return _taskCompletionSource.Task;
+            }
         }
 
         public DatalinkRun(TransformSettings transformSettings, ILogger logger, long parentAuditKey, DexihDatalink hubDatalink, DexihHub hub, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions)
@@ -59,8 +65,6 @@ namespace dexih.operations
             Datalink = hubDatalink;
             _inputColumns = inputColumns;
             _transformWriterOptions = transformWriterOptions;
-            _taskCompletionSource = new TaskCompletionSource<bool>();
-
             
             Connection auditConnection;
 
@@ -168,7 +172,7 @@ namespace dexih.operations
         {
             try
             {
-                ResetEvents();
+                // ResetEvents();
                 var transformManager = new TransformsManager(_transformSettings, _logger);
                 Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, null, WriterTarget.WriterResult?.LastMaxIncrementalValue, _transformWriterOptions);
             }
@@ -181,6 +185,13 @@ namespace dexih.operations
             }
         }
 
+        /// <summary>
+        /// Sets the datalink in activation mode, which means the "waitforfinish" won't complete until datalink is finished.
+        /// </summary>
+        public void ActivateDatalink()
+        {
+            _taskCompletionSource = new TaskCompletionSource<(DatalinkRun datalinkRun, TransformWriterResult writerResult)>();
+        }
 
         /// <summary>
         /// Runs the datalink.  Note, Initialize/Build must be called prior.
@@ -197,6 +208,12 @@ namespace dexih.operations
 
                 var token = ct.Token;
                 token.ThrowIfCancellationRequested();
+
+                if (_taskCompletionSource == null)
+                {
+                    _taskCompletionSource = new TaskCompletionSource<(DatalinkRun datalinkRun, TransformWriterResult writerResult)>();
+                }
+
                 await WriterTarget.WriteRecordsAsync(Reader.sourceTransform, Datalink.UpdateStrategy,
                     Datalink.LoadStrategy, token);
                 
@@ -204,7 +221,9 @@ namespace dexih.operations
             }
             finally
             {
-                _taskCompletionSource.SetResult(true);
+                var taskCompletion = _taskCompletionSource;
+                _taskCompletionSource = null;
+                taskCompletion?.SetResult((this, WriterTarget.WriterResult));
             }
         }
 
@@ -254,7 +273,7 @@ namespace dexih.operations
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            ResetEvents();
         }
     }
 }
