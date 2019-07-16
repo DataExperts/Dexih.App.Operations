@@ -63,7 +63,7 @@ namespace dexih.repository
 		
 		public Sort.EDirection? SortDirection { get; set; }
 
-		public Filter.ECompare? FilterCompare { get; set; }
+		public ECompare? FilterCompare { get; set; }
 
         public EAggregate? Aggregate { get; set; }
 

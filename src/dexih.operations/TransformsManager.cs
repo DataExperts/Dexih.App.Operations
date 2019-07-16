@@ -195,7 +195,8 @@ namespace dexih.operations
 		{
             try
             {
-                (Transform sourceTransform, Table sourceTable) returnValue;
+                Transform sourceTransform;
+                Table sourceTable;
                 
                 switch (hubDatalinkTable.SourceType)
                 {
@@ -205,8 +206,9 @@ namespace dexih.operations
                         {
                             throw new TransformManagerException($"The source datalink with the key {hubDatalinkTable.SourceDatalinkKey} was not found");
                         }
-                        returnValue = CreateRunPlan(hub, datalink, inputColumns, null, false, transformWriterOptions);
-                        returnValue.sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
+
+                        (sourceTransform, sourceTable) = CreateRunPlan(hub, datalink, inputColumns, null, false, transformWriterOptions);
+                        sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
                         break;
                     case ESourceType.Table:
                         if (hubDatalinkTable.SourceTableKey == null)
@@ -228,31 +230,29 @@ namespace dexih.operations
                         }
 
                         var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
-                        // var sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
-                        var sourceTable = hubDatalinkTable.GetTable(null, inputColumns);
-                        var transform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
-                        transform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
-                        returnValue =  (transform, sourceTable);
+                        sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
+                        sourceTransform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
+                        sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
 
                         break;
                     case ESourceType.Rows:
-                        var rowCreator2 = new ReaderRowCreator();
-                        rowCreator2.InitializeRowCreator(hubDatalinkTable.RowsStartAt??1, hubDatalinkTable.RowsEndAt??1, hubDatalinkTable.RowsIncrement??1);
-                        rowCreator2.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
-                        var table = rowCreator2.GetTable();
-                        returnValue =  (rowCreator2, table);
+                        var rowCreator = new ReaderRowCreator();
+                        rowCreator.InitializeRowCreator(hubDatalinkTable.RowsStartAt??1, hubDatalinkTable.RowsEndAt??1, hubDatalinkTable.RowsIncrement??1);
+                        rowCreator.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
+                        sourceTable = rowCreator.GetTable();
+                        sourceTransform = rowCreator;
                         break;
                     case ESourceType.Function:
-                        var functionTable = hubDatalinkTable.GetTable(null, inputColumns);
-                        var data = new object[functionTable.Columns.Count];
-                        for(var i = 0; i< functionTable.Columns.Count; i++)
+                        sourceTable = hubDatalinkTable.GetTable(null, inputColumns);
+                        var data = new object[sourceTable.Columns.Count];
+                        for(var i = 0; i< sourceTable.Columns.Count; i++)
                         {
-                            data[i] = functionTable.Columns[i].DefaultValue;
+                            data[i] = sourceTable.Columns[i].DefaultValue;
                         }
-                        functionTable.Data.Add(data);
-                        var defaultRow = new ReaderDynamic(functionTable);
+                        sourceTable.Data.Add(data);
+                        var defaultRow = new ReaderDynamic(sourceTable);
                         defaultRow.Reset();
-                        returnValue = (defaultRow, functionTable);
+                        sourceTransform = defaultRow;
                         break;
 
                     default:
@@ -262,7 +262,7 @@ namespace dexih.operations
                 
                 // compare the table in the transform to the source datalink columns.  If any are missing, add a mapping 
                 // transform to include them.
-                var transformColumns = returnValue.sourceTransform.CacheTable.Columns;
+                var transformColumns = sourceTransform.CacheTable.Columns;
                 var datalinkColumns = hubDatalinkTable.DexihDatalinkColumns;
 
 
@@ -281,11 +281,10 @@ namespace dexih.operations
 
                 if (mappings.Count > 0)
                 {
-                    var transforMapping = new TransformMapping(returnValue.sourceTransform, mappings);
-                    returnValue.sourceTransform = transforMapping;
+                    sourceTransform = new TransformMapping(sourceTransform, mappings);
                 }
 
-                return returnValue;
+                return (sourceTransform, sourceTable);
             }
             catch (Exception ex)
             {
@@ -332,7 +331,7 @@ namespace dexih.operations
 
                     var mappings = new Mappings()
                     {
-                        new MapFilter(incrementalCol, maxIncrementalValue, Filter.ECompare.GreaterThan)
+                        new MapFilter(incrementalCol, maxIncrementalValue, ECompare.GreaterThan)
                     };
 
                     var filterTransform = new TransformFilter(primaryTransform, mappings);

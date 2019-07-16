@@ -773,7 +773,7 @@ namespace dexih.repository
                 entity.Property(e => e.FilterCompare).HasColumnName("filter_compare").HasMaxLength(50)
                     .HasConversion(
                         v => v == null ? null : v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? null : (Filter.ECompare?) Enum.Parse(typeof(Filter.ECompare), v));
+                        v => String.IsNullOrEmpty(v) ? null : (ECompare?) Enum.Parse(typeof(ECompare), v));
                 entity.Property(e => e.Aggregate).HasColumnName("aggregate").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),

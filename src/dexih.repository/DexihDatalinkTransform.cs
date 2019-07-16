@@ -12,6 +12,7 @@ using dexih.functions.Query;
 using dexih.operations;
 using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
+using Dexih.Utils.DataType;
 using Microsoft.Extensions.Logging;
 using static dexih.transforms.Transforms.TransformAttribute;
 
@@ -197,7 +198,7 @@ namespace dexih.repository
                             {
                                 Column1 = sourceColumn,
                                 Column2 = filterColumn,
-                                Compare = item.FilterCompare??Filter.ECompare.IsEqual, 
+                                Compare = item.FilterCompare??ECompare.IsEqual, 
                                 Value1 = item.SourceValue,
                                 Value2 = item.FilterValue
                             });
