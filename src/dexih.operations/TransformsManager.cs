@@ -281,7 +281,10 @@ namespace dexih.operations
 
                 if (mappings.Count > 0)
                 {
-                    sourceTransform = new TransformMapping(sourceTransform, mappings);
+                    sourceTransform = new TransformMapping(sourceTransform, mappings)
+                    {
+                        Name = "Internal Mapping"
+                    };
                 }
 
                 return (sourceTransform, sourceTable);
@@ -334,7 +337,10 @@ namespace dexih.operations
                         new MapFilter(incrementalCol, maxIncrementalValue, ECompare.GreaterThan)
                     };
 
-                    var filterTransform = new TransformFilter(primaryTransform, mappings);
+                    var filterTransform = new TransformFilter(primaryTransform, mappings)
+                    {
+                        Name = $"Prefilter maxIncremental {maxIncrementalValue}"
+                    };
                     filterTransform.SetInTransform(primaryTransform);
                     primaryTransform = filterTransform;
                 }
@@ -393,7 +399,10 @@ namespace dexih.operations
                             profileRules.Add(profileFunction);
                         }
                     }
-                    var transform = new TransformProfile(primaryTransform, profileRules);
+                    var transform = new TransformProfile(primaryTransform, profileRules)
+                    {
+                        Name =  "User defined profiles"
+                    };
 
                     primaryTransform = transform;
 
@@ -402,7 +411,10 @@ namespace dexih.operations
                 
                 if(transformWriterOptions.SelectQuery != null)
                 {
-                    var transform = new TransformQuery(primaryTransform, transformWriterOptions.SelectQuery);
+                    var transform = new TransformQuery(primaryTransform, transformWriterOptions.SelectQuery)
+                    {
+                        Name = "Select Query Filter"
+                    };
                     primaryTransform = transform;
                 }
 

@@ -777,7 +777,7 @@ namespace dexih.operations
 				    view = hub.DexihViews.SingleOrDefault(c => c.Key == viewKey && c.IsValid);
 				    Hub.DexihViews.Add(view);
 				    
-				    if(view.SourceTableKey != null) AddTables(new [] {view.SourceTableKey.Value}, hub);
+				    if(view.SourceTableKey != null) AddTables(new [] {view.SourceDatalinkKey.Value}, hub);
 				    if(view.SourceDatalinkKey != null) AddDatalinks(new [] {view.SourceDatalinkKey.Value}, hub);
 			    }
 		    }

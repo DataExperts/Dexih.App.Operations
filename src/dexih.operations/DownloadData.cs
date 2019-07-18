@@ -67,7 +67,7 @@ namespace dexih.operations
                             }
 
                             transform = connection.GetTransformReader(table, true);
-                            transform = new TransformQuery(transform, downloadObject.Query);
+                            transform = new TransformQuery(transform, downloadObject.Query) {Name = "Stream Query"} ;
                             var openResult = await transform.Open(0, null, cancellationToken);
                             if (!openResult)
                             {
