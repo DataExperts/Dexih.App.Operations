@@ -83,10 +83,7 @@ namespace dexih.repository
                 return false;
             }
 
-            var latestBuild = Runtime.LatestVersion.Split('-').Last();
-            var localBuild = Runtime.Version.Split('-').Last();
-
-            if (string.CompareOrdinal(latestBuild, localBuild) > 0)
+            if (string.CompareOrdinal( Runtime.LatestVersion, Runtime.Version) > 0)
             {
                 return true;
             }
@@ -159,10 +156,7 @@ namespace dexih.repository
                     Runtime.LatestVersion = latestVersion;
                     Runtime.LatestDownloadUrl = downloadUrl;
 
-                    var latestBuild = latestVersion.Split('-').Last();
-                    var localBuild = localVersion.Split('-').Last();
-
-                    if (string.CompareOrdinal(latestBuild, localBuild) > 0)
+                    if (string.CompareOrdinal(latestVersion, localVersion) > 0)
                     {
                         return true;
                     }
@@ -576,7 +570,9 @@ namespace dexih.repository
         public bool GenerateUserToken { get; set; } 
         
         public bool SaveSettings { get; set; }
-        
+
+        public bool DoUpgrade { get; set; } = false;
+
 //        public List<FunctionReference> Functions { get; set; }
     }
 
