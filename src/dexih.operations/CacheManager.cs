@@ -560,13 +560,7 @@ namespace dexih.operations
 	                
 		            if(hubTable.FileFormatKey != null)
 		            {
-			            var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.Key == hubTable.FileFormatKey);
-			            if(fileFormat == null)
-			            {
-				            var internalHub = await dbContext.DexihHubs.FirstAsync(c => c.IsValid);
-				            fileFormat = await dbContext.DexihFileFormats.SingleOrDefaultAsync(c => (c.HubKey == HubKey || c.HubKey == internalHub.HubKey) && c.Key == hubTable.FileFormatKey && c.IsValid);
-				            Hub.DexihFileFormats.Add(fileFormat);
-			            }
+			            await AddFileFormats(new []{hubTable.FileFormatKey.Value}, dbContext);
 		            }
 	            }
             }
@@ -592,12 +586,7 @@ namespace dexih.operations
 				    
 				    if(hubTable.FileFormatKey != null)
 				    {
-					    var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.Key == hubTable.FileFormatKey);
-					    if(fileFormat == null)
-					    {
-						    fileFormat = hub.DexihFileFormats.SingleOrDefault(c => c.Key == hubTable.FileFormatKey && c.IsValid);
-						    Hub.DexihFileFormats.Add(fileFormat);
-					    }
+					    AddFileFormats(new []{hubTable.FileFormatKey.Value}, hub);
 				    }
 
 				    Hub.DexihTables.Add(hubTable);
@@ -619,10 +608,31 @@ namespace dexih.operations
 				    
 		    if(hubTable.FileFormatKey != null)
 		    {
-			    var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.Key == hubTable.FileFormatKey);
+			    AddFileFormats(new []{hubTable.FileFormatKey.Value}, hub);
+		    }
+	    }
+
+	    public void AddFileFormats(IEnumerable<long> fileFormatKeys, DexihHub hub)
+	    {
+		    foreach (var fileFormatKey in fileFormatKeys)
+		    {
+			    var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.Key == fileFormatKey);
 			    if(fileFormat == null)
 			    {
-				    fileFormat = hub.DexihFileFormats.SingleOrDefault(c => c.Key == hubTable.FileFormatKey && c.IsValid);
+				    fileFormat = hub.DexihFileFormats.SingleOrDefault(c => c.Key == fileFormatKey && c.IsValid);
+				    Hub.DexihFileFormats.Add(fileFormat);
+			    }
+		    }
+	    }
+	    
+	    public async Task AddFileFormats(IEnumerable<long> fileFormatKeys, DexihRepositoryContext dbContext)
+	    {
+		    foreach (var fileFormatKey in fileFormatKeys)
+		    {
+			    var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.Key == fileFormatKey);
+			    if(fileFormat == null)
+			    {
+				    fileFormat = await dbContext.DexihFileFormats.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == fileFormatKey && c.IsValid);
 				    Hub.DexihFileFormats.Add(fileFormat);
 			    }
 		    }

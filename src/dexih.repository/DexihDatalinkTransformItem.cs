@@ -446,7 +446,16 @@ $FunctionCode
 	        var tabbedCode = "\t\t" + functionCode2.Replace("\n", "\n\t\t");
 	        
             code.Replace("$FunctionCode", tabbedCode);
-            code.Replace("$FunctionReturn", parameters.ReturnParameters[0].DataType.ToString());
+
+            if (parameters.ReturnParameters.Count == 0)
+            {
+	            code.Replace("$FunctionReturn", "void");
+            }
+            else
+            {
+	            code.Replace("$FunctionReturn", parameters.ReturnParameters[0].DataType.ToString());    
+            }
+            
 
             if (createConsoleSample)
             {
@@ -458,7 +467,12 @@ $FunctionCode
 		            returnName = returnColumn.Name;
 	            }
 
-	            testFunction.Append("\t\t" + returnName + " = ");
+	            testFunction.Append("\t\t");
+	            if (parameters.ReturnParameters.Count > 0)
+	            {
+		            testFunction.Append(returnName + " = ");
+	            }
+	            
                 testFunction.Append("CustomFunction(");
 	            var p = DexihFunctionParameters.OrderBy(c => c.Position)
 		            .Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input).Select(c => c.Name)
@@ -547,8 +561,16 @@ $FunctionCode
                 var outputParameters = new StringBuilder();
                 var writeResults = new StringBuilder();
 
-				outputParameters.AppendLine("\t\t" + parameters.ReturnParameters[0].DataType + " " + returnName + ";");
-				writeResults.AppendLine("\t\tConsole.WriteLine(\"" + returnName + " = {0}\", " + returnName + ");");
+                if (parameters.ReturnParameters.Count > 0)
+                {
+	                outputParameters.AppendLine("\t\t" + parameters.ReturnParameters[0].DataType + " " + returnName +
+	                                            ";");
+	                writeResults.AppendLine("\t\tConsole.WriteLine(\"" + returnName + " = {0}\", " + returnName + ");");
+                }
+                else
+                {
+	                writeResults.AppendLine("\t\tConsole.WriteLine(\"No return value specified.\");");
+                }
 
                 foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
                 {

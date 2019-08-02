@@ -98,6 +98,20 @@ namespace dexih.operations
                     }
                 }
             }
+            else
+            {
+                var position = 1;
+                foreach (var column in table.Columns)
+                {
+                    var dbColumn = new DexihTableColumn {Key = 0};
+                    dbTable.DexihTableColumns.Add(dbColumn);
+
+                    column.CopyProperties(dbColumn);
+                    dbColumn.Position = position;
+                    dbColumn.IsValid = true;
+                    position++;
+                }
+            }
 
             return dbTable;
         }
