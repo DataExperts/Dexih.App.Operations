@@ -749,11 +749,11 @@ namespace dexih.operations
 					}
 				}
 				
-				var sameName = await DbContext.DexihHubs.AnyAsync(c => c.Name == hub.Name && c.HubKey != hub.HubKey && c.IsValid);
-				if (sameName)
-				{
-                    throw new RepositoryManagerException($"A hub with the name {hub.Name} already exists.");
-				}
+//				var sameName = await DbContext.DexihHubs.AnyAsync(c => c.Name == hub.Name && c.HubKey != hub.HubKey && c.IsValid);
+//				if (sameName)
+//				{
+//                    throw new RepositoryManagerException($"A hub with the name {hub.Name} already exists.");
+//				}
 
 				// no encryption key provide, then create a random one.
 				if(string.IsNullOrEmpty(hub.EncryptionKey) && string.IsNullOrEmpty(hub.EncryptionKey))
