@@ -24,7 +24,7 @@ namespace dexih.repository
         public bool RestrictIp { get; set; }
 
         public bool AllowExternalConnect { get; set; }
-        public string[] IpAddresses { get; set; }
+        public List<string> IpAddresses { get; set; }
 
         public string RemoteAgentId { get; set; }
         

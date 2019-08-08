@@ -9,15 +9,13 @@ using Dexih.Utils.CopyProperties;
 namespace dexih.repository
 {
 	[Serializable]
-    public partial class DexihTableColumn : DexihColumnBase
+    public class DexihTableColumn : DexihColumnBase
     {
 	    public DexihTableColumn()
 	    {
 		    ChildColumns = new HashSet<DexihTableColumn>();
 	    }
 	    
-
-		
 	    [CopyParentCollectionKey(nameof(Key))]
 		public long? TableKey { get; set; }
 	    
@@ -35,13 +33,13 @@ namespace dexih.repository
         public EntityStatus EntityStatus { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihTable Table { get; set; }
+        public DexihTable Table { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihColumnValidation ColumnValidation { get; set; }
+        public DexihColumnValidation ColumnValidation { get; set; }
 
 	    [JsonIgnore, CopyIgnore]
-	    public virtual ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }
+	    public ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }
 	    
 	    public TableColumn GetTableColumn(InputColumn[] inputColumns)
 	    {

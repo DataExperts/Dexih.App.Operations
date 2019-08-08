@@ -37,7 +37,7 @@ namespace dexih.repository
 
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
-	    public long[] SortColumnKeys { get; set; } = new long[0];
+	    public List<long> SortColumnKeys { get; set; } = new List<long>();
         public bool AutoManageFiles { get; set; }
 
 		public bool UseCustomFilePaths { get; set; }
@@ -58,7 +58,7 @@ namespace dexih.repository
 		public bool IsShared { get; set; }
 		
 		[NotMapped, JsonIgnore, CopyIgnore]
-		public string[] OutputSortFields {
+		public List<string> OutputSortFields {
 			get {
 				var fields = new List<string>();
 				if(SortColumnKeys != null && DexihTableColumns != null) 
@@ -72,7 +72,7 @@ namespace dexih.repository
 						}
 					}
 				}
-				return fields.ToArray();
+				return fields.ToList();
 			}
 		}
 

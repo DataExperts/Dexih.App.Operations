@@ -201,12 +201,12 @@ namespace dexih.operations
                     return (false, "The value is " + parsedValue + " which is below the minimum Value of " + ColumnValidation.MinValue);
                 }
 
-                if (ColumnValidation.ListOfValues != null && ColumnValidation.ListOfValues.Length > 0 && ColumnValidation.ListOfValues?.Contains(value) == false)
+                if (ColumnValidation.ListOfValues != null && ColumnValidation.ListOfValues.Count > 0 && ColumnValidation.ListOfValues?.Contains(value) == false)
                 {
                     return (false, "The value \"" + value + "\" was not found in the restricted list of values.");
                 }
 
-                if (ColumnValidation.ListOfNotValues != null && ColumnValidation.ListOfNotValues.Length > 0 && ColumnValidation.ListOfNotValues?.Contains(value) == true)
+                if (ColumnValidation.ListOfNotValues != null && ColumnValidation.ListOfNotValues.Count > 0 && ColumnValidation.ListOfNotValues?.Contains(value) == true)
                 {
                     return (false, "The value \"" + value + "\" was found in the excluded list of values.");
                 }

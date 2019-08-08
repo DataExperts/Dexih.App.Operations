@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using dexih.operations.Extensions;
 using Dexih.Utils.CopyProperties;
 using Microsoft.Extensions.Logging;
 
@@ -93,11 +94,11 @@ namespace dexih.operations
                 var variables = dbContext.DexihHubVariables
                     .Where(c => c.IsValid && c.HubKey == HubKey);
 
-                Hub.DexihHubVariables = await variables.ToArrayAsync();
+                Hub.DexihHubVariables = await variables.ToHashSetAsync();
                 
                 
                 Hub.DexihConnections = await dbContext.DexihConnections
-					.Where(c => c.IsValid && c.HubKey == HubKey).ToArrayAsync();
+					.Where(c => c.IsValid && c.HubKey == HubKey).ToHashSetAsync();
 
                 await dbContext.DexihTableColumns
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
@@ -105,7 +106,7 @@ namespace dexih.operations
 
                 Hub.DexihTables = await dbContext.DexihTables
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
-	                .ToArrayAsync();
+	                .ToHashSetAsync();
 
 
                 // load the datalinks
@@ -147,7 +148,7 @@ namespace dexih.operations
 					.Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey)
 					.LoadAsync();
 
-                Hub.DexihDatalinks = await datalinks.ToArrayAsync();
+                Hub.DexihDatalinks = await datalinks.ToHashSetAsync();
 
 				// load the datajobs with all dependent schedules/datalink steps.
 				var datajobs = dbContext.DexihDatajobs
@@ -171,7 +172,7 @@ namespace dexih.operations
 
 				Hub.DexihDatalinkTests = await dbContext.DexihDatalinkTests
 					.Where(c => c.IsValid && c.HubKey == HubKey)
-					.ToArrayAsync();
+					.ToHashSetAsync();
 
 				await dbContext.DexihDatalinkTestSteps
 					.Where(c => c.IsValid && c.HubKey == HubKey)
@@ -182,14 +183,14 @@ namespace dexih.operations
 					.LoadAsync();
 
 
-				Hub.DexihDatajobs = await datajobs.ToArrayAsync();
+				Hub.DexihDatajobs = await datajobs.ToHashSetAsync();
 
-				Hub.DexihFileFormats = await dbContext.DexihFileFormats.Where(c => (c.HubKey == HubKey) && c.IsValid).ToArrayAsync();
-				Hub.DexihColumnValidations = await dbContext.DexihColumnValidations.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
-			    Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
-			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
-				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
-				Hub.DexihApis = await dbContext.DexihApis.Where(c => c.HubKey == HubKey && c.IsValid).ToArrayAsync();
+				Hub.DexihFileFormats = await dbContext.DexihFileFormats.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
+				Hub.DexihColumnValidations = await dbContext.DexihColumnValidations.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+			    Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+				Hub.DexihApis = await dbContext.DexihApis.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 
 				_logger?.LogTrace($"Load hub name {Hub.Name} took {stopWatch.ElapsedMilliseconds}ms.");
 
@@ -849,7 +850,7 @@ namespace dexih.operations
 		        return datalinks[0];
 	        }
 
-	        throw new RepositoryManagerException($"The datalink the key {datalinkKey} could not be found.");
+	        throw new RepositoryManagerException($"A datalink with the key {datalinkKey} could not be found.");
         }
 		
 		public async Task<DexihDatalink[]> GetDatalinks(IEnumerable<long> datalinkKeys, DexihRepositoryContext dbContext)
@@ -869,11 +870,11 @@ namespace dexih.operations
 
 	            await dbContext.DexihDatalinkTargets
 		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
-		            .ToArrayAsync();
+		            .ToHashSetAsync();
 		            
 	            var transforms = await dbContext.DexihDatalinkTransforms
 		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
-		            .ToArrayAsync();
+		            .ToHashSetAsync();
 
 	            var datalinkTransformKeys = transforms.Select(c => c.Key);
 
@@ -882,20 +883,20 @@ namespace dexih.operations
 		            .Where(c => c.IsValid && c.HubKey == HubKey && datalinkTransformKeys.Contains(c.DatalinkTransformKey))
 		            .OrderBy(c => c.Dt.Datalink.HubKey).ThenBy(c => c.Dt.Key)
 		            .ThenBy(c => c.Key)
-		            .ToArrayAsync();
+		            .ToHashSetAsync();
 
                 var transformItemKeys = transformItems.Select(c => c.Key);
 
 	            var parameters = await dbContext.DexihFunctionParameters
 		            .Where(c => c.IsValid && c.HubKey == HubKey && transformItemKeys.Contains(c.DatalinkTransformItemKey))
 		            .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.Key).ThenBy(c => c.DtItem.Key).ThenBy(c => c.Position)
-		            .ToArrayAsync();
+		            .ToHashSetAsync();
 
 	            var parameterKeys = parameters.Select(c => c.Key);
 	            var parameterArrays = await dbContext.DexihFunctionArrayParameters
 		            .Where(c => c.IsValid && c.HubKey == HubKey && parameterKeys.Contains(c.FunctionParameterKey))
 		            .OrderBy(c => c.FunctionParameter.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.FunctionParameter.DtItem.Dt.Key).ThenBy(c => c.FunctionParameter.DtItem.Key).ThenBy(c => c.Position)
-		            .ToArrayAsync();
+		            .ToHashSetAsync();
 
 	            datalinkTableKeys.AddRange(transforms.Where(c => c.JoinDatalinkTableKey != null).Select(c => c.JoinDatalinkTableKey.Value));
 

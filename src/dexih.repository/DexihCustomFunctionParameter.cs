@@ -5,7 +5,7 @@ using Dexih.Utils.CopyProperties;
 namespace dexih.repository
 {
     [Serializable]
-  public partial class DexihCustomFunctionParameter : DexihParameterBase
+  public class DexihCustomFunctionParameter : DexihParameterBase
   {
    
     [CopyParentCollectionKey(nameof(Key))]

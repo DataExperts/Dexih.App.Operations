@@ -32,10 +32,10 @@ namespace dexih.repository
         public string RegexMatch { get; set; }
         
         [CopyIgnore]
-        public string[] ListOfValues { get; set; }
+        public List<string> ListOfValues { get; set; }
         
         [CopyIgnore]
-        public string[] ListOfNotValues { get; set; }
+        public List<string> ListOfNotValues { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public DexihTableColumn LookupColumn { get; set; }

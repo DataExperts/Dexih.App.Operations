@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
+using System.Collections.Generic;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,7 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-	public sealed class DexihRepositoryContext : IdentityDbContext<ApplicationUser>
+	public class DexihRepositoryContext : IdentityDbContext<ApplicationUser>
 	{
 		public enum EDatabaseType
 		{
@@ -62,7 +63,7 @@ namespace dexih.repository
 
                     if (entity.State == EntityState.Modified)
                     {
-                        // check hubkey hasn't changed since original.  This could impact an entity in another hub and causes an immedidate stop.
+                        // check hubkey hasn't changed since original.  This could impact an entity in another hub and causes an immediate stop.
                         if (!Object.Equals(originalValues[nameof(DexihHubEntity.HubKey)], entity.CurrentValues[nameof(DexihHubEntity.HubKey)]))
                         {
                             if (hubEntity is DexihHubNamedEntity hubNamedEntity)
@@ -199,12 +200,12 @@ namespace dexih.repository
                 entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
+                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
                 
                 entity.Property(e => e.ListOfNotValues).HasColumnName("list_of_not_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
+                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
                 
 
                 entity.Property(e => e.LookupColumnKey).HasColumnName("lookup_column_key");
@@ -1069,7 +1070,7 @@ namespace dexih.repository
                 entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
+                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
                 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1115,7 +1116,7 @@ namespace dexih.repository
                 entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
+                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1143,7 +1144,7 @@ namespace dexih.repository
                 entity.Property(e => e.IpAddresses).HasColumnName("ip_addresses").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join(",", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "," }, StringSplitOptions.None).ToArray());
+                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "," }, StringSplitOptions.None).ToList());
 
                 entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
                 entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasMaxLength(50);
@@ -1363,7 +1364,7 @@ namespace dexih.repository
                 entity.Property(e => e.SortColumnKeys).HasColumnName("sort_column_keys").HasMaxLength(500)
                     .HasConversion(
                         v => v == null ? null : string.Join(",", v),
-                        v => string.IsNullOrEmpty(v) ? new long[0] : v.Split(",", StringSplitOptions.None).Select(long.Parse).ToArray());
+                        v => string.IsNullOrEmpty(v) ? new List<long>() : v.Split(",", StringSplitOptions.None).Select(long.Parse).ToList());
 
                 entity.Property(e => e.RestfulUri).HasColumnName("restful_uri").HasMaxLength(2000);
                 entity.Property(e => e.RowPath).HasColumnName("row_path").HasMaxLength(2000);
@@ -1412,7 +1413,7 @@ namespace dexih.repository
                 entity.Property(e => e.DaysOfWeek).HasColumnName("days_of_week").HasMaxLength(200)
                     .HasConversion(
                         v => String.Join(",", v.Select(c=>c.ToString())),
-                        v => string.IsNullOrEmpty(v) ? new ManagedTaskSchedule.EDayOfWeek[] { } : v.Split(',', StringSplitOptions.None).Select(c => (ManagedTaskSchedule.EDayOfWeek)Enum.Parse(typeof(ManagedTaskSchedule.EDayOfWeek), c)).ToArray());
+                        v => string.IsNullOrEmpty(v) ? new List<ManagedTaskSchedule.EDayOfWeek>() : v.Split(',', StringSplitOptions.None).Select(c => (ManagedTaskSchedule.EDayOfWeek)Enum.Parse(typeof(ManagedTaskSchedule.EDayOfWeek), c)).ToList());
                 entity.Property(e => e.MaxRecurs).HasColumnName("max_recurrs");
                 entity.Property(e => e.CronExpression).HasColumnName("cron_expression").HasMaxLength(500);
 

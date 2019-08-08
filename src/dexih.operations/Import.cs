@@ -109,6 +109,107 @@ namespace dexih.operations
             }
         }
 
+        public void UpdateCache(DexihHub hub)
+        {
+            UpdateCacheItems(hub.DexihHubVariables, HubVariables);
+            UpdateCacheItems(hub.DexihDatajobs, Datajobs);
+            UpdateCacheItems(hub.DexihDatalinks, Datalinks);
+            UpdateCacheItems(hub.DexihConnections, Connections);
+            UpdateCacheItems(hub.DexihTables, Tables);
+            UpdateCacheItems(hub.DexihColumnValidations, ColumnValidations);
+            UpdateCacheItems(hub.DexihCustomFunctions, CustomFunctions);
+            UpdateCacheItems(hub.DexihFileFormats, FileFormats);
+            UpdateCacheItems(hub.DexihDatalinkTests, DatalinkTests);
+            UpdateCacheItems(hub.DexihViews, Views);
+            UpdateCacheItems(hub.DexihApis, Apis);
+
+            UpdateRemoteAgentHubCacheItems(hub);
+        }
+
+        public void UpdateCacheItems<T>(ICollection<T> existingItems, ImportObjects<T> updatedItems) where T : DexihHubNamedEntity
+        {
+            foreach (var updatedItem in updatedItems)
+            {
+                switch (updatedItem.ImportAction)
+                {
+                    case EImportAction.Replace:
+                        foreach (var existingItem in existingItems)
+                        {
+                            if (existingItem.Key == updatedItem.Item.Key)
+                            {
+                                existingItems.Remove(existingItem);
+                                break;
+                            }
+                        }
+                        
+                        existingItems.Add(updatedItem.Item);
+                        break;
+                    case EImportAction.New:
+                        existingItems.Add(updatedItem.Item);
+                        break;
+                    case EImportAction.Leave:
+                        break;
+                    case EImportAction.Skip:
+                        break;
+                    case EImportAction.Delete:
+                        foreach (var existingItem in existingItems)
+                        {
+                            if (existingItem.Key == updatedItem.Item.Key)
+                            {
+                                existingItems.Remove(existingItem);
+                                break;
+                            }
+                        }
+
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        }
+        
+        public void UpdateRemoteAgentHubCacheItems(DexihHub hub)
+        {
+            foreach (var updatedItem in RemoteAgentHubs)
+            {
+                switch (updatedItem.ImportAction)
+                {
+                    case EImportAction.Replace:
+                        foreach (var existingItem in hub.DexihRemoteAgentHubs)
+                        {
+                            if (existingItem.RemoteAgentKey == updatedItem.Item.RemoteAgentKey)
+                            {
+                                hub.DexihRemoteAgentHubs.Remove(existingItem);
+                                break;
+                            }
+                        }
+                        
+                        hub.DexihRemoteAgentHubs.Add(updatedItem.Item);
+                        break;
+                    case EImportAction.New:
+                        hub.DexihRemoteAgentHubs.Add(updatedItem.Item);
+                        break;
+                    case EImportAction.Leave:
+                        break;
+                    case EImportAction.Skip:
+                        break;
+                    case EImportAction.Delete:
+                        foreach (var existingItem in hub.DexihRemoteAgentHubs)
+                        {
+                            if (existingItem.RemoteAgentKey == updatedItem.Item.RemoteAgentKey)
+                            {
+                                hub.DexihRemoteAgentHubs.Remove(existingItem);
+                                break;
+                            }
+                        }
+
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        }
+
         public bool Any()
         {
             return HubVariables.Any() || 

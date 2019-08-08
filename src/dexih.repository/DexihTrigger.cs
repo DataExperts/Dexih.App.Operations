@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -12,15 +13,12 @@ namespace dexih.repository
     [Serializable]
     public class DexihTrigger : DexihHubNamedEntity
     {
-
-
-        
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
         public DateTime? StartDate { get; set; }
         public TimeSpan? IntervalTime { get; set; }
 
-        public ManagedTaskSchedule.EDayOfWeek[] DaysOfWeek { get; set; }
+        public List<ManagedTaskSchedule.EDayOfWeek> DaysOfWeek { get; set; }
 
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
@@ -40,7 +38,7 @@ namespace dexih.repository
                     desc.AppendLine("Runs daily after:" + StartTime.Value.ToString());
                 if (EndTime != null)
                     desc.AppendLine("Ends daily after:" + EndTime.Value.ToString());
-                if (DaysOfWeek != null && DaysOfWeek.Length > 0 && DaysOfWeek.Length < 7)
+                if (DaysOfWeek != null && DaysOfWeek.Count > 0 && DaysOfWeek.Count < 7)
                     desc.AppendLine("Only on:" + String.Join(",", DaysOfWeek.Select(c => c.ToString()).ToArray()));
                 if (IntervalTime != null)
                     desc.AppendLine("Runs every: " + IntervalTime.Value.ToString());
@@ -52,7 +50,7 @@ namespace dexih.repository
         }
 
         [JsonIgnore, CopyIgnore]
-        public virtual DexihDatajob Datajob { get; set; }
+        public DexihDatajob Datajob { get; set; }
 
         public ManagedTaskSchedule CreateManagedTaskSchedule()
         {
@@ -62,7 +60,7 @@ namespace dexih.repository
                 EndDate = null,
                 EndTime = EndTime,
                 IntervalTime =  IntervalTime,
-                DaysOfWeek = DaysOfWeek,
+                DaysOfWeek = DaysOfWeek.ToArray(),
                 IntervalType = ManagedTaskSchedule.EIntervalType.Interval,
                 MaxRecurs =  MaxRecurs,
                 SkipDates = null,

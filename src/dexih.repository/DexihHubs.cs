@@ -92,5 +92,6 @@ namespace dexih.repository
             var table = DexihTables.SingleOrDefault(c=>c.Key == tableKey && IsValid);
             return table;
         }
+        
     }
 }
