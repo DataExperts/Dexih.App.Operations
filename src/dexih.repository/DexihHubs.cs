@@ -57,6 +57,7 @@ namespace dexih.repository
         public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
         public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
         public ICollection<DexihView> DexihViews { get; set; }
+        public ICollection<DexihDashboard> DexihDashboards { get; set; }
         public ICollection<DexihApi> DexihApis { get; set; }
 
         public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }

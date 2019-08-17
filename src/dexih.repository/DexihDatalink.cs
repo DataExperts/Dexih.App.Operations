@@ -35,6 +35,7 @@ namespace dexih.repository
             DexihDatalinkSteps = new HashSet<DexihDatalinkStep>();
             DexihDatalinkTransforms = new HashSet<DexihDatalinkTransform>();
             DexihDatalinkTargets = new HashSet<DexihDatalinkTarget>();
+            Parameters = new HashSet<DexihDatalinkParameter>();
             EntityStatus = new EntityStatus();
         }
 
@@ -69,6 +70,8 @@ namespace dexih.repository
         public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
         
         public ICollection<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
+        
+        public ICollection<DexihDatalinkParameter> Parameters { get; set; }
 
 
         /// <summary>
@@ -266,6 +269,10 @@ namespace dexih.repository
                     item.TargetDatalinkColumnKey = item.TargetDatalinkColumn?.Key;
                     AddColumns(item.TargetDatalinkColumn, columns);
                     item.TargetDatalinkColumn = null;
+
+                    item.FilterDatalinkColumnKey = item.FilterDatalinkColumn?.Key;
+                    AddColumns(item.FilterDatalinkColumn, columns);
+                    item.FilterDatalinkColumn = null;
 
                     foreach (var param in item.DexihFunctionParameters)
                     {

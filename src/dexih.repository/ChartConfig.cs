@@ -33,6 +33,7 @@ namespace dexih.repository
             TreeMap,
             Cards,
             Gauge,
+            LinearGauge,
             Map
         }
         

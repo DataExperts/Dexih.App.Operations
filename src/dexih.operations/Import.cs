@@ -28,6 +28,7 @@ namespace dexih.operations
         public ImportObjects<DexihDatalinkTest> DatalinkTests { get; set; }
         public ImportObjects<DexihView> Views { get; set; }
         public ImportObjects<DexihApi> Apis { get; set; }
+        public ImportObjects<DexihDashboard> Dashboards { get; set; }
 
         public List<string> Warnings { get; set; }
 
@@ -47,6 +48,7 @@ namespace dexih.operations
             DatalinkTests = new ImportObjects<DexihDatalinkTest>();
             Views = new ImportObjects<DexihView>();
             Apis = new ImportObjects<DexihApi>();
+            Dashboards = new ImportObjects<DexihDashboard>();
             Warnings = new List<string>();
         }
 
@@ -98,6 +100,9 @@ namespace dexih.operations
                     case DexihApi a:
                         Apis.Add(a, operation);
                         break;
+                    case DexihDashboard a:
+                        Dashboards.Add(a, operation);
+                        break;
                     default:
                         return false;
                 }
@@ -122,6 +127,7 @@ namespace dexih.operations
             UpdateCacheItems(hub.DexihDatalinkTests, DatalinkTests);
             UpdateCacheItems(hub.DexihViews, Views);
             UpdateCacheItems(hub.DexihApis, Apis);
+            UpdateCacheItems(hub.DexihDashboards, Dashboards);
 
             UpdateRemoteAgentHubCacheItems(hub);
         }
@@ -223,7 +229,8 @@ namespace dexih.operations
                    RemoteAgentHubs.Any() || 
                    DatalinkTests.Any() ||
                    Views.Any() ||
-                   Apis.Any();
+                   Apis.Any() ||
+                   Dashboards.Any();
         }
     }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
@@ -10,6 +11,10 @@ namespace dexih.repository
     [Serializable]
     public class DexihView : DexihHubNamedEntity
     {
+        public DexihView()
+        {
+            Parameters = new HashSet<DexihViewParameter>();
+        }
         [JsonConverter(typeof(StringEnumConverter))]
         public enum EViewType
         {
@@ -26,6 +31,8 @@ namespace dexih.repository
 	    
         public ESourceType SourceType { get; set; }
         
+        public bool AutoRefresh { get; set; }
+        
         [NotMapped]
         [CopyReference]
         public InputColumn[] InputValues { get; set; }
@@ -34,6 +41,9 @@ namespace dexih.repository
         public SelectQuery SelectQuery { get; set; }
         [CopyReference]
         public ChartConfig ChartConfig { get; set; }
+        
+        public ICollection<DexihViewParameter> Parameters { get; set; }
+
     }
 
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
@@ -7,7 +9,11 @@ namespace dexih.repository
 {
     [Serializable]
     public class DexihApi: DexihHubNamedEntity
-    {        
+    {
+        public DexihApi()
+        {
+            Parameters = new HashSet<DexihApiParameter>();
+        }
         public ESourceType SourceType { get; set; }
         
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
@@ -25,6 +31,8 @@ namespace dexih.repository
         
         [CopyReference]
         public SelectQuery SelectQuery { get; set; }
+        
+        public ICollection<DexihApiParameter> Parameters { get; set; }
         
     }
 }

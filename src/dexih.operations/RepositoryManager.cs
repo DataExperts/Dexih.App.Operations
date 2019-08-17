@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 using System.Threading;
+using dexih.operations.Extensions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
 using Microsoft.AspNetCore.Identity;
@@ -1353,15 +1354,44 @@ namespace dexih.operations
 					throw new RepositoryManagerException($"The view with the key {viewKey} could not be found.");
 				}
 
+				await DbContext.Entry(dbView).Collection(a => a.Parameters).Query()
+					.Where(c => c.HubKey == hubKey && c.IsValid && dbView.Key == c.ViewKey).LoadAsync();
+
 				return dbView;
 			}
 			catch (Exception ex)
 			{
-				throw new RepositoryManagerException($"Get table with key {viewKey} failed.  {ex.Message}", ex);
+				throw new RepositoryManagerException($"Get view with key {viewKey} failed.  {ex.Message}", ex);
 			}
 		}
 
-		
+		public async Task<DexihDashboard> GetDashboard(long hubKey, long dashboardKey)
+		{
+			try
+			{
+				var dbDashboard = await DbContext.DexihDashboards
+					.SingleOrDefaultAsync(c => c.Key == dashboardKey && c.HubKey == hubKey && c.IsValid);
+
+				if (dbDashboard == null)
+				{
+					throw new RepositoryManagerException($"The dashboard with the key {dashboardKey} could not be found.");
+				}
+
+				await DbContext.Entry(dbDashboard).Collection(a => a.Parameters).Query()
+					.Where(c => c.HubKey == hubKey && c.IsValid && dbDashboard.Key == c.DashboardKey).LoadAsync();
+
+				var items = await DbContext.DexihDashboardItems.Where(c => c.HubKey == hubKey && c.IsValid && dbDashboard.Key == c.DashboardKey).ToHashSetAsync();
+				var parameters = await DbContext.DexihDashboardItemParameters.Where(c => c.IsValid && c.HubKey == hubKey && items.Select(k => k.Key).Contains(c.DashboardItemKey))
+					.ToHashSetAsync();
+			
+				return dbDashboard;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get dashboard with key {dashboardKey} failed.  {ex.Message}", ex);
+			}
+		}
+
 		
 		#endregion
 
@@ -2765,10 +2795,10 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (view.Key > 0)
                 {
-                    dbView = await DbContext.DexihViews.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == view.Key);
+	                dbView = await GetView(hubKey, view.Key);
                     if (dbView != null)
                     {
-	                    view.CopyProperties(dbView, true);
+	                    view.CopyProperties(dbView, false);
                     }
                     else
                     {
@@ -2792,6 +2822,81 @@ namespace dexih.operations
             catch (Exception ex)
             {
                 throw new RepositoryManagerException($"Save view {view.Name} failed.  {ex.Message}", ex);
+            }
+        }
+        
+        
+        public async Task<DexihDashboard[]> DeleteDashboards(long hubKey, long[] dashboardKeys)
+        {
+            try
+            {
+                var dbDashboards = await DbContext.DexihDashboards
+                    .Where(c => c.HubKey == hubKey && dashboardKeys.Contains(c.Key) && c.IsValid)
+                    .ToArrayAsync();
+
+                foreach (var dashboard in dbDashboards)
+                {
+	                dashboard.IsValid = false;
+
+	                foreach (var item in dashboard.DexihDashboardItems)
+	                {
+		                item.IsValid = false;
+	                }
+                }
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbDashboards;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete dashboards failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihDashboard> SaveDashboard(long hubKey, DexihDashboard dashboard)
+        {
+            try
+            {
+                DexihDashboard dbDashboard;
+
+                //check there are no connections with the same name
+                var sameName = await DbContext.DexihDashboards.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == dashboard.Name && c.Key != dashboard.Key && c.IsValid);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A dashboard with the name {dashboard.Name} already exists in the repository.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (dashboard.Key > 0)
+                {
+	                dbDashboard = await GetDashboard(hubKey, dashboard.Key);
+                    if (dbDashboard != null)
+                    {
+	                    dashboard.CopyProperties(dbDashboard, false);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The dashboard could not be saved as it contains the key {dashboard.Key} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+                    dbDashboard = new DexihDashboard();
+                    dashboard.CopyProperties(dbDashboard, false);
+                    DbContext.DexihDashboards.Add(dbDashboard);
+                }
+
+                dbDashboard.IsValid = true;
+
+                await SaveHubChangesAsync(hubKey);
+
+                return dbDashboard;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save dashboard {dashboard.Name} failed.  {ex.Message}", ex);
             }
         }
         

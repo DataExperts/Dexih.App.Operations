@@ -96,7 +96,6 @@ namespace dexih.operations
 
                 Hub.DexihHubVariables = await variables.ToHashSetAsync();
                 
-                
                 Hub.DexihConnections = await dbContext.DexihConnections
 					.Where(c => c.IsValid && c.HubKey == HubKey).ToHashSetAsync();
 
@@ -108,11 +107,14 @@ namespace dexih.operations
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
 	                .ToHashSetAsync();
 
-
                 // load the datalinks
                 var datalinks = dbContext.DexihDatalinks
                     .Where(c => c.IsValid && c.HubKey == HubKey);
 
+                await dbContext.DexihDatalinkParameters
+	                .Where(c => c.IsValid && c.HubKey == HubKey)
+	                .LoadAsync();
+                
                 await dbContext.DexihDatalinkTargets
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
 	                .LoadAsync();
@@ -185,12 +187,44 @@ namespace dexih.operations
 
 				Hub.DexihDatajobs = await datajobs.ToHashSetAsync();
 
+				var dashboards = dbContext.DexihDashboards
+					.Where(c => c.IsValid && c.HubKey == HubKey);
+				
+				await dbContext.DexihDashboardItems
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+
+				await dbContext.DexihDashboardParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+
+				await dbContext.DexihDashboardItemParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+				
+				Hub.DexihDashboards = await dashboards.ToHashSetAsync();
+
+				await dbContext.DexihViewParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+
+				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+				
+				await dbContext.DexihApiParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+				
+				Hub.DexihApis = await dbContext.DexihApis.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+
+				await dbContext.DexihCustomFunctionParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+				
+				Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+
 				Hub.DexihFileFormats = await dbContext.DexihFileFormats.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
 				Hub.DexihColumnValidations = await dbContext.DexihColumnValidations.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
-			    Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
-				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
-				Hub.DexihApis = await dbContext.DexihApis.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 
 				_logger?.LogTrace($"Load hub name {Hub.Name} took {stopWatch.ElapsedMilliseconds}ms.");
 
@@ -244,6 +278,9 @@ namespace dexih.operations
 
 	    public async Task LoadViewDependencies(DexihView view, DexihRepositoryContext dbContext)
 	    {
+		    await dbContext.Entry(view).Collection(a => a.Parameters).Query().Where(c => c.IsValid && view.Key == c.ViewKey)
+			    .AsNoTracking().LoadAsync();
+
 		    switch (view.SourceType)
 		    {
 			    case ESourceType.Datalink:
@@ -266,6 +303,20 @@ namespace dexih.operations
 				    AddTables(new[] {view.SourceTableKey.Value}, hub);
 				    break;
 		    }
+	    }
+	    
+	    public async Task LoadDashboardDependencies(DexihDashboard dashboard, DexihRepositoryContext dbContext)
+	    {
+		    await dbContext.Entry(dashboard).Collection(a => a.Parameters).Query().Where(c => c.IsValid && dashboard.Key == c.DashboardKey)
+			    .AsNoTracking().LoadAsync();
+
+		    await dbContext.Entry(dashboard).Collection(a => a.DexihDashboardItems).Query().Include(c => c.Parameters).Where(c => c.IsValid && dashboard.Key == c.DashboardKey).AsNoTracking().LoadAsync();
+		    await AddViews(dashboard.DexihDashboardItems.Select(c => c.ViewKey), dbContext);
+	    }
+	    
+	    public void LoadDashboardDependencies(DexihDashboard dashboard, DexihHub hub)
+	    {
+		    AddViews(dashboard.DexihDashboardItems.Select(c => c.ViewKey), hub);
 	    }
 
         public async Task LoadDatalinkDependencies(DexihDatalink hubDatalink, bool includeDependencies, DexihRepositoryContext dbContext)
@@ -463,7 +514,7 @@ namespace dexih.operations
 			    AddTables(new[] { tableColumn.table.Key }, hub);
 		    }
 	    }
-
+	    
         public async Task AddConnections(IEnumerable<long> connectionKeys, bool includeTables, DexihRepositoryContext dbContext)
         {
             foreach (var connectionKey in connectionKeys)
@@ -788,8 +839,7 @@ namespace dexih.operations
 				    view = hub.DexihViews.SingleOrDefault(c => c.Key == viewKey && c.IsValid);
 				    Hub.DexihViews.Add(view);
 				    
-				    if(view.SourceTableKey != null) AddTables(new [] {view.SourceDatalinkKey.Value}, hub);
-				    if(view.SourceDatalinkKey != null) AddDatalinks(new [] {view.SourceDatalinkKey.Value}, hub);
+				    LoadViewDependencies(view, hub);
 			    }
 		    }
 	    }
@@ -802,10 +852,37 @@ namespace dexih.operations
 			    if(view == null)
 			    {
 				    view = await dbContext.DexihViews.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == viewKey && c.IsValid);
+				    await LoadViewDependencies(view, dbContext);
 				    Hub.DexihViews.Add(view);
-				    
-				    if(view.SourceTableKey != null) await AddTables(new [] {view.SourceTableKey.Value}, dbContext);
-				    if(view.SourceDatalinkKey != null) await AddDatalinks(new [] {view.SourceDatalinkKey.Value}, dbContext);
+			    }
+		    }
+	    }
+	    
+	    public void AddDashboards(IEnumerable<long> dashboardKeys, DexihHub hub)
+	    {
+		    foreach (var dashboardKey in dashboardKeys)
+		    {
+			    var dashboard = Hub.DexihDashboards.SingleOrDefault(c => c.Key == dashboardKey);
+			    if(dashboard == null)
+			    {
+				    dashboard = hub.DexihDashboards.SingleOrDefault(c => c.Key == dashboardKey && c.IsValid);
+				    Hub.DexihDashboards.Add(dashboard);
+
+				    LoadDashboardDependencies(dashboard, hub);
+			    }
+		    }
+	    }
+	    
+	    public async Task AddDashboards(IEnumerable<long> dashboardKeys, DexihRepositoryContext dbContext)
+	    {
+		    foreach (var dashboardKey in dashboardKeys)
+		    {
+			    var dashboard = Hub.DexihDashboards.SingleOrDefault(c => c.Key == dashboardKey);
+			    if(dashboard == null)
+			    {
+				    dashboard = await dbContext.DexihDashboards.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == dashboardKey && c.IsValid);
+				    Hub.DexihDashboards.Add(dashboard);
+				    await LoadDashboardDependencies(dashboard, dbContext);
 			    }
 		    }
 	    }
@@ -841,6 +918,7 @@ namespace dexih.operations
 			    }
 		    }
 	    }
+	    
 		public async Task<DexihDatalink> GetDatalink(long datalinkKey, DexihRepositoryContext dbContext)
         {
 	        var datalinks = await GetDatalinks(new[] {datalinkKey}, dbContext);

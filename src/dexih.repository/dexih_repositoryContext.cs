@@ -165,6 +165,33 @@ namespace dexih.repository
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
             });
+            
+            modelBuilder.Entity<DexihApiParameter>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_api_parameters");
+
+                entity.ToTable("dexih_api_parameter");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("api_parameter_key");
+                entity.Property(e => e.ApiKey).HasColumnName("api_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.Value).HasColumnName("value");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.Api)
+                    .WithMany(p => p.Parameters)
+                    .HasForeignKey(d => d.ApiKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_parameters_dexih_datalinks");
+            });
                         
             modelBuilder.Entity<DexihColumnValidation>(entity =>
             {
@@ -353,6 +380,113 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_customfunction_customfunction_parameter");
             });
+            
+            modelBuilder.Entity<DexihDashboardItem>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_dashboard_items");
+
+                entity.ToTable("dexih_dashboard_item");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("dashboard_item_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.X).HasColumnName("x");
+                entity.Property(e => e.Y).HasColumnName("y");
+                entity.Property(e => e.Cols).HasColumnName("cols");
+                entity.Property(e => e.Rows).HasColumnName("rows");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.Dashboard)
+                    .WithMany(p => p.DexihDashboardItems)
+                    .HasForeignKey(d => d.DashboardKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_dashboard_items_dexih_dashboards");
+            });
+
+            modelBuilder.Entity<DexihDashboardParameter>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_dashboard_parameters");
+
+                entity.ToTable("dexih_dashboard_parameter");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("dashboard_parameter_key");
+                entity.Property(e => e.DashboardKey).HasColumnName("dashboard_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.Value).HasColumnName("value");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.Dashboard)
+                    .WithMany(p => p.Parameters)
+                    .HasForeignKey(d => d.DashboardKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_dashboard_parameters_dexih_dashboards");
+            });
+            
+            modelBuilder.Entity<DexihDashboardItemParameter>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_dashboard_item_parameters");
+
+                entity.ToTable("dexih_dashboard_item_parameter");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("dashboard_item_parameter_key");
+                entity.Property(e => e.DashboardItemKey).HasColumnName("dashboard_item_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.Value).HasColumnName("value");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.DashboardItem)
+                    .WithMany(p => p.Parameters)
+                    .HasForeignKey(d => d.DashboardItemKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_dashboard_item_parameter_dexih_dash_item");
+            });
+            
+            modelBuilder.Entity<DexihDashboard>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_dashboards");
+
+                entity.ToTable("dexih_dashboards");
+
+                entity.Property(e => e.Key).HasColumnName("table_key");
+				entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.MinCols).HasColumnName("min_cols");
+                entity.Property(e => e.MaxCols).HasColumnName("max_cols");
+                entity.Property(e => e.MinRows).HasColumnName("min_rows");
+                entity.Property(e => e.MaxRows).HasColumnName("max_rows");
+                entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
+
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1000);
+				entity.Property(e => e.IsShared).HasColumnName("is_shared");
+
+				entity.Property(e => e.CreateDate).HasColumnName("create_date");
+				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+            });
 
             modelBuilder.Entity<DexihDatajob>(entity =>
             {
@@ -515,6 +649,33 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkStepKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_deps_dl_step");
+            });
+            
+            modelBuilder.Entity<DexihDatalinkParameter>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_datalink_parameters");
+
+                entity.ToTable("dexih_datalink_parameter");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_parameter_key");
+                entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.Value).HasColumnName("value");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.Datalink)
+                    .WithMany(p => p.Parameters)
+                    .HasForeignKey(d => d.DatalinkKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_parameters_dexih_datalinks");
             });
 
             modelBuilder.Entity<DexihDatalinkProfile>(entity =>
@@ -1464,20 +1625,57 @@ namespace dexih.repository
                         v => v == null ? null : JsonConvert.SerializeObject(v),
                         v => v == null ? null : JsonConvert.DeserializeObject<InputColumn[]>(v));
 
+                entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
+                
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
             });
 
+            modelBuilder.Entity<DexihViewParameter>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_view_parameters");
+
+                entity.ToTable("dexih_view_parameter");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("view_parameter_key");
+                entity.Property(e => e.ViewKey).HasColumnName("view_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.Value).HasColumnName("value");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.View)
+                    .WithMany(p => p.Parameters)
+                    .HasForeignKey(d => d.ViewKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_views_dexih_views");
+            });
+            
         }
 
         public DbSet<DexihApi> DexihApis { get; set; }
+        public DbSet<DexihApiParameter> DexihApiParameters { get; set; }
         public DbSet<DexihColumnValidation> DexihColumnValidations { get; set; }
         public DbSet<DexihConnection> DexihConnections { get; set; }
 	    public DbSet<DexihCustomFunction> DexihCustomFunctions { get; set; }
+        public DbSet<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
+        
+        public DbSet<DexihDashboard> DexihDashboards { get; set; }
+        public DbSet<DexihDashboardItem> DexihDashboardItems { get; set; }
+        public DbSet<DexihDashboardParameter> DexihDashboardParameters { get; set; }
+        public DbSet<DexihDashboardItemParameter> DexihDashboardItemParameters { get; set; }
         public DbSet<DexihDatajob> DexihDatajobs { get; set; }
         public DbSet<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
+        public DbSet<DexihDatalinkParameter> DexihDatalinkParameters { get; set; }
         public DbSet<DexihDatalinkTable> DexihDatalinkTables { get; set; }
         public DbSet<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
         public DbSet<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
@@ -1501,6 +1699,7 @@ namespace dexih.repository
         public DbSet<DexihTableColumn> DexihTableColumns { get; set; }
         public DbSet<DexihTable> DexihTables { get; set; }
         public DbSet<DexihTrigger> DexihTriggers { get; set; }
+        public DbSet<DexihViewParameter> DexihViewParameters { get; set; }
 	    public DbSet<DexihView> DexihViews { get; set; }
     }
 }
