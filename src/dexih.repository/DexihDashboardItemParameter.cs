@@ -4,13 +4,11 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihDashboardItemParameter: DexihHubNamedEntity
+    public class DexihDashboardItemParameter: InputParameterBase
     {
         public DexihDashboardItemParameter()
         {
         }
-        
-        public string Value { get; set; }
         
         [CopyParentCollectionKey]
         public long DashboardItemKey { get; set; }

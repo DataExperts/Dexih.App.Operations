@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
 using System.Linq;
+using dexih.functions.Query;
 using dexih.transforms;
 using dexih.transforms.Transforms;
 
@@ -33,6 +34,7 @@ namespace dexih.repository
         {
             DexihDatalinkProfiles = new HashSet<DexihDatalinkProfile>();
             DexihDatalinkSteps = new HashSet<DexihDatalinkStep>();
+            DexihViews = new HashSet<DexihView>();
             DexihDatalinkTransforms = new HashSet<DexihDatalinkTransform>();
             DexihDatalinkTargets = new HashSet<DexihDatalinkTarget>();
             Parameters = new HashSet<DexihDatalinkParameter>();
@@ -83,6 +85,9 @@ namespace dexih.repository
         public ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
         
         [JsonIgnore, CopyIgnore]
+        public ICollection<DexihView> DexihViews { get; set; }
+        
+        [JsonIgnore, CopyIgnore]
         public DexihHub Hub { get; set; }
 
         //[JsonIgnore, CopyIgnore]
@@ -91,6 +96,22 @@ namespace dexih.repository
 	    [JsonIgnore, CopyReference]
         public DexihConnection AuditConnection { get; set; }
 
+        public void UpdateParameters(InputParameters inputParameters)
+        {
+            if (inputParameters == null || inputParameters.Count == 0 || Parameters == null || Parameters.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var parameter in Parameters)
+            {
+                var inputParameter = inputParameters.SingleOrDefault(c => c.Name == parameter.Name);
+                if (inputParameter != null)
+                {
+                    parameter.Value = inputParameter.Value;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the output columns (including join/passthrough columns for a transform).

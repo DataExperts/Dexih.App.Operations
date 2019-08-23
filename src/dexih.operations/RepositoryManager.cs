@@ -1862,36 +1862,7 @@ namespace dexih.operations
         #endregion
 
         #region Datajob Functions
-
-        public async Task<DexihDatajob[]> GetDatajobs(long hubKey, IEnumerable<long> datajobKeys)
-		{
-			try
-			{
-				var datajobs = await DbContext.DexihDatajobs
-								   .Include(t => t.DexihTriggers)
-								   .Include(s => s.DexihDatalinkSteps).ThenInclude(d => d.DexihDatalinkDependencies)
-								   .Where(j => datajobKeys.Contains(j.Key) && j.IsValid && j.HubKey == hubKey).ToArrayAsync();
-
-				return datajobs;
-			}
-            catch (Exception ex)
-            {
-                throw new RepositoryManagerException($"Get datajob with keys {string.Join(",", datajobKeys)} failed.  {ex.Message}", ex);
-            }
-
-        }
-
-		public async Task<DexihDatajob> GetDatajob(long hubKey, long datajobKey)
-		{
-			var datajobs = await GetDatajobs(hubKey, new[] {datajobKey});
-			if (datajobs.Length == 1)
-			{
-				return datajobs[0];
-			}
-
-			return null;
-		}
-
+        
         public async Task<DexihDatajob[]> SaveDatajobs(long hubKey, DexihDatajob[] hubDatajobs)
 		{
 			try
@@ -1953,7 +1924,8 @@ namespace dexih.operations
 					}
 					else
 					{
-						var originalDatajob = await GetDatajob(hubKey, datajob.Key);
+						var cacheManager = new CacheManager(hubKey, "", _logger);
+						var originalDatajob = await cacheManager.GetDatajob(datajob.Key, DbContext);
 
 						if(originalDatajob == null)
 						{
@@ -2939,10 +2911,10 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (api.Key > 0)
                 {
-                    dbApi = await DbContext.DexihApis.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == api.Key);
+                    dbApi = await DbContext.DexihApis.Include(c => c.Parameters).SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == api.Key);
                     if (dbApi != null)
                     {
-	                    api.CopyProperties(dbApi, true);
+	                    api.CopyProperties(dbApi, false);
                     }
                     else
                     {
@@ -3253,6 +3225,7 @@ namespace dexih.operations
 			var fileFormats = AddImportItems<DexihFileFormat>(hubKey, hub.DexihFileFormats, DbContext.DexihFileFormats, actions[ESharedObjectType.FileFormat]);
 			var apis = AddImportItems<DexihApi>(hubKey, hub.DexihApis, DbContext.DexihApis, actions[ESharedObjectType.Api]);
 			var views = AddImportItems<DexihView>(hubKey, hub.DexihViews, DbContext.DexihViews, actions[ESharedObjectType.View]);
+			var dashboards = AddImportItems<DexihDashboard>(hubKey, hub.DexihDashboards, DbContext.DexihDashboards, actions[ESharedObjectType.Dashboard]);
 			var datalinkTests = AddImportItems<DexihDatalinkTest>(hubKey, hub.DexihDatalinkTests, DbContext.DexihDatalinkTests, actions[ESharedObjectType.DatalinkTest]);
 
 			// update the table connection keys to the target connection keys, as these are required updated before matching
@@ -3272,6 +3245,7 @@ namespace dexih.operations
 			plan.FileFormats = fileFormats.importObjects;
 			plan.Apis = apis.importObjects;
 			plan.Views = views.importObjects;
+			plan.Dashboards = dashboards.importObjects;
 			plan.DatalinkTests = datalinkTests.importObjects;
 
 			long? UpdateConnectionKey(long? key)
@@ -3327,6 +3301,25 @@ namespace dexih.operations
 
 				return null;
 			}
+
+			long? UpdateViewKey(long? key)
+			{
+				if (key != null)
+				{
+					if (views.keyMappings.TryGetValue(key.Value, out var newKey))
+					{
+						return newKey;	
+					}
+					else
+					{
+						plan.Warnings.Add($"The view key {key} does not exist in the package.  This will need to be manually fixed after import.");
+						return null;
+					}
+				}
+
+				return null;
+			}
+
 			
 			// add the table column mappings
 			var tableColumnMappings = new Dictionary<long, long>();
@@ -3410,6 +3403,14 @@ namespace dexih.operations
 				}
 			}
 
+			foreach (var dashboard in dashboards.importObjects.Select(c => c.Item))
+			{
+				foreach (var item in dashboard.DexihDashboardItems)
+				{
+					item.ViewKey = UpdateViewKey(item.ViewKey) ?? default;
+				}
+			}
+
 		
 			foreach (var datalinkTest in datalinkTests.importObjects.Select(c => c.Item))
 			{
@@ -3433,7 +3434,7 @@ namespace dexih.operations
 				api.SourceDatalinkKey = UpdateDatalinkKey(api.SourceDatalinkKey);
 				api.SourceTableKey = UpdateTableKey(api.SourceTableKey);
 			}
-
+			
 			//loop through the datalinks again, and reset the other keys.
 			//this requires a second loop as a datalink can reference another datalink.
 			foreach (var datalink in datalinks.importObjects.Select(c => c.Item))
@@ -3656,12 +3657,26 @@ namespace dexih.operations
             var tables = import.Tables
                 .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
                 .ToDictionary(c => c.Key, c => c);
+            var columns = import.Tables.Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace)
+	            .SelectMany(c => c.Item.DexihTableColumns).ToDictionary(c => c.Key, c => c);
             var datalinks = import.Datalinks
                 .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
                 .ToDictionary(c => c.Key, c => c);
             var datajobs = import.Datajobs
                 .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
                 .ToDictionary(c => c.Key, c => c);
+            var datalinkTests = import.DatalinkTests
+	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+	            .ToDictionary(c => c.Key, c => c);
+            var apis = import.Apis
+	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+	            .ToDictionary(c => c.Key, c => c);
+            var views = import.Views
+	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+	            .ToDictionary(c => c.Key, c => c);
+            var dashboards = import.Dashboards
+	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+	            .ToDictionary(c => c.Key, c => c);
 
 			// reset all the keys
 			foreach (var hubVariable in hubVariables.Values)
@@ -3715,6 +3730,11 @@ namespace dexih.operations
 			foreach (var columnValidation in columnValidations.Values.Where(c=>c.Key <0))
 			{
 				columnValidation.Key = 0;
+
+				if (columnValidation.LookupColumnKey != null)
+				{
+					columnValidation.LookupColumn = columns.GetValueOrDefault(columnValidation.LookupColumnKey.Value);
+				}
 			}
 
 			foreach (var datalink in datalinks.Values)
@@ -3867,6 +3887,51 @@ namespace dexih.operations
             {
                 fileFormat.Key = 0;
             }
+            
+            foreach(var datalinkTest in datalinkTests.Values)
+            {
+	            if (datalinkTest.Key < 0) datalinkTest.Key = 0;
+
+	            // TODO Need to update datalink test import.
+	            
+//	            if (datalinkTest.AuditConnectionKey != null)
+//	            {
+//		            datalinkTest.AuditConnection = connections.GetValueOrDefault(datalinkTest.AuditConnectionKey.Value);
+//	            }
+//
+//	            foreach (var step in datalinkTest.DexihDatalinkTestSteps)
+//	            {
+//		            if (step.ExpectedConnectionKey != null)
+//		            {
+//			            datalinkTest.AuditConnection = connections.GetValueOrDefault(step.ExpectedConnectionKey.Value);
+//		            }
+//	            }
+            }
+            
+            foreach(var view in views.Values)
+            {
+	            if (view.Key < 0) view.Key = 0;
+
+	            if (view.SourceDatalinkKey != null)
+	            {
+		            view.SourceDatalink = datalinks.GetValueOrDefault(view.SourceDatalinkKey.Value);
+	            }
+
+	            if (view.SourceTableKey != null)
+	            {
+		            view.SourceTable = tables.GetValueOrDefault(view.SourceTableKey.Value);
+	            }
+            }
+
+            foreach (var dashboard in dashboards.Values)
+            {
+	            if (dashboard.Key < 0) dashboard.Key = 0;
+
+	            foreach (var item in dashboard.DexihDashboardItems)
+	            {
+		            item.View = views.GetValueOrDefault(item.ViewKey);
+	            }
+            }
 
             // set all existing datalink object to invalid.
             var datalinkTransforms = datalinks.Values.SelectMany(c => c.DexihDatalinkTransforms).Select(c=>c.Key);
@@ -3930,6 +3995,10 @@ namespace dexih.operations
 			await DbContext.AddRangeAsync(tables.Values);
 			await DbContext.AddRangeAsync(datalinks.Values);
 			await DbContext.AddRangeAsync(datajobs.Values);
+			await DbContext.AddRangeAsync(datalinkTests.Values);
+			await DbContext.AddRangeAsync(apis.Values);
+			await DbContext.AddRangeAsync(views.Values);
+			await DbContext.AddRangeAsync(dashboards.Values);
 
 			var entries = DbContext.ChangeTracker.Entries()
 				.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);

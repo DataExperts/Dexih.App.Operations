@@ -170,10 +170,10 @@ namespace dexih.operations
         /// <param name="functionClassName"></param>
         /// <param name="functionMethodName"></param>
         /// <param name="columnName"></param>
-        /// <param name="globalVariables"></param>
+        /// <param name="globalSettings"></param>
         /// <returns></returns>
         /// <exception cref="TransformManagerException"></exception>
-        public Mapping GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults, GlobalVariables globalVariables)
+        public Mapping GetProfileFunction(string functionAssemblyName, string functionClassName, string functionMethodName, string columnName, bool detailedResults, GlobalSettings globalSettings)
         {
             try
             {
@@ -194,7 +194,7 @@ namespace dexih.operations
                     ResultReturnParameters = new List<Parameter>() {new ParameterOutputColumn("value", DataType.ETypeCode.String)},
                     ResultOutputs = new List<Parameter>() {new ParameterOutputColumn("distribution", DataType.ETypeCode.Unknown)},
                 };
-                var profileFunction = new TransformFunction(profileObject, functionMethodName, null, parameters, globalVariables);
+                var profileFunction = new TransformFunction(profileObject, functionMethodName, null, parameters, globalSettings);
                 var mapFunction = new MapFunction(profileFunction, parameters, MapFunction.EFunctionCaching.NoCache);
                 return mapFunction;
             }
@@ -391,7 +391,7 @@ namespace dexih.operations
                         referenceTransform = joinTransformResult.sourceTransform;
                     }
                     
-                    var transform = datalinkTransform.GetTransform(hub, transformWriterOptions.GlobalVariables, _transformSettings, primaryTransform, referenceTransform, targetTable, _logger);
+                    var transform = datalinkTransform.GetTransform(hub, transformWriterOptions.GlobalSettings, _transformSettings, primaryTransform, referenceTransform, targetTable, _logger);
 
                     _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 
@@ -409,7 +409,7 @@ namespace dexih.operations
                     {
                         foreach (var column in targetTable.DexihTableColumns.Where(c => c.IsSourceColumn))
                         {
-                            var profileFunction = GetProfileFunction(profile.FunctionAssemblyName, profile.FunctionClassName, profile.FunctionMethodName, column.Name, profile.DetailedResults, transformWriterOptions.GlobalVariables);
+                            var profileFunction = GetProfileFunction(profile.FunctionAssemblyName, profile.FunctionClassName, profile.FunctionMethodName, column.Name, profile.DetailedResults, transformWriterOptions.GlobalSettings);
                             profileRules.Add(profileFunction);
                         }
                     }

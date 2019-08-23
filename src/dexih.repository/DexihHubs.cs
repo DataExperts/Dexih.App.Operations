@@ -36,6 +36,7 @@ namespace dexih.repository
             DexihDatalinkTests = new HashSet<DexihDatalinkTest>();
             DexihViews = new HashSet<DexihView>();
             DexihApis = new HashSet<DexihApi>();
+            DexihDashboards = new HashSet<DexihDashboard>();
         }
 
         [CopyCollectionKey((long)0, true)]

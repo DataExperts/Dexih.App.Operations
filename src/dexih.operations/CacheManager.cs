@@ -156,9 +156,17 @@ namespace dexih.operations
 				var datajobs = dbContext.DexihDatajobs
 					.Where(c => c.IsValid && c.HubKey == HubKey);
 
+				await dbContext.DexihDatajobParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
+				
 				await dbContext.DexihDatalinkStep
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .LoadAsync();
+				
+				await dbContext.DexihDatalinkStepParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey)
+					.LoadAsync();
 				
 				await dbContext.DexihDatalinkStepColumns
 					.Where(c => c.IsValid && c.HubKey == HubKey)
@@ -346,6 +354,9 @@ namespace dexih.operations
                 }
             }
 
+            await dbContext.Entry(hubDatalink).Collection(a => a.Parameters).Query()
+	            .Where(a => a.IsValid && hubDatalink.Key == a.DatalinkKey).LoadAsync();
+            
             await dbContext.Entry(hubDatalink).Collection(a => a.DexihDatalinkTransforms).Query().Where(a => a.IsValid && hubDatalink.Key == a.DatalinkKey)
                 .Include(c=>c.JoinDatalinkTable).OrderBy(c=>c.Position).LoadAsync();
 
@@ -474,15 +485,17 @@ namespace dexih.operations
         private async Task LoadDatajobDependencies(DexihDatajob hubDatajob, bool includeDependencies, DexihRepositoryContext dbContext)
         {
             await dbContext.Entry(hubDatajob).Collection(a => a.DexihTriggers).Query().Where(a => a.IsValid && hubDatajob.Key == a.DatajobKey).LoadAsync();
-            await dbContext.Entry(hubDatajob).Collection(a => a.DexihDatalinkSteps).Query().Include(c=>c.DexihDatalinkStepColumns).Where(a => a.IsValid && hubDatajob.Key == a.DatajobKey).LoadAsync();
-
+            await dbContext.Entry(hubDatajob).Collection(a => a.DexihDatalinkSteps).Query().Include(c=> c.Parameters).Include(c=>c.DexihDatalinkStepColumns).Where(a => a.IsValid && hubDatajob.Key == a.DatajobKey).LoadAsync();
+            await dbContext.Entry(hubDatajob).Collection(a => a.Parameters).Query().Where(c => c.HubKey == hubDatajob.HubKey && c.IsValid)
+	            .Where(a => a.IsValid && hubDatajob.Key == a.DatajobKey).LoadAsync();
+            
             if(includeDependencies)
             {
                 if (hubDatajob.AuditConnectionKey != null)
                 {
                     await AddConnections(new[] {hubDatajob.AuditConnectionKey.Value}, false, dbContext);
                 }
-
+                
                 await AddDatalinks(hubDatajob.DexihDatalinkSteps.Where(c => c != null).Select(c => c.DatalinkKey.Value).ToArray(), dbContext);
             }
         }
@@ -941,6 +954,11 @@ namespace dexih.operations
 
 	            var datalinkTableKeys = datalinks.Select(c => c.SourceDatalinkTableKey).ToList();
 
+	            await dbContext.DexihDatalinkParameters
+		            // .Include(c => c.ProfileRule)
+		            .Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
+		            .LoadAsync();
+	            
 	            await dbContext.DexihDatalinkProfiles
 		            // .Include(c => c.ProfileRule)
 		            .Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey && datalinkKeys.Contains(c.DatalinkKey))
@@ -1010,6 +1028,57 @@ namespace dexih.operations
 
         }
 
+			public async Task<DexihDatajob> GetDatajob(long datajobKey, DexihRepositoryContext dbContext)
+        {
+	        var datajobs = await GetDatajobs(new[] {datajobKey}, dbContext);
+
+	        if (datajobs.Any())
+	        {
+		        return datajobs[0];
+	        }
+
+	        throw new RepositoryManagerException($"A datajob with the key {datajobKey} could not be found.");
+        }
+		
+		public async Task<DexihDatajob[]> GetDatajobs(IEnumerable<long> datajobKeys, DexihRepositoryContext dbContext)
+		{
+            try
+            {
+	            var datajobs = await dbContext.DexihDatajobs
+		            .Where(c => c.IsValid && c.HubKey == HubKey && datajobKeys.Contains(c.Key))
+		            .ToArrayAsync();
+
+	            await dbContext.DexihDatajobParameters
+		            .Where(c => c.IsValid && c.Datajob.IsValid && c.Datajob.HubKey == HubKey && datajobKeys.Contains(c.DatajobKey))
+		            .LoadAsync();
+
+	            await dbContext.DexihTriggers
+		            .Where(c => c.IsValid && c.Datajob.IsValid && c.Datajob.HubKey == HubKey && datajobKeys.Contains(c.DatajobKey))
+		            .LoadAsync();
+
+	            var steps = await dbContext.DexihDatalinkStep
+		            .Where(c => c.IsValid && c.Datajob.IsValid && c.Datajob.HubKey == HubKey && datajobKeys.Contains(c.DatajobKey))
+		            .ToHashSetAsync();
+
+	            var stepKeys = steps.Select(c => c.Key).ToArray();
+
+	            await dbContext.DexihDatalinkStepParameters
+		            .Where(c => c.IsValid && c.DatalinkStep.IsValid && c.DatalinkStep.HubKey == HubKey && stepKeys.Contains(c.DatalinkStepKey))
+		            .LoadAsync();
+
+	            await dbContext.DexihDatalinkDependencies
+		            .Where(c => c.IsValid && c.DatalinkStep.IsValid && c.DatalinkStep.HubKey == HubKey && (stepKeys.Contains(c.DatalinkStepKey) || stepKeys.Contains((c.DependentDatalinkStepKey))))
+		            .LoadAsync();
+
+	            return datajobs;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Get datajobs with keys {string.Join(", ", datajobKeys)} failed.  {ex.Message}", ex);
+            }
+
+        }
+		
 	    public async Task<DexihDatalinkTest> GetDatalinkTest(long datalinkTestKey, DexihRepositoryContext dbContext)
 	    {
 		    var datalinkTest = await dbContext.DexihDatalinkTests.Include(c => c.DexihDatalinkTestSteps)

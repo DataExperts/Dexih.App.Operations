@@ -4,17 +4,17 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihViewParameter: InputParameterBase
+    public class DexihDatalinkStepParameter: InputParameterBase
     {
-        public DexihViewParameter()
+        public DexihDatalinkStepParameter()
         {
         }
         
         [CopyParentCollectionKey]
-        public long ViewKey { get; set; }
+        public long DatalinkStepKey { get; set; }
 
         [JsonIgnore, CopyIgnore]
-        public DexihView View { get; set; }
+        public DexihDatalinkStep DatalinkStep { get; set; }
 
     }
 }

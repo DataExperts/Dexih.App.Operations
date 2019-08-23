@@ -8,7 +8,6 @@ namespace dexih.repository
     {
         public DexihDatalinkTest() => DexihDatalinkTestSteps = new HashSet<DexihDatalinkTestStep>();
 
-        
         public long? AuditConnectionKey { get; set; }
         
         public ICollection<DexihDatalinkTestStep> DexihDatalinkTestSteps { get; set; }

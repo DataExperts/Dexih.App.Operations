@@ -4,13 +4,11 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihApiParameter: DexihHubNamedEntity
+    public class DexihApiParameter: InputParameterBase
     {
         public DexihApiParameter()
         {
         }
-        
-        public string Value { get; set; }
         
         [CopyParentCollectionKey]
         public long ApiKey { get; set; }

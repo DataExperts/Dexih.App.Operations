@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
@@ -34,5 +35,21 @@ namespace dexih.repository
         
         public ICollection<DexihApiParameter> Parameters { get; set; }
         
+        public void UpdateParameters(InputParameters inputParameters)
+        {
+            if (inputParameters == null || inputParameters.Count == 0 || Parameters == null || Parameters.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var parameter in Parameters)
+            {
+                var inputParameter = inputParameters.SingleOrDefault(c => c.Name == parameter.Name);
+                if (inputParameter != null)
+                {
+                    parameter.Value = inputParameter.Value;
+                }
+            }
+        }
     }
 }

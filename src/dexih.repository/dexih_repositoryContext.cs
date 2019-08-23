@@ -390,7 +390,8 @@ namespace dexih.repository
 
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Key).HasColumnName("dashboard_item_key");
-
+                entity.Property(e => e.DashboardKey).HasColumnName("dashboard_key");
+                
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 
@@ -398,6 +399,9 @@ namespace dexih.repository
                 entity.Property(e => e.Y).HasColumnName("y");
                 entity.Property(e => e.Cols).HasColumnName("cols");
                 entity.Property(e => e.Rows).HasColumnName("rows");
+                entity.Property(e => e.Header).HasColumnName("header");
+                entity.Property(e => e.Scrollable).HasColumnName("scrollable");
+                entity.Property(e => e.ViewKey).HasColumnName("view_key");
                 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -522,6 +526,33 @@ namespace dexih.repository
                     .WithMany(p => p.DexihDatajobAuditConnections)
                     .HasForeignKey(d => d.AuditConnectionKey)
                     .HasConstraintName("FK_dexih_datajobs_audit_connection");
+            });
+            
+            modelBuilder.Entity<DexihDatajobParameter>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_datajob_parameters");
+
+                entity.ToTable("dexih_datajob_parameter");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("datajob_parameter_key");
+                entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.Value).HasColumnName("value");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.Datajob)
+                    .WithMany(p => p.Parameters)
+                    .HasForeignKey(d => d.DatajobKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datajob_parameters_dexih_datajob_parameters");
             });
 
             modelBuilder.Entity<DexihDatalinkColumn>(entity =>
@@ -737,7 +768,34 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_step_dexih_datalinks");
-            });            
+            });        
+            
+            modelBuilder.Entity<DexihDatalinkStepParameter>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_datalink_step_parameters");
+
+                entity.ToTable("dexih_datalink_step_parameter");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Key).HasColumnName("datalink_step_parameter_key");
+                entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
+
+                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                entity.Property(e => e.Value).HasColumnName("value");
+                
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+
+                entity.HasOne(d => d.DatalinkStep)
+                    .WithMany(p => p.Parameters)
+                    .HasForeignKey(d => d.DatalinkStepKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_step_parameters_dexih_datalinks_steps");
+            });
             
             modelBuilder.Entity<DexihDatalinkStepColumn>(entity =>
             {
@@ -1582,7 +1640,8 @@ namespace dexih.repository
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
-                entity.HasOne(d => d.Datajob).WithMany(p => p.DexihTriggers)
+                entity.HasOne(d => d.Datajob)
+                    .WithMany(p => p.DexihTriggers)
                     .HasForeignKey(d => d.DatajobKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_triggers_dexih_datajobs");
@@ -1630,6 +1689,18 @@ namespace dexih.repository
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                
+                entity.HasOne(d => d.SourceDatalink)
+                    .WithMany(p => p.DexihViews)
+                    .HasForeignKey(d => d.SourceDatalinkKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_datalink_view_dexih_datalinks");
+
+                entity.HasOne(d => d.SourceTable)
+                    .WithMany(p => p.DexihViews)
+                    .HasForeignKey(d => d.SourceTableKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_table_view_dexih_tables");
 
             });
 
@@ -1674,12 +1745,14 @@ namespace dexih.repository
         public DbSet<DexihDashboardParameter> DexihDashboardParameters { get; set; }
         public DbSet<DexihDashboardItemParameter> DexihDashboardItemParameters { get; set; }
         public DbSet<DexihDatajob> DexihDatajobs { get; set; }
+        public DbSet<DexihDatajobParameter> DexihDatajobParameters { get; set; }
         public DbSet<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
         public DbSet<DexihDatalinkParameter> DexihDatalinkParameters { get; set; }
         public DbSet<DexihDatalinkTable> DexihDatalinkTables { get; set; }
         public DbSet<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
         public DbSet<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
         public DbSet<DexihDatalinkStep> DexihDatalinkStep { get; set; }
+        public DbSet<DexihDatalinkStepParameter> DexihDatalinkStepParameters { get; set; }
 	    public DbSet<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
         public DbSet<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
 	    public DbSet<DexihDatalinkTest> DexihDatalinkTests { get; set; }

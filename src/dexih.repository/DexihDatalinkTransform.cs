@@ -112,7 +112,7 @@ namespace dexih.repository
             return columns;
         }
 
-        public Transform GetTransform(DexihHub hub, GlobalVariables globalVariables, TransformSettings transformSettings, Transform primaryTransform, Transform referenceTransform, DexihTable targetTable, ILogger logger = null)
+        public Transform GetTransform(DexihHub hub, GlobalSettings globalSettings, TransformSettings transformSettings, Transform primaryTransform, Transform referenceTransform, DexihTable targetTable, ILogger logger = null)
         {
             try
             {
@@ -211,7 +211,7 @@ namespace dexih.repository
                             break;
                         case DexihDatalinkTransformItem.ETransformItemType.BuiltInFunction:
                         case DexihDatalinkTransformItem.ETransformItemType.CustomFunction:
-                            var func = item.CreateFunctionMethod(hub, globalVariables, false, logger);
+                            var func = item.CreateFunctionMethod(hub, globalSettings, false, logger);
                             if (TransformType == ETransformType.Validation)
                             {
                                 mappings.Add(new MapValidation(func.function, func.parameters));

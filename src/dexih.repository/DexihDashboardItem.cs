@@ -14,7 +14,10 @@ namespace dexih.repository
         public int Rows { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
-        
+
+        public bool Header { get; set; }
+        public bool Scrollable { get; set; }
+
         public long ViewKey { get; set; }
         
         [JsonIgnore, CopyIgnore]

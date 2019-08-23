@@ -13,6 +13,7 @@ namespace dexih.repository
             DexihDatalinkDependencies = new HashSet<DexihDatalinkDependency>();
             DexihDatalinkDependentSteps = new HashSet<DexihDatalinkDependency>();
             DexihDatalinkStepColumns = new HashSet<DexihDatalinkStepColumn>();
+            Parameters = new HashSet<DexihDatalinkStepParameter>();
         }
 
 
@@ -35,5 +36,7 @@ namespace dexih.repository
         
         [JsonIgnore, CopyIgnore]
         public DexihDatalink Datalink { get; set; }
+        
+        public ICollection<DexihDatalinkStepParameter> Parameters { get; set; }
     }
 }

@@ -28,7 +28,13 @@ namespace dexih.repository
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceDatalinkKey { get; set; }
-	    
+
+        [JsonIgnore, CopyIgnore]
+        public DexihTable SourceTable { get; set; }
+
+        [JsonIgnore, CopyIgnore]
+        public DexihDatalink SourceDatalink { get; set; }
+
         public ESourceType SourceType { get; set; }
         
         public bool AutoRefresh { get; set; }

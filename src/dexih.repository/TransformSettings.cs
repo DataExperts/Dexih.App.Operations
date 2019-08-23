@@ -11,6 +11,8 @@ namespace dexih.repository
     public class TransformSettings
     {
         public DexihHubVariable[] HubVariables { get; set; }
+        
+        public InputParameterBase[] InputParameters { get; set; }
         public RemoteSettings RemoteSettings { get; set; }
 
         public bool HasVariables()
@@ -62,28 +64,40 @@ namespace dexih.repository
                 if (openStart >= 0 && character == '}')
                 {
                     var name = value.Substring(openStart + 1, pos - openStart - 1);
-                    var variable = HubVariables.SingleOrDefault(c => c.Name == name);
-                    if (variable == null)
-                    {
-                        openStart = -1;
-                    }
-                    else
+                    string variableValue = null;
+                    var variable = HubVariables?.SingleOrDefault(c => c.Name == name);
+                    if (variable != null)
                     {
                         if (!allowSecureVariables && (variable.IsEncrypted || variable.IsEnvironmentVariable))
                         {
                             throw new Exception($"The variable {variable.Name} could not be used as encrypted or environment variables are not available for this parameter.");
                         }
-                        
+
+                        variableValue = variable.GetValue(RemoteSettings.AppSettings.EncryptionKey,
+                            RemoteSettings.SystemSettings.EncryptionIterations);
+                    }
+                    else
+                    {
+                        var parameter = InputParameters?.SingleOrDefault(c => c.Name == name);
+                        if (parameter != null)
+                        {
+                            variableValue = parameter.Value;
+                        }
+                    }
+                    
+                    if (variableValue != null)
+                    {
                         if (newValue == null)
                         {
                             newValue = new StringBuilder();
                         }
-
+                            
                         newValue.Append(value.Substring(previousPos, openStart - previousPos));
-                        newValue.Append(variable.GetValue(RemoteSettings.AppSettings.EncryptionKey, RemoteSettings.SystemSettings.EncryptionIterations));
+                        newValue.Append(variableValue);
                         previousPos = pos + 1;
-                        openStart = -1;
                     }
+                    
+                    openStart = -1;
                 }
             }
 

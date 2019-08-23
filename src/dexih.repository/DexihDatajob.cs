@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
 using System.Linq;
+using dexih.functions.Query;
 
 namespace dexih.repository
 {
@@ -21,6 +22,7 @@ namespace dexih.repository
         {
             DexihDatalinkSteps = new HashSet<DexihDatalinkStep>();
             DexihTriggers = new HashSet<DexihTrigger>();
+            Parameters = new HashSet<DexihDatajobParameter>();
         }
 
         public EFailAction FailAction { get; set; }
@@ -50,5 +52,24 @@ namespace dexih.repository
 
         public DexihDatalinkStep GetDatalinkStep(long datalinkStepKey) => DexihDatalinkSteps.SingleOrDefault(step => step.Key == datalinkStepKey);
         public DexihTrigger GetTrigger(long triggerKey) => DexihTriggers.SingleOrDefault(trigger => trigger.Key == triggerKey);
+        
+        public ICollection<DexihDatajobParameter> Parameters { get; set; }
+
+        public void UpdateParameters(InputParameters inputParameters)
+        {
+            if (inputParameters == null || inputParameters.Count == 0 || Parameters == null || Parameters.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var parameter in Parameters)
+            {
+                var inputParameter = inputParameters.SingleOrDefault(c => c.Name == parameter.Name);
+                if (inputParameter != null)
+                {
+                    parameter.Value = inputParameter.Value;
+                }
+            }
+        }
     }
 }

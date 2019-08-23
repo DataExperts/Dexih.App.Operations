@@ -168,7 +168,7 @@ namespace dexih.operations
             public SharedData.EObjectType ObjectType { get; set; }
             public long ObjectKey { get; set; }
             public SelectQuery Query { get; set; }
-            public InputParameters Parameters { get; set; }
+            public InputParameters InputParameters { get; set; }
             public InputColumn[] InputColumns { get; set; }
 
             // used when downloading data from a specific a transform data.

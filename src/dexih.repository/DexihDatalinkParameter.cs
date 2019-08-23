@@ -4,13 +4,11 @@ using Newtonsoft.Json;
 
 namespace dexih.repository
 {
-    public class DexihDatalinkParameter: DexihHubNamedEntity
+    public class DexihDatalinkParameter: InputParameterBase
     {
         public DexihDatalinkParameter()
         {
         }
-        
-        public string Value { get; set; }
         
         [CopyParentCollectionKey]
         public long DatalinkKey { get; set; }

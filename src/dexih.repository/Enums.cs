@@ -30,6 +30,7 @@ namespace dexih.repository
         DatalinkTest,
         View,
         Api,
-        ApiStatus
+        ApiStatus,
+        Dashboard
     }
 }

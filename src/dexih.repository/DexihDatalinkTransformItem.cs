@@ -136,7 +136,7 @@ namespace dexih.repository
         /// Creates a reference to a compiled version of the mapping function.
         /// </summary>
         /// <returns></returns>
-        public (TransformFunction function, Parameters parameters) CreateFunctionMethod(DexihHub hub, GlobalVariables globalVariables, bool createConsoleSample = false, ILogger logger = null)
+        public (TransformFunction function, Parameters parameters) CreateFunctionMethod(DexihHub hub, GlobalSettings globalSettings, bool createConsoleSample = false, ILogger logger = null)
 		{
 			try
 			{
@@ -227,7 +227,7 @@ namespace dexih.repository
 				if (!string.IsNullOrEmpty(FunctionClassName))
 				{
                     var genericType = GenericTypeCode == null ? null : DataType.GetType(GenericTypeCode.Value);
-					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction(genericType, parameters, globalVariables);
+					function = Functions.GetFunction(FunctionClassName, FunctionMethodName, FunctionAssemblyName).GetTransformFunction(genericType, parameters, globalSettings);
 				}
 				else
 				{

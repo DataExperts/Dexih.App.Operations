@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using static dexih.repository.DexihDatajob;
 using static dexih.transforms.TransformWriterResult;
 using System.Threading.Tasks.Dataflow;
+using dexih.functions.Query;
+using Dexih.Utils.CopyProperties;
 using Dexih.Utils.ManagedTasks;
 using Microsoft.Extensions.Logging;
 
@@ -172,19 +174,39 @@ namespace dexih.operations
 				{
 					throw new DatajobRunException($"Failed to set status");
 				}
+				
+				var inputParameters = new InputParameters();
+				foreach (var parameter in Datajob.Parameters)
+				{
+					inputParameters.Add(new InputParameter() {Name = parameter.Name, Value =  parameter.Value});
+				}
 
 				//start all jobs async
 				foreach (var step in Datajob.DexihDatalinkSteps.Where(c => c.IsValid))
 				{
 					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.Key == step.DatalinkKey);
+					
 
 					if (datalink == null)
 					{
 						throw new DatajobRunException($"The step {step.Name} contains a datalink with the key {step.DatalinkKey} which can not be found.");
 					}
 
+					foreach(var parameter in step.Parameters)
+					{
+						parameter.Value = inputParameters.SetParameters(parameter.Value);
+					}
+
+					var transformSettings = new TransformSettings
+					{
+						HubVariables = _transformSettings.HubVariables,
+						RemoteSettings = _transformSettings.RemoteSettings,
+						InputParameters = step.Parameters.ToArray()
+					};
+					
 					var inputColumns = step.DexihDatalinkStepColumns.Select(c => c.ToInputColumn()).ToArray();
-					var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, inputColumns, _transformWriterOptions) { DatalinkStepKey = step.Key};
+					
+					var datalinkRun = new DatalinkRun(transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, inputColumns, _transformWriterOptions) { DatalinkStepKey = step.Key};
 
 					DatalinkSteps.Add(datalinkRun);
 
