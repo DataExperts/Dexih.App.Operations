@@ -160,6 +160,8 @@ namespace dexih.repository
                         v => v == null ? null : JsonConvert.SerializeObject(v),
                         v => v == null ? null : JsonConvert.DeserializeObject<SelectQuery>(v));
 
+                entity.Property(e => e.IsShared).HasColumnName("is_shared");
+
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
@@ -1685,7 +1687,9 @@ namespace dexih.repository
                         v => v == null ? null : JsonConvert.DeserializeObject<InputColumn[]>(v));
 
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
-                
+
+                entity.Property(e => e.IsShared).HasColumnName("is_shared");
+
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");

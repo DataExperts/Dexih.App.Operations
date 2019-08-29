@@ -116,7 +116,7 @@ namespace dexih.operations
                         case ECleanAction.Truncate:
                             if (ColumnValidation.MaxLength == null)
                                 return (false, null, "The clean rule for " + ColumnValidation.Name + " failed to truncate as a MaxLength value has not been set.");
-                            cleanedValue = value.ToString().Substring(0, (int)ColumnValidation.MaxLength);
+                            cleanedValue = value?.ToString().Substring(0, (int)ColumnValidation.MaxLength);
                             break;
                         case ECleanAction.OriginalValue:
                             cleanedValue = value;
@@ -214,7 +214,8 @@ namespace dexih.operations
 
                 if (ColumnValidation.LookupColumnKey != null && _lookupValues != null)
                 {
-                    if (!_lookupValues.Contains(value))
+                    var convertedValue = Operations.Parse(_lookupColumn.DataType, _lookupColumn.Rank, value);
+                    if (!_lookupValues.Contains(convertedValue))
                     {
                         return (false, $"The value {value} could not be found on the lookup table {_lookupTable?.Name} column {_lookupColumn?.Name}");
                     }

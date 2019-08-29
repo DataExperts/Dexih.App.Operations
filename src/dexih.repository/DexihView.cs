@@ -48,6 +48,8 @@ namespace dexih.repository
         [CopyReference]
         public ChartConfig ChartConfig { get; set; }
         
+        public bool IsShared { get; set; }
+        
         public ICollection<DexihViewParameter> Parameters { get; set; }
 
     }

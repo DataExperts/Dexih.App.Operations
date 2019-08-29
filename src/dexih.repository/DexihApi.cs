@@ -35,6 +35,9 @@ namespace dexih.repository
         
         public ICollection<DexihApiParameter> Parameters { get; set; }
         
+        public bool IsShared { get; set; }
+
+        
         public void UpdateParameters(InputParameters inputParameters)
         {
             if (inputParameters == null || inputParameters.Count == 0 || Parameters == null || Parameters.Count == 0)

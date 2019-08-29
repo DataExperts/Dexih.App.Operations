@@ -9,6 +9,7 @@ namespace dexih.repository
         [CopyIfTargetDefault]
         public DateTime CreateDate { get; set; }
         public DateTime UpdateDate { get; set; }
+        
 
         [CopyIsValid]
         public bool IsValid { get; set; } = true;

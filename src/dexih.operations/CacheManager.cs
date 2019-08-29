@@ -284,6 +284,33 @@ namespace dexih.operations
 		    AddColumnValidations(columnValidationKeys, hub);
 	    }
 
+	    public async Task LoadTableDependencies(DexihTable table, DexihRepositoryContext dbContext)
+	    {
+		    await AddConnections(new [] {table.ConnectionKey}, false, dbContext);
+
+		    var columnValidationKeys = table.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
+		    await AddColumnValidations(columnValidationKeys, dbContext);
+		    
+		    if (table.FileFormatKey != null)
+		    {
+			    AddFileFormats(new[] {table.FileFormatKey.Value}, dbContext);
+		    }
+	    }
+	    
+	    public void LoadTableDependencies(DexihTable table, DexihHub hub)
+	    {
+		    AddConnections(new [] {table.ConnectionKey}, false, hub);
+
+		    var columnValidationKeys = table.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
+		    AddColumnValidations(columnValidationKeys, hub);
+
+		    if (table.FileFormatKey != null)
+		    {
+			    AddFileFormats(new[] {table.FileFormatKey.Value}, hub);
+		    }
+	    }
+
+	    
 	    public async Task LoadViewDependencies(DexihView view, DexihRepositoryContext dbContext)
 	    {
 		    await dbContext.Entry(view).Collection(a => a.Parameters).Query().Where(c => c.IsValid && view.Key == c.ViewKey)
@@ -482,7 +509,7 @@ namespace dexih.operations
 	    }
 	    
 
-        private async Task LoadDatajobDependencies(DexihDatajob hubDatajob, bool includeDependencies, DexihRepositoryContext dbContext)
+	    public async Task LoadDatajobDependencies(DexihDatajob hubDatajob, bool includeDependencies, DexihRepositoryContext dbContext)
         {
             await dbContext.Entry(hubDatajob).Collection(a => a.DexihTriggers).Query().Where(a => a.IsValid && hubDatajob.Key == a.DatajobKey).LoadAsync();
             await dbContext.Entry(hubDatajob).Collection(a => a.DexihDatalinkSteps).Query().Include(c=> c.Parameters).Include(c=>c.DexihDatalinkStepColumns).Where(a => a.IsValid && hubDatajob.Key == a.DatajobKey).LoadAsync();
@@ -500,7 +527,7 @@ namespace dexih.operations
             }
         }
 	    
-	    private void LoadDatajobDependencies(DexihDatajob hubDatajob, DexihHub hub)
+        public void LoadDatajobDependencies(DexihDatajob hubDatajob, DexihHub hub)
 	    {
 			if (hubDatajob.AuditConnectionKey != null)
 			{
@@ -510,16 +537,16 @@ namespace dexih.operations
 			AddDatalinks(hubDatajob.DexihDatalinkSteps.Where(c => c.DatalinkKey != null).Select(c => c.DatalinkKey.Value).ToArray(), hub);
 	    }
 
-        private async Task LoadColumnValidationDependencies(DexihColumnValidation columnValidation, DexihRepositoryContext dbContext)
+        public async Task LoadColumnValidationDependencies(DexihColumnValidation columnValidation, DexihRepositoryContext dbContext)
         {
             if(columnValidation.LookupColumnKey != null)
             {
                 var column = await dbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.Key == columnValidation.LookupColumnKey);
-                await AddTables(new[] { column.GetParentTableKey() }, dbContext);
+                await AddTables(new[] { column.TableKey.Value }, dbContext);
             }
         }
 	    
-	    private void LoadColumnValidationDependencies(DexihColumnValidation columnValidation, DexihHub hub)
+        public void LoadColumnValidationDependencies(DexihColumnValidation columnValidation, DexihHub hub)
 	    {
 		    if(columnValidation.LookupColumnKey != null)
 		    {
@@ -617,16 +644,17 @@ namespace dexih.operations
 		            {
 			            throw new CacheManagerException($"Could not find the table with the key {tableKey}.");
 		            }
+
 		            await LoadTableColumns(hubTable, dbContext);
 
 		            await AddConnections(new long[] { hubTable.ConnectionKey }, false, dbContext);
-		            var connection = Hub.DexihConnections.SingleOrDefault(c => c.Key == hubTable.ConnectionKey);
 
 	                
 		            if(hubTable.FileFormatKey != null)
 		            {
 			            await AddFileFormats(new []{hubTable.FileFormatKey.Value}, dbContext);
 		            }
+		            Hub.DexihTables.Add(hubTable);
 	            }
             }
         }

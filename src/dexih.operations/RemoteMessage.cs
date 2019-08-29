@@ -46,7 +46,7 @@ namespace dexih.operations
             Exception = returnValue.Exception;
         }
 
-        public RemoteMessage(string securityToken, string messageId, string method, KeyValuePair[] parameters, JToken value)
+        public RemoteMessage(string securityToken, string messageId, string method, JToken value)
         {
             SecurityToken = securityToken;
             MessageId = messageId;
@@ -55,61 +55,26 @@ namespace dexih.operations
             Message = "";
             Exception = null;
             Value = value;
-            Parameters = parameters;
         }
 
+        /// <summary>
+        /// Unique id for the message
+        /// </summary>
         public string MessageId { get; set; }
+        
+        /// <summary>
+        /// Secure token for the remote agent
+        /// </summary>
         public string SecurityToken { get; set; }
+        
+        /// <summary>
+        /// Method being called
+        /// </summary>
         public string Method { get; set; }
-        public KeyValuePair[] Parameters { get; set; }
         public long HubKey { get; set; }
-        public string RemoteAgentId { get; set; }
         public long? TimeOut { get; set; }
-
         public DexihHubVariable[] HubVariables { get; set; }
 
-        public string GetParameter(string key)
-        {
-            if (Parameters == null)
-            {
-                return null;
-            }
-
-            foreach (var parameter in Parameters)
-            {
-                if (parameter.Key == key)
-                {
-                    return parameter.Value;
-                }
-            }
-
-            return null;
-
-        }
-
-        public string GetParametersDetails()
-        {
-            if (Parameters == null)
-            {
-                return "";
-            }
-
-            var parameters = string.Join(",", Parameters.Select(c => c.Key + "=" + c.Value));
-            return parameters;
-        }
     }
 
-    public class KeyValuePair
-    {
-        public KeyValuePair() { }
-
-        public KeyValuePair(string key, string value)
-        {
-            Key = key;
-            Value = value;
-        }
-
-        public string Key { get; set; }
-        public string Value { get; set; }
-    }
 }
