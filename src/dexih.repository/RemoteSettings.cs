@@ -36,7 +36,10 @@ namespace dexih.repository
         public bool RequiresUserInput()
         {
             if (AppSettings.UserPrompt) return true;
-            if (string.IsNullOrEmpty(AppSettings.User) || string.IsNullOrEmpty(AppSettings.UserToken)) return true;
+            if (string.IsNullOrEmpty(AppSettings.User) || (string.IsNullOrEmpty(AppSettings.UserToken) && string.IsNullOrEmpty(Runtime.Password)))
+            {
+                return true;
+            }
             
             return false;
         }

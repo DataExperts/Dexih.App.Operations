@@ -192,7 +192,7 @@ namespace dexih.repository
                     .WithMany(p => p.Parameters)
                     .HasForeignKey(d => d.ApiKey)
                     .OnDelete(DeleteBehavior.Restrict)
-                    .HasConstraintName("FK_dexih_datalink_parameters_dexih_datalinks");
+                    .HasConstraintName("FK_dexih_api_parameters_dexih_datalinks");
             });
                         
             modelBuilder.Entity<DexihColumnValidation>(entity =>

@@ -186,8 +186,8 @@ namespace dexih.repository
 					switch (parameter.Direction)
 					{
 						case DexihParameterBase.EParameterDirection.Input:
-						case DexihParameterBase.EParameterDirection.Join:
-							inputs.Add(newParameter);
+                        case DexihParameterBase.EParameterDirection.Join:
+                            inputs.Add(newParameter);
 							break;
 						case DexihParameterBase.EParameterDirection.Output:
 							outputs.Add(newParameter);
@@ -204,9 +204,8 @@ namespace dexih.repository
 						case DexihParameterBase.EParameterDirection.ResultReturnValue:
 							resultReturnParameters.Add(newParameter);
 							break;
-						
-					}
-				}
+                    }
+                }
 
 				// var returnParameter = TargetDatalinkColumn == null ? null : new ParameterOutputColumn("return", TargetDatalinkColumn.GetTableColumn(null));
 
@@ -216,7 +215,7 @@ namespace dexih.repository
 					ResultInputs = resultInputs, 
 					ResultOutputs = resultOutputs, 
 					ReturnParameters = returnParameters,
-					ResultReturnParameters = resultReturnParameters
+					ResultReturnParameters = resultReturnParameters,
 				};
 				
 //				var inputsArray = inputs.ToArray();
