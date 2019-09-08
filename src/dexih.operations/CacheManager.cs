@@ -293,7 +293,7 @@ namespace dexih.operations
 		    
 		    if (table.FileFormatKey != null)
 		    {
-			    AddFileFormats(new[] {table.FileFormatKey.Value}, dbContext);
+			    await AddFileFormats(new[] {table.FileFormatKey.Value}, dbContext);
 		    }
 	    }
 	    

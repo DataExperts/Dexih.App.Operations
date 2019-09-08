@@ -94,7 +94,7 @@ namespace dexih.operations
                         };
                         
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(_cache.Hub, dbDatalink, downloadObject.InputColumns, null, downloadObject.DatalinkTransformKey, transformWriterOptions);
+                        var runPlan = transformManager.CreateRunPlan(_cache.Hub, dbDatalink, downloadObject.InputColumns, downloadObject.DatalinkTransformKey, null, transformWriterOptions);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)

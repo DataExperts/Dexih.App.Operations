@@ -464,7 +464,6 @@ namespace dexih.operations
 			}
 
 			var sharedData = new List<SharedData>();
-			var counter = 0;
 			var search = searchString?.ToLower();
 			var noSearch = string.IsNullOrEmpty(search);
 
