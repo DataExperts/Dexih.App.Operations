@@ -1,17 +1,18 @@
 ﻿using System;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-    [Serializable]
+    [ProtoContract]
     public partial class DexihDatalinkDependency : DexihHubNamedEntity
     {
-
-
-		[CopyParentCollectionKey]
+        [ProtoMember(1)]
+        [CopyParentCollectionKey]
         public long DatalinkStepKey { get; set; }
 
+        [ProtoMember(2)]
         public long DependentDatalinkStepKey { get; set; }
 
         [JsonIgnore, CopyIgnore]

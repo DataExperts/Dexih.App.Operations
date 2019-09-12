@@ -11,23 +11,34 @@ using System.Threading.Tasks;
 using dexih.operations.Extensions;
 using Dexih.Utils.CopyProperties;
 using Microsoft.Extensions.Logging;
+using ProtoBuf;
 
 namespace dexih.operations
 {
-	[Serializable]
+    [ProtoContract]
     public class CacheManager
     {
+        [ProtoMember(1)]
         public DexihHub Hub { get; set; }
 
+        [ProtoMember(2)]
         public string BuildVersion { get; set; }
+
+        [ProtoMember(3)]
         public DateTime BuildDate { get; set; }
 
+        [ProtoMember(4)]
         public string GoogleClientId { get; set; }
+
+        [ProtoMember(5)]
         public string MicrosoftClientId { get; set; }
+
+        [ProtoMember(6)]
         public string GoogleMapsAPIKey { get; set; }
 
         public ILogger _logger;
 
+        [ProtoMember(7)]
         public RemoteLibraries DefaultRemoteLibraries { get; set; }
 
 		public CacheManager()
@@ -318,10 +329,10 @@ namespace dexih.operations
 
 		    switch (view.SourceType)
 		    {
-			    case ESourceType.Datalink:
+			    case EDataObjectType.Datalink:
 				    await AddDatalinks(new [] {view.SourceDatalinkKey.Value}, dbContext );
 				    break;
-			    case ESourceType.Table:
+			    case EDataObjectType.Table:
 				    await AddTables(new[] {view.SourceTableKey.Value}, dbContext);
 				    break;
 		    }
@@ -331,10 +342,10 @@ namespace dexih.operations
 	    {
 		    switch (view.SourceType)
 		    {
-			    case ESourceType.Datalink:
+			    case EDataObjectType.Datalink:
 				    AddDatalinks(new [] {view.SourceDatalinkKey.Value}, hub );
 				    break;
-			    case ESourceType.Table:
+			    case EDataObjectType.Table:
 				    AddTables(new[] {view.SourceTableKey.Value}, hub);
 				    break;
 		    }

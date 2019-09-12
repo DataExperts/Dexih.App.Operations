@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-    [Serializable]
+    [ProtoContract]
     public partial class DexihFunctionParameter : DexihFunctionParameterBase
     {
         public DexihFunctionParameter()
@@ -13,10 +14,11 @@ namespace dexih.repository
             ArrayParameters = new HashSet<DexihFunctionArrayParameter>();
         }
 
-		
+        [ProtoMember(1)]
         [CopyParentCollectionKey]
 		public long DatalinkTransformItemKey { get; set; }
 
+        [ProtoMember(2)]
         public virtual ICollection<DexihFunctionArrayParameter> ArrayParameters { get; set; }
 
         [JsonIgnore, CopyIgnore]

@@ -4,39 +4,78 @@ using dexih.repository;
 using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using ProtoBuf;
 
 namespace dexih.operations
 {
-    [JsonConverter(typeof(StringEnumConverter))]
+    // [JsonConverter(typeof(StringEnumConverter))]
     public enum EImportAction
     {
-        Replace, New, Leave, Skip, Delete
+        Replace = 1, New, Leave, Skip, Delete
     }
 
+    [ProtoContract]
     public class Import
     {
+        [ProtoMember(1)]
         public long HubKey { get; set; }
+
+        [ProtoMember(2)]
         public ImportObjects<DexihHubVariable> HubVariables { get; set; }
+
+        [ProtoMember(3)]
         public ImportObjects<DexihDatajob> Datajobs { get; set; }
+
+        [ProtoMember(4)]
         public ImportObjects<DexihDatalink> Datalinks { get; set; }
+
+        [ProtoMember(5)]
         public ImportObjects<DexihConnection> Connections { get; set; }
+
+        [ProtoMember(6)]
         public ImportObjects<DexihTable> Tables { get; set; }
+
+        [ProtoMember(7)]
         public ImportObjects<DexihColumnValidation> ColumnValidations { get; set; }
+
+        [ProtoMember(8)]
         public ImportObjects<DexihFileFormat> FileFormats { get; set; }
+
+        [ProtoMember(9)]
         public ImportObjects<DexihCustomFunction> CustomFunctions { get; set; }
+
+        [ProtoMember(10)]
         public ImportObjects<DexihRemoteAgentHub> RemoteAgentHubs { get; set; }
+
+        [ProtoMember(11)]
         public ImportObjects<DexihDatalinkTest> DatalinkTests { get; set; }
+
+        [ProtoMember(12)]
         public ImportObjects<DexihView> Views { get; set; }
+
+        [ProtoMember(13)]
         public ImportObjects<DexihApi> Apis { get; set; }
+
+        [ProtoMember(14)]
         public ImportObjects<DexihDashboard> Dashboards { get; set; }
 
+        [ProtoMember(15)]
         public List<string> Warnings { get; set; }
 
-        public Import(long hubKey)
+        public Import()
+        {
+            Initialize();
+        }
+
+        public Import(long hubKey): base()
         {
             HubKey = hubKey;
-            
-            HubVariables = new ImportObjects<DexihHubVariable>();           
+            Initialize();
+        }
+
+        private void Initialize()
+        {
+            HubVariables = new ImportObjects<DexihHubVariable>();
             Datajobs = new ImportObjects<DexihDatajob>();
             Datalinks = new ImportObjects<DexihDatalink>();
             Connections = new ImportObjects<DexihConnection>();
@@ -242,15 +281,23 @@ namespace dexih.operations
         }
     }
 
+    [ProtoContract]
     public class ImportObject<T>
     {
+        public ImportObject()
+        {
+        }
+
         public ImportObject(T item, EImportAction importAction)
         {
             Item = item;
             ImportAction = importAction;
         }
         
-        public T Item { get; set; }   
+        [ProtoMember(1)]
+        public T Item { get; set; }
+
+        [ProtoMember(2)]
         public EImportAction ImportAction { get; set; }
     }
     

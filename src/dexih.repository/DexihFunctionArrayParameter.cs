@@ -1,18 +1,20 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-  [Serializable]
+  [ProtoContract]
   public partial class DexihFunctionArrayParameter : DexihFunctionParameterBase
   {
 
-   
-    /// <summary>
-    /// Points to the parent parameter, when it is an array.
-    /// </summary>
-    [CopyParentCollectionKey]
+
+        /// <summary>
+        /// Points to the parent parameter, when it is an array.
+        /// </summary>
+        [ProtoMember(1)]
+        [CopyParentCollectionKey]
     public long FunctionParameterKey { get; set; }
 
     [JsonIgnore, CopyIgnore]

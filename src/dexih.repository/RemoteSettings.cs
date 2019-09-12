@@ -11,22 +11,39 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-   
+
     /// <summary>
     /// Class mapping of the AppSettings file used for the RemoteAgent settings.
     /// </summary>
+    [ProtoContract]
     public class RemoteSettings
     {
+        [ProtoMember(1)]
         public AppSettingsSection AppSettings { get; set; } = new AppSettingsSection();
+
+        [ProtoMember(2)]
         public SystemSettingsSection SystemSettings { get; set; } = new SystemSettingsSection();
+
+        [ProtoMember(3)]
         public LoggingSection Logging { get; set; } = new LoggingSection();
+
+        [ProtoMember(4)]
         public RuntimeSection Runtime { get; set; } = new RuntimeSection();
+
+        [ProtoMember(5)]
         public NetworkSection Network { get; set; } = new NetworkSection();
+
+        [ProtoMember(6)]
         public PrivacySection Privacy { get; set; } = new PrivacySection();
+
+        [ProtoMember(7)]
         public PermissionsSection Permissions { get; set; } = new PermissionsSection();
+
+        [ProtoMember(8)]
         public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         /// <summary>
@@ -333,82 +350,99 @@ namespace dexih.repository
         }
     }
     
+    [ProtoContract]
     public class AppSettingsSection
     {
         /// <summary>
         /// Indicates the remote agent is running for the first time, which will prompt user to enter settings.
         /// </summary>
+        [ProtoMember(1)]
         public bool UserPrompt { get; set; } = true;
-        
+
         /// <summary>
         /// Unique ID for the remote agent.
         /// </summary>
+        [ProtoMember(2)]
         public string RemoteAgentId { get; set; }
 
         /// <summary>
         /// The user email being authenticated
         /// </summary>
+        [ProtoMember(3)]
         public string User { get; set; }
-        
+
         /// <summary>
         /// The user token which authenticates the email
         /// </summary>
+        [ProtoMember(4)]
         public string UserToken { get; set; }
-        
+
         /// <summary>
         /// The encryption key used for encrypting passwords, and encrypted data.
         /// </summary>
+        [ProtoMember(5)]
         public string EncryptionKey { get; set; }
 
         /// <summary>
         /// The Ingregation Hub Web Server: http://dexih.com
         /// </summary>
+        [ProtoMember(6)]
         public string WebServer { get; set; } = "https://dexih.com";
-        
+
         /// <summary>
         /// A name to represent this remote agent.
         /// </summary>
+        [ProtoMember(7)]
         public string Name { get; set; }
 
         /// <summary>
         /// Auto upgrade the remote agent when a new version is available.
         /// </summary>
+        [ProtoMember(8)]
         public bool AutoUpgrade { get; set; } = false;
-        
+
         /// <summary>
         /// Allow pre-release versions to be included in the auto upgrade.
         /// </summary>
+        [ProtoMember(9)]
         public bool AllowPreReleases { get; set; } = false;
-        
+
+        [ProtoMember(10)]
         public string AutoStartPath { get; set; }
 
     }
 
+    [ProtoContract]
     public class PermissionsSection
     {
         /// <summary>
         /// Allow agent to read/write files to the local filesystem
         /// </summary>
+        [ProtoMember(1)]
         public bool AllowLocalFiles { get; set; } = true;
 
         /// <summary>
         /// Allow agent to access files anywhere.
         /// </summary>
+        [ProtoMember(2)]
         public bool AllowAllPaths { get; set; } = false;
-        
+
         /// <summary>
         /// If AllowAllPaths = false, a list of the file paths the remote agent can access.
         /// </summary>
+        [ProtoMember(3)]
         public string[] AllowedPaths { get; set; } = {};
 
         /// <summary>
         /// Allow agent to use any hub on the central web server.
         /// </summary>
+        [ProtoMember(4)]
         public bool AllowAllHubs { get; set; } = true;
-        
+
         /// <summary>
         /// If AllowAllHubs = false, a list of the hubkeys that agent can access.
         /// </summary>
+        [ProtoMember(5)]
         public long[] AllowedHubs { get; set; } = {};
 
         public FilePermissions GetFilePermissions()
@@ -422,164 +456,227 @@ namespace dexih.repository
         }
     }
 
+    [ProtoContract]
     public class NetworkSection
     {
         /// <summary>
         /// URL to upload/download from this agent.
         /// </summary>
+        [ProtoMember(1)]
         public string ExternalDownloadUrl { get; set; }
-        
+
         /// <summary>
         /// Local IP to upload/download from this agent
         /// </summary>
+        [ProtoMember(2)]
         public string LocalIpAddress { get; set; }
-        
+
         /// <summary>
         /// Local port to upload/download  
         /// </summary>
+        [ProtoMember(3)]
         public int? LocalPort { get; set; }
 
         /// <summary>
         /// Override the default proxy server with a custom implementation.
         /// </summary>
+        [ProtoMember(4)]
         public string ProxyUrl { get; set; }
 
         /// <summary>
         /// Download port to use 
         /// </summary>
+        [ProtoMember(5)]
         public int? DownloadPort { get; set; } = 33944; //default port
 
         /// <summary>
         /// Enforces the server to allow only https connections
         /// </summary>
+        [ProtoMember(6)]
         public bool EnforceHttps { get; set; } = true;
 
         /// <summary>
         /// Automatically generate ssl certificates
         /// </summary>
+        [ProtoMember(7)]
         public bool AutoGenerateCertificate { get; set; } = true;
 
         /// <summary>
         /// Dynamic domain used with autogenerate certificates.
         /// </summary>
+        [ProtoMember(8)]
         public string DynamicDomain { get; set; } = "dexih.com";
-        
+
         /// <summary>
         /// File name of the ssl certificate
         /// </summary>
+        [ProtoMember(9)]
         public string CertificateFilename { get; set; }
 
-        
+
         /// <summary>
         /// Password for the ssl certificate
         /// </summary>
+        [ProtoMember(10)]
         public string CertificatePassword { get; set; }
 
         /// <summary>
         /// Automatically attempts to find a UPnP device to map the port externally.
         /// </summary>
+        [ProtoMember(11)]
         public bool EnableUPnP { get; set; } = true;
     }
 
+    [ProtoContract]
     public class PrivacySection
     {
         /// <summary>
         /// Allow files and data to be downloaded through the web browser from this agent.
         /// </summary>
+        [ProtoMember(1)]
         public bool AllowDataDownload { get; set; } = true;
 
         /// <summary>
         /// Allow files and data to be uploaded through the web browser from this agent.
         /// </summary>
+        [ProtoMember(2)]
         public bool AllowDataUpload { get; set; } = true;
 
         /// <summary>
         /// Allow files to be accessed directly through the lan.
         /// </summary>
+        [ProtoMember(3)]
         public bool AllowLanAccess { get; set; } = true;
 
         /// <summary>
         /// Allow files and data to be uploaded externally through the internet (note, ports must be mapped externally for this to work).
         /// </summary>
+        [ProtoMember(4)]
         public bool AllowExternalAccess { get; set; } = true;
-        
+
         /// <summary>
         /// Allow files and data to be uploaded through a proxy.
         /// </summary>
+        [ProtoMember(5)]
         public bool AllowProxy { get; set; } = true;
         
     }
 
-    
+    [ProtoContract]
     public class SystemSettingsSection
     {
+        [ProtoMember(1)]
         public int MaxAcknowledgeWait { get; set; } = 5000;
+
+        [ProtoMember(2)]
         public int ResponseTimeout { get; set; } = 1000_000;
+
+        [ProtoMember(3)]
         public int CancelDelay { get; set; } = 1000;
+
+        [ProtoMember(4)]
         public int EncryptionIterations { get; set; } = 1000;
+
+        [ProtoMember(5)]
         public int MaxPreviewDuration { get; set; } = 10000;
+
+        [ProtoMember(6)]
         public int MaxConcurrentTasks { get; set; } = 50;
+
+        [ProtoMember(7)]
         public long MaxUploadSize { get; set; } = 1_000_000_000;
+
+        [ProtoMember(8)]
         public string SocketTransportType { get; set; } = "WebSockets";
     }
 
+    [ProtoContract]
     public class LoggingSection
     {
+        [ProtoMember(1)]
         public bool IncludeScopes { get; set; } = false;
+
+        [ProtoMember(2)]
         public LogLevelSection LogLevel { get; set; } = new LogLevelSection();
 
         /// <summary>
         /// File name to create a log file
         /// </summary>
+        [ProtoMember(3)]
         public string LogFilePath { get; set; }
     }
 
+    [ProtoContract]
     public class LogLevelSection
     {
-        [JsonConverter(typeof(StringEnumConverter))]
+        [ProtoMember(1)]
+        // [JsonConverter(typeof(StringEnumConverter))]
         public LogLevel Default { get; set; } = LogLevel.Information;
-        [JsonConverter(typeof(StringEnumConverter))]
+
+        // [JsonConverter(typeof(StringEnumConverter))]
+        [ProtoMember(2)]
         public LogLevel System { get; set; } = LogLevel.Information;
-        [JsonConverter(typeof(StringEnumConverter))]
+
+        // [JsonConverter(typeof(StringEnumConverter))]
+        [ProtoMember(3)]
         public LogLevel Microsoft { get; set; } = LogLevel.Information;
 
     }
 
+    [ProtoContract]
     public class RuntimeSection
     {
+        [ProtoMember(1)]
         public string ConfigDirectory { get; set; }
-       
+
+        [ProtoMember(2)]
         public string AppSettingsPath { get; set; }
-        
+
+        [ProtoMember(3)]
         public string Password { get; set; }
 
+        [ProtoMember(4)]
         public string LocalIpAddress { get; set; }
-//        public string LocalPort { get; set; }
+        //        public string LocalPort { get; set; }
 
+        [ProtoMember(5)]
         public string ExternalIpAddress { get; set; }
-        
+
+        [ProtoMember(6)]
         public string DefaultProxyUrl { get; set; }
+
+        [ProtoMember(7)]
         public long RemoteAgentKey { get; set; }
-        
+
+        [ProtoMember(8)]
         public ApplicationUser User { get; set; }
-        
+
+        [ProtoMember(9)]
         public string UserHash { get; set; }
-        
+
+        [ProtoMember(10)]
         public string Version { get; set; }
-        
+
+        [ProtoMember(11)]
         public string LatestVersion { get; set; }
+
+        [ProtoMember(12)]
         public string LatestDownloadUrl { get; set; }
 
-        public bool GenerateUserToken { get; set; } 
-        
+        [ProtoMember(13)]
+        public bool GenerateUserToken { get; set; }
+
+        [ProtoMember(14)]
         public bool SaveSettings { get; set; }
 
+        [ProtoMember(15)]
         public bool DoUpgrade { get; set; } = false;
 
 //        public List<FunctionReference> Functions { get; set; }
     }
 
 
+    [ProtoContract]
     public class NamingStandards : List<NamingStandard>
     {
         public void LoadDefault()
@@ -670,9 +767,13 @@ namespace dexih.repository
         }
     }
 
+    [ProtoContract]
     public class NamingStandard
     {
+        [ProtoMember(1)]
         public string Name { get; set; }
+
+        [ProtoMember(2)]
         public string Value { get; set; }
     }
     

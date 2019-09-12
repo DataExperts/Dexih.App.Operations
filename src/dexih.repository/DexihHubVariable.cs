@@ -3,16 +3,24 @@ using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.Crypto;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-    [Serializable]
+    [ProtoContract]
     public partial class DexihHubVariable : DexihHubNamedEntity
     {
+        [ProtoMember(1)]
         [NotMapped]
         public string ValueRaw { get; set; }
+
+        [ProtoMember(2)]
         public string Value { get; set; }
+
+        [ProtoMember(3)]
         public bool IsEncrypted { get; set; }
+
+        [ProtoMember(4)]
         public bool IsEnvironmentVariable { get; set; }
 
         public string GetValue(string key, int iterations)

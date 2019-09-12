@@ -20,96 +20,148 @@ using dexih.transforms.Mapping;
 using Microsoft.Extensions.Logging;
 using static dexih.functions.Query.SelectColumn;
 using Dexih.Utils.DataType;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-	[Serializable]
+	[ProtoContract]
 	public class DexihDatalinkTransformItem : DexihHubNamedEntity
 	{
-		[JsonConverter(typeof(StringEnumConverter))]
-		public enum ETransformItemType
-		{
-			BuiltInFunction, CustomFunction, ColumnPair, JoinPair, Sort, Column, FilterPair, AggregatePair, Series, JoinNode, GroupNode, Node, UnGroup
-		}
+
 
 		public DexihDatalinkTransformItem() => DexihFunctionParameters = new HashSet<DexihFunctionParameter>();
 
 
 
-		[CopyParentCollectionKey]
+        [ProtoMember(1)]
+        [CopyParentCollectionKey]
 		public long DatalinkTransformKey { get; set; }
 
-		public int Position { get; set; }
+        [ProtoMember(2)]
+        public int Position { get; set; }
 
-		public ETransformItemType TransformItemType { get; set; }
+        [ProtoMember(3)]
+        public ETransformItemType TransformItemType { get; set; }
 
-		public long? TargetDatalinkColumnKey { get; set; }
-		public long? SourceDatalinkColumnKey { get; set; }
-		public long? JoinDatalinkColumnKey { get; set; }
-		public long? FilterDatalinkColumnKey { get; set; }
+        [ProtoMember(4)]
+        public long? TargetDatalinkColumnKey { get; set; }
 
-		public string SourceValue { get; set; }
-		public string JoinValue { get; set; }
-		public string FilterValue { get; set; }
+        [ProtoMember(5)]
+        public long? SourceDatalinkColumnKey { get; set; }
 
-		public string FunctionClassName { get; set; }
-		public string FunctionAssemblyName { get; set; }
-		public string FunctionMethodName { get; set; }
+        [ProtoMember(6)]
+        public long? JoinDatalinkColumnKey { get; set; }
+
+        [ProtoMember(7)]
+        public long? FilterDatalinkColumnKey { get; set; }
+
+        [ProtoMember(8)]
+        public string SourceValue { get; set; }
+
+        [ProtoMember(9)]
+        public string JoinValue { get; set; }
+
+        [ProtoMember(10)]
+        public string FilterValue { get; set; }
+
+        [ProtoMember(11)]
+        public string FunctionClassName { get; set; }
+
+        [ProtoMember(12)]
+        public string FunctionAssemblyName { get; set; }
+
+        [ProtoMember(13)]
+        public string FunctionMethodName { get; set; }
+
+        [ProtoMember(14)]
         public bool IsGeneric { get; set; }
+
+        [ProtoMember(15)]
         public ETypeCode? GenericTypeCode { get; set; }
-		public MapFunction.EFunctionCaching FunctionCaching { get; set; }
 
-		public long? CustomFunctionKey { get; set; }
-		
-		public Sort.EDirection? SortDirection { get; set; }
+        [ProtoMember(16)]
+        public MapFunction.EFunctionCaching FunctionCaching { get; set; }
 
-		public ECompare? FilterCompare { get; set; }
+        [ProtoMember(17)]
+        public long? CustomFunctionKey { get; set; }
 
+        [ProtoMember(18)]
+        public Sort.EDirection? SortDirection { get; set; }
+
+        [ProtoMember(19)]
+        public ECompare? FilterCompare { get; set; }
+
+        [ProtoMember(20)]
         public EAggregate? Aggregate { get; set; }
 
-		public ESeriesGrain? SeriesGrain { get; set; }
-		public bool SeriesFill { get; set; }
-		public string SeriesStart { get; set; }
-		public string SeriesFinish { get; set; }
+        [ProtoMember(21)]
+        public ESeriesGrain? SeriesGrain { get; set; }
 
-		public string FunctionCode { get; set; }
-		public string FunctionResultCode { get; set; }
+        [ProtoMember(22)]
+        public bool SeriesFill { get; set; }
 
-		public EErrorAction OnError { get; set; }
-		public EErrorAction OnNull { get; set; }
-		public bool NotCondition { get; set; }
+        [ProtoMember(23)]
+        public string SeriesStart { get; set; }
 
-		public TransformFunction.EInvalidAction InvalidAction { get; set; }
+        [ProtoMember(24)]
+        public string SeriesFinish { get; set; }
 
-		[NotMapped, CopyIgnore]
+        [ProtoMember(25)]
+        public string FunctionCode { get; set; }
+
+        [ProtoMember(26)]
+        public string FunctionResultCode { get; set; }
+
+        [ProtoMember(27)]
+        public EErrorAction OnError { get; set; }
+
+        [ProtoMember(28)]
+        public EErrorAction OnNull { get; set; }
+
+        [ProtoMember(29)]
+        public bool NotCondition { get; set; }
+
+        [ProtoMember(30)]
+        public TransformFunction.EInvalidAction InvalidAction { get; set; }
+
+        [ProtoMember(31)]
+        [NotMapped, CopyIgnore]
 		public EntityStatus EntityStatus { get; set; }
 
-		public ICollection<DexihFunctionParameter> DexihFunctionParameters { get; set; }
+        [ProtoMember(32)]
+        public ICollection<DexihFunctionParameter> DexihFunctionParameters { get; set; }
 
 		[JsonIgnore, CopyIgnore]
 		public virtual DexihDatalinkTransform Dt { get; set; }
 
-		[CopyIgnore]
+        [ProtoMember(33)]
+        [CopyIgnore]
 		public virtual DexihDatalinkColumn SourceDatalinkColumn { get; set; }
-		[CopyIgnore]
+
+        [ProtoMember(34)]
+        [CopyIgnore]
 		public virtual DexihDatalinkColumn TargetDatalinkColumn { get; set; }
-		[CopyIgnore]
+
+        [ProtoMember(35)]
+        [CopyIgnore]
 		public virtual DexihDatalinkColumn JoinDatalinkColumn { get; set; }
-		[CopyIgnore]
+
+        [ProtoMember(36)]
+        [CopyIgnore]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
-		private Parameter ConvertParameter(DexihFunctionParameterBase parameter, DexihParameterBase.EParameterDirection direction)
+		private Parameter ConvertParameter(DexihFunctionParameterBase parameter, EParameterDirection direction)
 		{
 
 			var column = parameter.DatalinkColumn?.GetTableColumn(null);
 
 			switch (direction)
 			{
-				case DexihParameterBase.EParameterDirection.Input:
-				case DexihParameterBase.EParameterDirection.ResultInput:
+				case EParameterDirection.Input:
+				case EParameterDirection.ResultInput:
 					if (column != null)
 					{
 						return new ParameterColumn(parameter.Name, parameter.DataType, parameter.Rank, column);
@@ -118,7 +170,7 @@ namespace dexih.repository
 					{
 						return new ParameterValue(parameter.Name, parameter.DataType, parameter.Value);
 					}
-				case DexihParameterBase.EParameterDirection.Join:
+				case EParameterDirection.Join:
 					if (column != null)
 					{
 						return new ParameterJoinColumn(parameter.Name, column);
@@ -185,23 +237,23 @@ namespace dexih.repository
 
 					switch (parameter.Direction)
 					{
-						case DexihParameterBase.EParameterDirection.Input:
-                        case DexihParameterBase.EParameterDirection.Join:
+						case EParameterDirection.Input:
+                        case EParameterDirection.Join:
                             inputs.Add(newParameter);
 							break;
-						case DexihParameterBase.EParameterDirection.Output:
+						case EParameterDirection.Output:
 							outputs.Add(newParameter);
 							break;
-						case DexihParameterBase.EParameterDirection.ResultInput:
+						case EParameterDirection.ResultInput:
 							resultInputs.Add(newParameter);
 							break;
-						case DexihParameterBase.EParameterDirection.ResultOutput:
+						case EParameterDirection.ResultOutput:
 							resultOutputs.Add(newParameter);
 							break;
-						case DexihParameterBase.EParameterDirection.ReturnValue:
+						case EParameterDirection.ReturnValue:
 							returnParameters.Add(newParameter);
 							break;
-						case DexihParameterBase.EParameterDirection.ResultReturnValue:
+						case EParameterDirection.ResultReturnValue:
 							resultReturnParameters.Add(newParameter);
 							break;
                     }
@@ -474,16 +526,16 @@ $FunctionCode
 	            
                 testFunction.Append("CustomFunction(");
 	            var p = DexihFunctionParameters.OrderBy(c => c.Position)
-		            .Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input).Select(c => c.Name)
+		            .Where(c => c.Direction == EParameterDirection.Input).Select(c => c.Name)
 		            .ToList();
-	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output).Select(c => "out " + c.Name));
+	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Output).Select(c => "out " + c.Name));
 	            
 	            testFunction.Append(string.Join(", ", p));
                 testFunction.Append(");");
                 code.Replace("$TestFunction", testFunction.ToString());
 
                 var inputParameters = new StringBuilder();
-                foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Input))
+                foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Input))
                 {
                     inputParameters.Append("\t\t" + inputParameter.DataType + AddRank(inputParameter.Rank) + " " + inputParameter.Name + " = ");
 
@@ -571,7 +623,7 @@ $FunctionCode
 	                writeResults.AppendLine("\t\tConsole.WriteLine(\"No return value specified.\");");
                 }
 
-                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
+                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Output))
                 {
                     outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.Name + ";");
                     testFunction.Append("out " + outputParameter.Name + ", ");
@@ -582,7 +634,7 @@ $FunctionCode
                 code.Replace("$WriteResults", writeResults.ToString());
 
 
-                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == DexihParameterBase.EParameterDirection.Output))
+                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Output))
                 {
                     outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.Name + ";");
                     testFunction.Append("out " + outputParameter.Name + ", ");
@@ -599,12 +651,12 @@ $FunctionCode
 
 
 			var parameterString = "";
-			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Input))
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == EParameterDirection.Input))
 			{
 				parameterString += t.DataType + AddRank(t.Rank) + " " + t.Name + ",";
 			}
 
-			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == DexihParameterBase.EParameterDirection.Output))
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == EParameterDirection.Output))
 			{
 				parameterString += "out " + t.DataType + AddRank(t.Rank) + " " + t.Name + ",";
 			}

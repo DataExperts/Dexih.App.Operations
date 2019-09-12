@@ -8,10 +8,11 @@ using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
 using dexih.transforms;
 using static Dexih.Utils.DataType.DataType;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-	[Serializable]
+	[ProtoContract]
     public partial class DexihTable : DexihHubNamedEntity
     {
         public DexihTable()
@@ -22,41 +23,81 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
-
+        [ProtoMember(1)]
         public long ConnectionKey { get; set; }
-		public string Schema {get; set; }
+
+        [ProtoMember(2)]
+        public string Schema {get; set; }
+
+        [ProtoMember(3)]
         public string BaseTableName { get; set; }
+
+        [ProtoMember(4)]
         public string LogicalName { get; set; }
-        
+
+        [ProtoMember(5)]
         public Table.ETableType TableType { get; set; }
+
+        [ProtoMember(6)]
         public string SourceConnectionName { get; set; }
+
+        [ProtoMember(7)]
         public long? FileFormatKey { get; set; }
+
+        [ProtoMember(8)]
         public string RejectedTableName { get; set; }
-	    public bool UseQuery { get; set; }
-	    public string QueryString { get; set; }
+
+        [ProtoMember(9)]
+        public bool UseQuery { get; set; }
+
+        [ProtoMember(10)]
+        public string QueryString { get; set; }
+
+        [ProtoMember(11)]
         public string RowPath { get; set; }
 
+        [ProtoMember(12)]
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
-	    public List<long> SortColumnKeys { get; set; } = new List<long>();
+        [ProtoMember(13)]
+        public List<long> SortColumnKeys { get; set; } = new List<long>();
+
+        [ProtoMember(14)]
         public bool AutoManageFiles { get; set; }
 
-		public bool UseCustomFilePaths { get; set; }
+        [ProtoMember(15)]
+        public bool UseCustomFilePaths { get; set; }
+
+        [ProtoMember(16)]
         public string FileRootPath { get; set; }
+
+        [ProtoMember(17)]
         public string FileIncomingPath { get; set; }
+
+        [ProtoMember(18)]
         public string FileOutgoingPath { get; set; }
+
+        [ProtoMember(19)]
         public string FileProcessedPath { get; set; }
+
+        [ProtoMember(20)]
         public string FileRejectedPath { get; set; }
-		public string FileMatchPattern { get; set; }
-	    
+
+        [ProtoMember(21)]
+        public string FileMatchPattern { get; set; }
+
+        [ProtoMember(22)]
         public string RestfulUri { get; set; }
-	    
-	    [NotMapped]
+
+        [ProtoMember(23)]
+        [NotMapped]
 	    public int MaxImportLevels { get; set; }
-        
-	    public bool IsVersioned { get; set; }
-//        public bool IsInternal { get; set; }
-		public bool IsShared { get; set; }
+
+        [ProtoMember(24)]
+        public bool IsVersioned { get; set; }
+
+        [ProtoMember(25)]
+        public bool IsShared { get; set; }
 		
 		[NotMapped, JsonIgnore, CopyIgnore]
 		public List<string> OutputSortFields {
@@ -77,9 +118,11 @@ namespace dexih.repository
 			}
 		}
 
+        [ProtoMember(26)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
+        [ProtoMember(27)]
         [NotMapped]
         public string FileSample {get;set;}
 
@@ -92,6 +135,7 @@ namespace dexih.repository
 	    [JsonIgnore, CopyIgnore]
 	    public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
 
+        [ProtoMember(28)]
         public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 
         [JsonIgnore, CopyIgnore]

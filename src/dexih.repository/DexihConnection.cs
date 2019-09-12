@@ -6,21 +6,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-    [Serializable]
+    [ProtoContract]
     public class DexihConnection : DexihHubNamedEntity
     {
         #region Enums
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum EConnectionPurpose
-        {
-            Source = 0,
-            Managed = 1,
-            Target = 2,
-            Internal = 3
-        }
+
          
         #endregion
 
@@ -30,29 +24,54 @@ namespace dexih.repository
         }
 
 
-
+        [ProtoMember(1)]
         public string ConnectionAssemblyName { get; set; }
+
+        [ProtoMember(2)]
         public string ConnectionClassName { get; set; }
-        
+
+        [ProtoMember(3)]
         public EConnectionPurpose Purpose { get; set; }
 
+        [ProtoMember(4)]
         public string Server { get; set; }
+
+        [ProtoMember(5)]
         public bool UseWindowsAuth { get; set; }
+
+        [ProtoMember(6)]
         public string Username { get; set; }
+
+        [ProtoMember(7)]
         public string Password { get; set; }
+
+        [ProtoMember(8)]
         public bool UsePasswordVariable { get; set; }
+
+        [ProtoMember(9)]
         public string DefaultDatabase { get; set; }
+
+        [ProtoMember(10)]
         public string Filename { get; set; }
+
+        [ProtoMember(11)]
         public bool UseConnectionString { get; set; }
+
+        [ProtoMember(12)]
         public string ConnectionString { get; set; }
+
+        [ProtoMember(13)]
         public bool UseConnectionStringVariable { get; set; }
- //       public bool IsInternal { get; set; }
+
+        [ProtoMember(14)]
         public bool EmbedTableKey { get; set; }
- 
+
         //these store the raw (unencrypted values) and are not saved to the database.
+        [ProtoMember(15)]
         [NotMapped]
         public string PasswordRaw { get; set; }
-        
+
+        [ProtoMember(16)]
         [NotMapped]
         public string ConnectionStringRaw { get; set; }
 

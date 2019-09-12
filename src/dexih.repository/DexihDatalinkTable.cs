@@ -4,10 +4,11 @@ using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-	[Serializable]
+	[ProtoContract]
     public class DexihDatalinkTable: DexihHubNamedEntity
     {
 
@@ -21,19 +22,27 @@ namespace dexih.repository
 
 
 
-	    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [ProtoMember(1)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceTableKey { get; set; }
 
-	    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [ProtoMember(2)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceDatalinkKey { get; set; }
-	    
-	    public int? RowsStartAt { get; set; }
-	    public int? RowsEndAt { get; set; }
-	    public int? RowsIncrement { get; set; }
-	    
 
+        [ProtoMember(3)]
+        public int? RowsStartAt { get; set; }
+
+        [ProtoMember(4)]
+        public int? RowsEndAt { get; set; }
+
+        [ProtoMember(5)]
+        public int? RowsIncrement { get; set; }
+
+        [ProtoMember(6)]
         public ESourceType SourceType { get; set; }
 
+        [ProtoMember(7)]
         public ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
 
         [JsonIgnore, CopyIgnore]

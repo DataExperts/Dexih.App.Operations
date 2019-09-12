@@ -4,23 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-    [Serializable]
+    [ProtoContract]
     public partial class DexihHub : DexihBaseEntity
     {
-        /// <summary>
-        /// Level of access required to view shared hub data.
-        /// </summary>
-        [JsonConverter(typeof (StringEnumConverter))]
-        public enum  ESharedAccess
-        {
-            Public, // shared objects can be accessed by public
-            Registered, // shared objects can be accessed by registred users only 
-            Reader // shared objects can be access only be users with PublishReader permission
-        }
-        
+       
         public DexihHub()
         {
             DexihConnections = new HashSet<DexihConnection>();
@@ -39,30 +30,62 @@ namespace dexih.repository
             DexihDashboards = new HashSet<DexihDashboard>();
         }
 
+        [ProtoMember(1)]
         [CopyCollectionKey((long)0, true)]
         public long HubKey { get; set; }
+
+        [ProtoMember(2)]
         public string Name { get; set; }
+
+        [ProtoMember(3)]
         public string Description { get; set; }
+
+        [ProtoMember(4)]
         public string EncryptionKey { get; set; }
 
+        [ProtoMember(5)]
         public ESharedAccess SharedAccess { get; set; }
-        
- //       public bool IsInternal { get; set; }
 
+        [ProtoMember(6)]
         public ICollection<DexihConnection> DexihConnections { get; set; }
+
+        [ProtoMember(7)]
         public ICollection<DexihTable> DexihTables { get; set; }
+
+        [ProtoMember(8)]
         public ICollection<DexihDatajob> DexihDatajobs { get; set; }
+
+        [ProtoMember(9)]
         public ICollection<DexihDatalink> DexihDatalinks { get; set; }
+
+        [ProtoMember(10)]
         public ICollection<DexihHubUser> DexihHubUsers { get; set; }
+
+        [ProtoMember(11)]
         public ICollection<DexihFileFormat> DexihFileFormats { get; set; }
+
+        [ProtoMember(12)]
         public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
+
+        [ProtoMember(13)]
         public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
+
+        [ProtoMember(14)]
         public ICollection<DexihView> DexihViews { get; set; }
+
+        [ProtoMember(15)]
         public ICollection<DexihDashboard> DexihDashboards { get; set; }
+
+        [ProtoMember(16)]
         public ICollection<DexihApi> DexihApis { get; set; }
 
+        [ProtoMember(17)]
         public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
+
+        [ProtoMember(18)]
         public ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
+
+        [ProtoMember(19)]
         public ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
 
         /// <summary>

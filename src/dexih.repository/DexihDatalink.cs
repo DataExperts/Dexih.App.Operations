@@ -8,26 +8,15 @@ using System.Linq;
 using dexih.functions.Query;
 using dexih.transforms;
 using dexih.transforms.Transforms;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-    [Serializable]
+    [ProtoContract]
     public partial class DexihDatalink : DexihHubNamedEntity
     {
 
 
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum EDatalinkType
-        {
-            General,
-            Stage,
-            Validate,
-            Transform,
-            Deliver,
-            Publish,
-            Share,
-            Query
-        }
 
 
         public DexihDatalink()
@@ -41,44 +30,69 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
+        [ProtoMember(1)]
         public long SourceDatalinkTableKey { get; set; }
-        // public long? TargetTableKey { get; set; }
+
+        [ProtoMember(2)]
         public long? AuditConnectionKey { get; set; }
 
+        [ProtoMember(3)]
         public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; } = TransformDelta.EUpdateStrategy.Reload;
-        
+
+        [ProtoMember(4)]
         public TransformWriterTarget.ETransformWriterMethod LoadStrategy { get; set; }
 
-
+        [ProtoMember(5)]
         public EDatalinkType DatalinkType { get; set; }
 
+        [ProtoMember(6)]
         public int RowsPerCommit { get; set; }
-        public int RowsPerProgress { get; set; }
-        public bool RollbackOnFail { get; set; }
-        public bool IsQuery { get; set; }
-        public int MaxRows { get; set; }
-        public bool AddDefaultRow { get; set; }
-        public string ProfileTableName { get; set; }
-		public bool IsShared { get; set; }
 
+        [ProtoMember(7)]
+        public int RowsPerProgress { get; set; }
+
+        [ProtoMember(8)]
+        public bool RollbackOnFail { get; set; }
+
+        [ProtoMember(9)]
+        public bool IsQuery { get; set; }
+
+        [ProtoMember(10)]
+        public int MaxRows { get; set; }
+
+        [ProtoMember(11)]
+        public bool AddDefaultRow { get; set; }
+
+        [ProtoMember(12)]
+        public string ProfileTableName { get; set; }
+
+        [ProtoMember(13)]
+        public bool IsShared { get; set; }
+
+        [ProtoMember(14)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        //[CopyReference]
+        [ProtoMember(15)]
         public ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
+
+        [ProtoMember(16)]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
-        
+
+        [ProtoMember(17)]
         public ICollection<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
-        
+
+        [ProtoMember(18)]
         public ICollection<DexihDatalinkParameter> Parameters { get; set; }
 
 
         /// <summary>
         /// Reference to the source columns for the datalink.
         /// </summary>
+        [ProtoMember(19)]
         public DexihDatalinkTable SourceDatalinkTable { get; set; }
 
         [JsonIgnore, CopyIgnore]
@@ -89,9 +103,6 @@ namespace dexih.repository
         
         [JsonIgnore, CopyIgnore]
         public DexihHub Hub { get; set; }
-
-        //[JsonIgnore, CopyIgnore]
-        // public DexihTable TargetTable { get; set; }
         
 	    [JsonIgnore, CopyReference]
         public DexihConnection AuditConnection { get; set; }
@@ -169,13 +180,13 @@ namespace dexih.repository
                 }
 
                 // if the transform is a join, then add the join table columns
-                if (transform.TransformType == TransformAttribute.ETransformType.Join)
+                if (transform.TransformType == ETransformType.Join)
                 {
                     inputTables.Add(transform.JoinDatalinkTable);
                 }
 
                 // if the transform is a concatenate, then merge common column names together.
-                if (transform.TransformType == TransformAttribute.ETransformType.Concatenate)
+                if (transform.TransformType == ETransformType.Concatenate)
                 {
                     var joinTable = transform.JoinDatalinkTable;
 

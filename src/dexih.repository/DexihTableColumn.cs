@@ -5,18 +5,20 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-	[Serializable]
+	[ProtoContract]
     public class DexihTableColumn : DexihColumnBase
     {
 	    public DexihTableColumn()
 	    {
 		    ChildColumns = new HashSet<DexihTableColumn>();
 	    }
-	    
-	    [CopyParentCollectionKey(nameof(Key))]
+
+        [ProtoMember(1)]
+        [CopyParentCollectionKey(nameof(Key))]
 		public long? TableKey { get; set; }
 	    
 	    [JsonIgnore, CopyParentCollectionKey(nameof(ParentColumnKey))]
@@ -24,11 +26,14 @@ namespace dexih.repository
 	    
 	    [JsonIgnore, CopyIgnore]
 	    public DexihTableColumn ParentColumn { get; set; }
-	    
-	    public ICollection<DexihTableColumn> ChildColumns { get; set; }
 
-	    public long? ColumnValidationKey { get; set; }
+        [ProtoMember(2)]
+        public ICollection<DexihTableColumn> ChildColumns { get; set; }
 
+        [ProtoMember(3)]
+        public long? ColumnValidationKey { get; set; }
+
+        [ProtoMember(4)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
 {
-    public enum EStartMode { RunSnapshot, RunTests}
+    public enum EStartMode { RunSnapshot = 1, RunTests}
     public class DatalinkTestRun: IManagedObject
     {        
         #region Events
@@ -444,7 +444,7 @@ namespace dexih.operations
         {
             
             // leave test table as is
-            if (datalinkTestTable.Action == DexihDatalinkTestTable.ETestTableAction.None)
+            if (datalinkTestTable.Action == ETestTableAction.None)
             {
                 return;
             }
@@ -461,8 +461,8 @@ namespace dexih.operations
 
             var testTableExists = await testConnection.TableExists(testTable, cancellationToken);
 
-            if (testTableExists && (datalinkTestTable.Action == DexihDatalinkTestTable.ETestTableAction.Truncate ||
-                                    datalinkTestTable.Action == DexihDatalinkTestTable.ETestTableAction.TruncateCopy))
+            if (testTableExists && (datalinkTestTable.Action == ETestTableAction.Truncate ||
+                                    datalinkTestTable.Action == ETestTableAction.TruncateCopy))
             {
                 await testConnection.TruncateTable(testTable, cancellationToken);
             }
@@ -472,8 +472,8 @@ namespace dexih.operations
                 await testConnection.CreateTable(testTable, true, cancellationToken);
             }
 
-            if (datalinkTestTable.Action == DexihDatalinkTestTable.ETestTableAction.Truncate ||
-                datalinkTestTable.Action == DexihDatalinkTestTable.ETestTableAction.DropCreate)
+            if (datalinkTestTable.Action == ETestTableAction.Truncate ||
+                datalinkTestTable.Action == ETestTableAction.DropCreate)
             {
                 return;
             }

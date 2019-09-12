@@ -4,10 +4,11 @@ using System.Linq;
 using Newtonsoft.Json;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
+using ProtoBuf;
 
 namespace dexih.repository
 {
-	[Serializable]
+	[ProtoContract]
     public partial class DexihDatalinkColumn : DexihColumnBase
     {
         public DexihDatalinkColumn()
@@ -20,12 +21,14 @@ namespace dexih.repository
             DexihDatalinkTransformsNodeColumn = new HashSet<DexihDatalinkTransform>();
 	        ChildColumns = new HashSet<DexihDatalinkColumn>();
         }
-        
+
         // don't reset negative keys here, as they need to be maintained when copying datalinks across.
+        [ProtoMember(1)]
         [CopyCollectionKey((long)0, false)]
         public new long Key { get; set; }
 
-	    [CopyParentCollectionKey(nameof(DexihDatalinkTable.Key), nameof(DexihDatalinkTable))]
+        [ProtoMember(2)]
+        [CopyParentCollectionKey(nameof(DexihDatalinkTable.Key), nameof(DexihDatalinkTable))]
         public long? DatalinkTableKey { get; set; }
 	    
 	    [JsonIgnore, CopyIgnore]
@@ -33,8 +36,9 @@ namespace dexih.repository
 	    
 	    [JsonIgnore, CopyParentCollectionKey(nameof(DexihDatalinkColumn.Key), nameof(DexihDatalinkColumn))]
 	    public long? ParentDatalinkColumnKey { get; set; }
-	    
-	    public ICollection<DexihDatalinkColumn> ChildColumns { get; set; }
+
+        [ProtoMember(3)]
+        public ICollection<DexihDatalinkColumn> ChildColumns { get; set; }
 
         [JsonIgnore, CopyIgnore]
         public DexihDatalinkTable DatalinkTable { get; set; }

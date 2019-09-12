@@ -17,25 +17,35 @@ using dexih.transforms.Transforms;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using ProtoBuf;
 
 namespace dexih.operations
 {
 
+    [ProtoContract]
 	public class ImportAction
 	{
+        [ProtoMember(1)]
 		public ESharedObjectType ObjectType { get; set; }
-		public EImportAction Action { get; set; }
+
+        [ProtoMember(2)]
+        public EImportAction Action { get; set; }
 	}
 
-	
-	/// <summary>
-	/// Provides an interface to retrieve and save to the database repository.
-	/// </summary>
-	public class RepositoryManager : IDisposable
+    /// <summary>
+    /// Provides an interface to retrieve and save to the database repository.
+    /// </summary>
+    public class RepositoryManager : IDisposable
 	{
-		
-		// Role descriptions used by RoleManager.
-		private const string AdministratorRole = "ADMINISTRATOR";
+        #region Events
+        public delegate void HubChange(Import import, string[] users);
+        public event HubChange OnHubChange;
+
+        #endregion
+
+
+        // Role descriptions used by RoleManager.
+        private const string AdministratorRole = "ADMINISTRATOR";
 		private const string ManagerRole = "MANAGER";
 		private const string UserRole = "USER";
 		private const string ViewerRole = "VIEWER";
@@ -43,35 +53,21 @@ namespace dexih.operations
 		private const string RemoteAgentProvider = "dexih-remote"; // name of the token provider used to recognise remote agent calls 
 
 
-		private ILogger _logger;
+		private readonly ILogger _logger;
 		private readonly UserManager<ApplicationUser> _userManager;
 
 		public DexihRepositoryContext DbContext { get; set; }
 
 		private readonly ICacheService _cacheService;
-		private readonly Func<Import, Task> _hubChange;
 
 		public RepositoryManager(DexihRepositoryContext dbContext,
 			 UserManager<ApplicationUser> userManager,
 			 ICacheService cacheService,
-             ILoggerFactory loggerFactory,
-			 Func<Import, Task> hubChange
-            )
+             ILoggerFactory loggerFactory)
 		{
 			_logger = loggerFactory.CreateLogger("RepositoryManager");
 			_userManager = userManager;
 
-			DbContext = dbContext;
-			_cacheService = cacheService;
-			_hubChange = hubChange;
-		}
-
-		public RepositoryManager(DexihRepositoryContext dbContext,
-			UserManager<ApplicationUser> userManager,
-			ICacheService cacheService
-		)
-		{
-			_userManager = userManager;
 			DbContext = dbContext;
 			_cacheService = cacheService;
 		}
@@ -83,19 +79,19 @@ namespace dexih.operations
 
 		#region User Functions
 
-		[JsonConverter(typeof(StringEnumConverter))]
+		// [JsonConverter(typeof(StringEnumConverter))]
 		public enum ELoginProvider
 		{
-			Dexih, Google, Microsoft    
+            Dexih = 1, Google, Microsoft    
 		}
 
-		public Task<ApplicationUser> GetUser(ClaimsPrincipal principal)
+		public Task<ApplicationUser> GetUser(ClaimsPrincipal principal, CancellationToken cancellationToken)
 		{
 			var id = _userManager.GetUserId(principal);
-			return GetUser(id);
+			return GetUser(id, cancellationToken);
 		}
 
-		private async Task AddUserRole(ApplicationUser user)
+		private async Task AddUserRole(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			var roles = await _userManager.GetRolesAsync(user);
 			if (roles.Contains(AdministratorRole)) user.UserRole = ApplicationUser.EUserRole.Administrator;
@@ -105,7 +101,7 @@ namespace dexih.operations
 			else user.UserRole = ApplicationUser.EUserRole.None;
 		}
 		
-		public async Task<ApplicationUser> GetUser(string id)
+		public async Task<ApplicationUser> GetUser(string id, CancellationToken cancellationToken)
 		{
 			var user = await _userManager.FindByIdAsync(id);
 			if (user == null)
@@ -113,12 +109,12 @@ namespace dexih.operations
 				throw new RepositoryManagerException($"The user could not be found.");
 			}
 
-			await AddUserRole(user);
+			await AddUserRole(user, cancellationToken);
 
 			return user;
 		}
 
-		public async Task<ApplicationUser> GetUserFromEmail(string email)
+		public async Task<ApplicationUser> GetUserFromEmail(string email, CancellationToken cancellationToken)
 		{
 			var user = await _userManager.FindByEmailAsync(email);
 
@@ -127,11 +123,11 @@ namespace dexih.operations
 				return null;
 			}
 
-			await AddUserRole(user);
+			await AddUserRole(user, cancellationToken);
 			return user;
 		}
 
-		public async Task<ApplicationUser> GetUserFromLogin(string provider, string providerKey)
+		public async Task<ApplicationUser> GetUserFromLogin(string provider, string providerKey, CancellationToken cancellationToken)
 		{
 			var user = await _userManager.FindByLoginAsync(provider, providerKey);
 
@@ -139,7 +135,7 @@ namespace dexih.operations
 			{
 				return null;
 			}
-			await AddUserRole(user);
+			await AddUserRole(user, cancellationToken);
 
 			return user;
 		}
@@ -157,7 +153,7 @@ namespace dexih.operations
 			}
 		}
 
-		public async Task CreateUserAsync(ApplicationUser user, string password = null)
+		public async Task CreateUserAsync(ApplicationUser user, string password, CancellationToken cancellationToken)
 		{
 			if (password == null)
 			{
@@ -168,41 +164,41 @@ namespace dexih.operations
 				ThrowIdentityResult("create user", await _userManager.CreateAsync(user, password));
 			}
 
-			await CreateUserRoleAsync(user);
+			await CreateUserRoleAsync(user, cancellationToken);
 		}
 		
-		public async Task UpdateUserAsync(ApplicationUser user)
+		public async Task UpdateUserAsync(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			ThrowIdentityResult("update user", await _userManager.UpdateAsync(user));
-			await CreateUserRoleAsync(user);
+			await CreateUserRoleAsync(user, cancellationToken);
 		}
 
-		public async Task AddLoginAsync(ApplicationUser user, ELoginProvider provider, string providerKey)
+		public async Task AddLoginAsync(ApplicationUser user, ELoginProvider provider, string providerKey, CancellationToken cancellationToken)
 		{
 			var loginInfo = new UserLoginInfo(provider.ToString(), providerKey, provider.ToString());
 			ThrowIdentityResult("add user login", await _userManager.AddLoginAsync(user, loginInfo));
 		}
 
-		public async Task ConfirmEmailAsync(ApplicationUser user, string code)
+		public async Task ConfirmEmailAsync(ApplicationUser user, string code, CancellationToken cancellationToken)
 		{
 			ThrowIdentityResult("confirm email", await _userManager.ConfirmEmailAsync(user, code));
 			user.EmailConfirmed = true;
 			ThrowIdentityResult("update user", await _userManager.UpdateAsync(user));
 		}
 		
-		public async Task AddPasswordAsync(ApplicationUser user, string password) => ThrowIdentityResult("create user", await _userManager.AddPasswordAsync(user, password));
-		public Task<string> GenerateEmailConfirmationTokenAsync(ApplicationUser user) => _userManager.GenerateEmailConfirmationTokenAsync(user);
-		public Task<IList<UserLoginInfo>> GetLoginsAsync(ApplicationUser user) => _userManager.GetLoginsAsync(user);
-		public async Task RemoveLoginAsync(ApplicationUser user, string provider, string providerKey) => ThrowIdentityResult("remove user login", await _userManager.RemoveLoginAsync(user, provider, providerKey));
-		public Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user) => _userManager.GeneratePasswordResetTokenAsync(user);
-		public Task<bool> VerifyUserTokenAsync(ApplicationUser user, string remoteAgentId, string token) => _userManager.VerifyUserTokenAsync(user, RemoteAgentProvider, remoteAgentId, token);
-		public Task<string> GenerateRemoteUserToken(ApplicationUser user, string remoteAgentId) => _userManager.GenerateUserTokenAsync(user, RemoteAgentProvider, remoteAgentId);
-		public Task<IdentityResult> RemoveRemoteUserToken(ApplicationUser user, string remoteAgentId) => _userManager.RemoveAuthenticationTokenAsync(user, RemoteAgentProvider, remoteAgentId);
-		public async Task ResetPasswordAsync(ApplicationUser user, string code, string password) => ThrowIdentityResult("reset password", await _userManager.ResetPasswordAsync(user, code, password));
-		public async Task ChangePasswordAsync(ApplicationUser user, string password, string newPassword) => ThrowIdentityResult("change password", await _userManager.ChangePasswordAsync(user, password, newPassword));
-		public async Task DeleteUserAsync(ApplicationUser user) => ThrowIdentityResult("delete user", await _userManager.DeleteAsync(user));
+		public async Task AddPasswordAsync(ApplicationUser user, string password, CancellationToken cancellationToken) => ThrowIdentityResult("create user", await _userManager.AddPasswordAsync(user, password));
+		public Task<string> GenerateEmailConfirmationTokenAsync(ApplicationUser user, CancellationToken cancellationToken) => _userManager.GenerateEmailConfirmationTokenAsync(user);
+		public Task<IList<UserLoginInfo>> GetLoginsAsync(ApplicationUser user, CancellationToken cancellationToken) => _userManager.GetLoginsAsync(user);
+		public async Task RemoveLoginAsync(ApplicationUser user, string provider, string providerKey, CancellationToken cancellationToken) => ThrowIdentityResult("remove user login", await _userManager.RemoveLoginAsync(user, provider, providerKey));
+		public Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user, CancellationToken cancellationToken) => _userManager.GeneratePasswordResetTokenAsync(user);
+		public Task<bool> VerifyUserTokenAsync(ApplicationUser user, string remoteAgentId, string token, CancellationToken cancellationToken) => _userManager.VerifyUserTokenAsync(user, RemoteAgentProvider, remoteAgentId, token);
+		public Task<string> GenerateRemoteUserToken(ApplicationUser user, string remoteAgentId, CancellationToken cancellationToken) => _userManager.GenerateUserTokenAsync(user, RemoteAgentProvider, remoteAgentId);
+		public Task<IdentityResult> RemoveRemoteUserToken(ApplicationUser user, string remoteAgentId, CancellationToken cancellationToken) => _userManager.RemoveAuthenticationTokenAsync(user, RemoteAgentProvider, remoteAgentId);
+		public async Task ResetPasswordAsync(ApplicationUser user, string code, string password, CancellationToken cancellationToken) => ThrowIdentityResult("reset password", await _userManager.ResetPasswordAsync(user, code, password));
+		public async Task ChangePasswordAsync(ApplicationUser user, string password, string newPassword, CancellationToken cancellationToken) => ThrowIdentityResult("change password", await _userManager.ChangePasswordAsync(user, password, newPassword));
+		public async Task DeleteUserAsync(ApplicationUser user, CancellationToken cancellationToken) => ThrowIdentityResult("delete user", await _userManager.DeleteAsync(user));
 
-		public async Task CreateUserRoleAsync(ApplicationUser user)
+		public async Task CreateUserRoleAsync(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			await _userManager.RemoveFromRolesAsync(user, new[] {AdministratorRole, ManagerRole, ViewerRole, UserRole});
 
@@ -227,8 +223,6 @@ namespace dexih.operations
 			}
 		}
 
-		
-		
 		#endregion
 		
 		#region Hub Functions
@@ -237,23 +231,23 @@ namespace dexih.operations
 		/// clears the cache for any permissions the user has.
 		/// </summary>
 		/// <param name="userId"></param>
-		public Task ResetUserCache(string userId)
+		public Task ResetUserCache(string userId, CancellationToken cancellationToken)
 		{
-			return ResetCache(CacheKeys.UserHubs((userId)));
+			return ResetCache(CacheKeys.UserHubs(userId), cancellationToken);
 		}
 
 		/// <summary>
 		/// clears the hub cache.
 		/// </summary>
 		/// <param name="hubKey"></param>
-		public Task ResetHubCache(long hubKey)
+		public Task ResetHubCache(long hubKey, CancellationToken cancellationToken)
 		{
-			return ResetCache(CacheKeys.Hub(hubKey));
+			return ResetCache(CacheKeys.Hub(hubKey), cancellationToken);
 		}
 
-		public Task ResetCache(string key)
+		public Task ResetCache(string key, CancellationToken cancellationToken)
 		{
-			return _cacheService.Reset(key);
+			return _cacheService.Reset(key, cancellationToken);
 		}
 
 		
@@ -262,19 +256,19 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public async Task ResetHubPermissions(long hubKey)
+		public async Task ResetHubPermissions(long hubKey, CancellationToken cancellationToken)
 		{
-			var hubUsers = await GetHubUsers(hubKey);
+			var hubUsers = await GetHubUsers(hubKey, cancellationToken);
 
 			var tasks = new List<Task>();
 			foreach (var hubUser in hubUsers)
 			{
-				tasks.Add(ResetUserCache(hubUser.Id));
+				tasks.Add(ResetUserCache(hubUser.Id, cancellationToken));
 			}
 			
-			tasks.Add(ResetCache(CacheKeys.AdminHubs));
-			tasks.Add(ResetCache(CacheKeys.HubUserIds(hubKey)));
-			tasks.Add(ResetCache(CacheKeys.HubUsers(hubKey)));
+			tasks.Add(ResetCache(CacheKeys.AdminHubs, cancellationToken));
+			tasks.Add(ResetCache(CacheKeys.HubUserIds(hubKey), cancellationToken));
+			tasks.Add(ResetCache(CacheKeys.HubUsers(hubKey), cancellationToken));
 
 			await Task.WhenAll(tasks.ToArray());
 		}
@@ -284,30 +278,30 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public Task<DexihHub> GetHub(long hubKey)
+		public Task<DexihHub> GetHub(long hubKey, CancellationToken cancellationToken)
 		{
 			var hubReturn = _cacheService.GetOrCreateAsync(CacheKeys.Hub((hubKey)), TimeSpan.FromHours(1), async () =>
 			{
-				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey), _logger);
+				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey, cancellationToken), _logger);
 				var hub = await cache.LoadHub(DbContext);
 				return hub;
-			});
+			}, cancellationToken);
 
 			return hubReturn;
 		}
 		
-		public async Task<DexihHubVariable[]> GetHubVariables(long hubKey)
+		public async Task<DexihHubVariable[]> GetHubVariables(long hubKey, CancellationToken cancellationToken)
 		{
-			var hubVariables = await DbContext.DexihHubVariables.Where(c => c.HubKey == hubKey && c.IsValid).ToArrayAsync();
+			var hubVariables = await DbContext.DexihHubVariables.Where(c => c.HubKey == hubKey && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 			return hubVariables;
 		}
 
-		public async Task<DexihHubUser.EPermission> GetHubUserPermission(long hubKey, string userId)
+		public async Task<EPermission> GetHubUserPermission(long hubKey, string userId, CancellationToken cancellationToken)
 		{
-			var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.IsValid);
+			var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == userId && c.IsValid, cancellationToken: cancellationToken);
 			if (hubUser == null)
 			{
-				return DexihHubUser.EPermission.None;
+				return EPermission.None;
 			}
 			else
 			{
@@ -320,7 +314,7 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="user"></param>
 		/// <returns></returns>
-		public Task<DexihHub[]> GetUserHubs(ApplicationUser user)
+		public Task<DexihHub[]> GetUserHubs(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			if (user.IsAdmin)
 			{
@@ -330,9 +324,9 @@ namespace dexih.operations
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
 						.Where(c => c.IsValid)
-						.ToArrayAsync();
+						.ToArrayAsync(cancellationToken: cancellationToken);
 					return hubs;
-				});
+				}, cancellationToken);
 			}
 			else
 			{
@@ -340,15 +334,15 @@ namespace dexih.operations
 				{
 					var hubKeys = await DbContext.DexihHubUser
 						.Where(c => c.UserId == user.Id && 
-						            (c.Permission == DexihHubUser.EPermission.FullReader || c.Permission == DexihHubUser.EPermission.User || c.Permission == DexihHubUser.EPermission.Owner) && c.IsValid)
-						.Select(c => c.HubKey).ToArrayAsync();
+						            (c.Permission == EPermission.FullReader || c.Permission == EPermission.User || c.Permission == EPermission.Owner) && c.IsValid)
+						.Select(c => c.HubKey).ToArrayAsync(cancellationToken: cancellationToken);
 				
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
-						.Where(c => hubKeys.Contains(c.HubKey) && c.IsValid).ToArrayAsync();
+						.Where(c => hubKeys.Contains(c.HubKey) && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 					return hubs;
-				});
+				}, cancellationToken);
 				
 			}
 		}
@@ -357,7 +351,7 @@ namespace dexih.operations
 		/// Gets a list of hubs the user can access shared data in.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<DexihHub[]> GetSharedHubs(ApplicationUser user)
+		public async Task<DexihHub[]> GetSharedHubs(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			// determine the hubs which can be shared data can be accessed from
 			if (user.IsAdmin)
@@ -370,21 +364,21 @@ namespace dexih.operations
 				if (string.IsNullOrEmpty(user.Id))
 				{
 					// no user can only see public hubs
-					return await DbContext.DexihHubs.Where(c => c.SharedAccess == DexihHub.ESharedAccess.Public && c.IsValid).ToArrayAsync();
+					return await DbContext.DexihHubs.Where(c => c.SharedAccess == ESharedAccess.Public && c.IsValid).ToArrayAsync();
 				}
 
 				// all hubs the user has reader access to.
-				var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && (c.Permission == DexihHubUser.EPermission.FullReader || c.Permission == DexihHubUser.EPermission.User || c.Permission == DexihHubUser.EPermission.Owner || c.Permission == DexihHubUser.EPermission.PublishReader) && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+				var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && (c.Permission == EPermission.FullReader || c.Permission == EPermission.User || c.Permission == EPermission.Owner || c.Permission == EPermission.PublishReader) && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
 					
 				// all hubs the user has reader access to, or are public
 				return await DbContext.DexihHubs.Where(c => 
 					c.IsValid &&
 					(
-						c.SharedAccess == DexihHub.ESharedAccess.Public ||
-						c.SharedAccess == DexihHub.ESharedAccess.Registered ||
+						c.SharedAccess == ESharedAccess.Public ||
+						c.SharedAccess == ESharedAccess.Registered ||
 						readerHubKeys.Contains(c.HubKey)
 					)
-				).ToArrayAsync();
+				).ToArrayAsync(cancellationToken: cancellationToken);
 			}
 		}
 
@@ -394,7 +388,7 @@ namespace dexih.operations
 		/// <param name="user"></param>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public async Task<bool> CanAccessSharedObjects(ApplicationUser user, long hubKey)
+		public async Task<bool> CanAccessSharedObjects(ApplicationUser user, long hubKey, CancellationToken cancellationToken)
 		{
 			// determine the hubs which can be shared data can be accessed from
 			if (user.IsAdmin)
@@ -406,13 +400,13 @@ namespace dexih.operations
 				if (string.IsNullOrEmpty(user.Id))
 				{
 					// no user can only see public hubs
-					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.SharedAccess == DexihHub.ESharedAccess.Public && c.IsValid);
+					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.SharedAccess == ESharedAccess.Public && c.IsValid, cancellationToken: cancellationToken);
 					return hub != null;
 				}
 				else
 				{
 					// all hubs the user has reader access to.
-					var readerHubKey = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.Permission >= DexihHubUser.EPermission.PublishReader && c.IsValid);
+					var readerHubKey = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.Permission >= EPermission.PublishReader && c.IsValid, cancellationToken: cancellationToken);
 
 					if (readerHubKey != null)
 					{
@@ -424,10 +418,9 @@ namespace dexih.operations
 						c.HubKey == hubKey &&
 						(c.IsValid) &&
 						(
-							c.SharedAccess == DexihHub.ESharedAccess.Public ||
-							c.SharedAccess == DexihHub.ESharedAccess.Registered 
-						)
-					);
+							c.SharedAccess == ESharedAccess.Public ||
+							c.SharedAccess == ESharedAccess.Registered 
+						), cancellationToken: cancellationToken);
 					return hub != null;
 				}
 			}
@@ -442,9 +435,9 @@ namespace dexih.operations
 		/// <param name="maxResults">Maximum results to return (0 for all).</param>
 		/// <returns></returns>
 		/// <exception cref="RepositoryException"></exception>
-		public async Task<IEnumerable<SharedData>> GetSharedDataIndex(ApplicationUser user, string searchString, long[] hubKeys, int maxResults = 0)
+		public async Task<IEnumerable<SharedData>> GetSharedDataIndex(ApplicationUser user, string searchString, long[] hubKeys, int maxResults, CancellationToken cancellationToken)
 		{
-			var availableHubs = await GetSharedHubs(user);
+			var availableHubs = await GetSharedHubs(user, cancellationToken);
 
 			// check user has access to all the requested hub keys
 			if (hubKeys != null && hubKeys.Length > 0)
@@ -476,27 +469,27 @@ namespace dexih.operations
 					{
 						var shared = new List<SharedData>();
 						
-						var tables = await DbContext.DexihTables.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid) .ToArrayAsync();
+						var tables = await DbContext.DexihTables.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid) .ToArrayAsync(cancellationToken: cancellationToken);
 						
-						var datalinks = await DbContext.DexihDatalinks.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid) .ToArrayAsync();
+						var datalinks = await DbContext.DexihDatalinks.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid) .ToArrayAsync(cancellationToken: cancellationToken);
 						await DbContext.DexihDatalinkParameters
 							.Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.IsShared && c.Datalink.HubKey == hub.HubKey)
-							.LoadAsync();
+							.LoadAsync(cancellationToken: cancellationToken);
 						
-						var views = await DbContext.DexihViews.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync();
+						var views = await DbContext.DexihViews.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 						await DbContext.DexihViewParameters
 							.Where(c => c.IsValid && c.View.IsValid && c.View.IsShared && c.View.HubKey == hub.HubKey)
-							.LoadAsync();
+							.LoadAsync(cancellationToken: cancellationToken);
 						
-						var dashboards = await DbContext.DexihDashboards.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync();
+						var dashboards = await DbContext.DexihDashboards.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 						await DbContext.DexihDashboardParameters
 							.Where(c => c.IsValid && c.Dashboard.IsValid && c.Dashboard.IsShared && c.Dashboard.HubKey == hub.HubKey)
-							.LoadAsync();
+							.LoadAsync(cancellationToken: cancellationToken);
 						
-						var apis = await DbContext.DexihApis.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync();
+						var apis = await DbContext.DexihApis.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 						await DbContext.DexihApiParameters
 							.Where(c => c.IsValid && c.Api.IsValid && c.Api.IsShared && c.Api.HubKey == hub.HubKey)
-							.LoadAsync();
+							.LoadAsync(cancellationToken: cancellationToken);
 
 						foreach (var table in tables)
 						{
@@ -505,7 +498,7 @@ namespace dexih.operations
 								HubKey = hub.HubKey,
 								HubName = hub.Name,
 								ObjectKey = table.Key,
-								ObjectType = SharedData.EObjectType.Table,
+								ObjectType = EDataObjectType.Table,
 								Name = table.Name,
 								LogicalName = table.LogicalName,
 								Description = table.Description,
@@ -521,7 +514,7 @@ namespace dexih.operations
 								HubKey = datalink.HubKey,
 								HubName = hub.Name,
 								ObjectKey = datalink.Key,
-								ObjectType = SharedData.EObjectType.Datalink,
+								ObjectType = EDataObjectType.Datalink,
 								Name = datalink.Name,
 								LogicalName = datalink.Name,
 								Description = datalink.Description,
@@ -537,7 +530,7 @@ namespace dexih.operations
 								HubKey = view.HubKey,
 								HubName = hub.Name,
 								ObjectKey = view.Key,
-								ObjectType = SharedData.EObjectType.View,
+								ObjectType = EDataObjectType.View,
 								Name = view.Name,
 								LogicalName = view.Name,
 								Description = view.Description,
@@ -553,7 +546,7 @@ namespace dexih.operations
 								HubKey = api.HubKey,
 								HubName = hub.Name,
 								ObjectKey = api.Key,
-								ObjectType = SharedData.EObjectType.Api,
+								ObjectType = EDataObjectType.Api,
 								Name = api.Name,
 								LogicalName = api.Name,
 								Description = api.Description,
@@ -569,7 +562,7 @@ namespace dexih.operations
 								HubKey = dashboard.HubKey,
 								HubName = hub.Name,
 								ObjectKey = dashboard.Key,
-								ObjectType = SharedData.EObjectType.Dashboard,
+								ObjectType = EDataObjectType.Dashboard,
 								Name = dashboard.Name,
 								LogicalName = dashboard.Name,
 								Description = dashboard.Description,
@@ -578,7 +571,7 @@ namespace dexih.operations
 							});
 						}
 						return shared;
-					});
+					}, cancellationToken);
 
 				sharedData.AddRange(sharedCache.Where(c => noSearch || c.Name.ToLower().Contains(search)));
 
@@ -640,7 +633,7 @@ namespace dexih.operations
 					        entity.State = value <= 0 ? EntityState.Added : EntityState.Modified;
 				        }
 
-				        // if the isvalid = false, then set the import action to delete.
+				        // if the isValid = false, then set the import action to delete.
 				        if (attr is CopyIsValidAttribute)
 				        {
 					        var value = (bool) property.GetValue(item);
@@ -670,11 +663,9 @@ namespace dexih.operations
 
 		        await _cacheService.Update<DexihHub>(CacheKeys.Hub(hubKey), cancellationToken);
 
-		        // raise event to send changes back to client.
-		        if (_hubChange != null)
-		        {
-			        await _hubChange.Invoke(import);
-		        }
+                var users = await GetHubUserIds(import.HubKey, CancellationToken.None);
+
+                OnHubChange?.Invoke(import, users);
 	        }
         }
 
@@ -683,29 +674,29 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
-		public Task<string[]> GetHubUserIds(long hubKey)
+		public Task<string[]> GetHubUserIds(long hubKey, CancellationToken cancellationToken)
 		{
 			return _cacheService.GetOrCreateAsync(CacheKeys.HubUserIds(hubKey), TimeSpan.FromMinutes(1), async () =>
 			{
 				try
 				{
 					var adminId = await DbContext.Roles
-						.SingleAsync(c => c.Name == "ADMINISTRATOR");
+						.SingleAsync(c => c.Name == "ADMINISTRATOR", cancellationToken: cancellationToken);
 					
 					var adminUsers = await DbContext.UserRoles
 						.Where(c => c.RoleId == adminId.Id)
 						.Select(c => c.UserId)
-						.ToArrayAsync();
+						.ToArrayAsync(cancellationToken: cancellationToken);
 					
 					var hubUserIds = await DbContext.DexihHubUser
 						.Where(c => !adminUsers.Contains(c.UserId) && c.HubKey == hubKey && c.IsValid)
-						.Select(c => c.UserId).ToListAsync();
+						.Select(c => c.UserId).ToListAsync(cancellationToken: cancellationToken);
 					
 					hubUserIds.AddRange(adminUsers);
 
 					var hubUserNames = await DbContext.Users
 						.Where(c => hubUserIds.Contains(c.Id))
-						.Select(c => c.Id).ToArrayAsync();
+						.Select(c => c.Id).ToArrayAsync(cancellationToken: cancellationToken);
 
 					return hubUserNames;
 				}
@@ -713,7 +704,7 @@ namespace dexih.operations
 				{
 					throw new RepositoryManagerException($"Error getting hub user ids.  {ex.Message}", ex);
 				}
-			});
+			}, cancellationToken);
 		}
 
         /// <summary>
@@ -721,14 +712,14 @@ namespace dexih.operations
         /// </summary>
         /// <param name="hubKey"></param>
         /// <returns></returns>
-        public Task<List<HubUser>> GetHubUsers(long hubKey)
+        public Task<List<HubUser>> GetHubUsers(long hubKey, CancellationToken cancellationToken)
         {
             try
             {
 	            var returnList = _cacheService.GetOrCreateAsync(CacheKeys.HubUsers(hubKey), TimeSpan.FromHours(1),  async () =>
 	            {
-		            var hubUsers = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && c.IsValid).ToListAsync();
-		            var users = await DbContext.Users.Where(c => hubUsers.Select(d => d.UserId).Contains(c.Id)).ToListAsync();
+		            var hubUsers = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && c.IsValid).ToListAsync(cancellationToken: cancellationToken);
+		            var users = await DbContext.Users.Where(c => hubUsers.Select(d => d.UserId).Contains(c.Id)).ToListAsync(cancellationToken: cancellationToken);
 
 		            var hubUsersList = new List<HubUser>();
 		            foreach(var hubUser in hubUsers)
@@ -748,7 +739,7 @@ namespace dexih.operations
 		            }
 
 		            return hubUsersList;
-	            });
+	            }, cancellationToken);
 
 	            return returnList;
             }
@@ -764,41 +755,41 @@ namespace dexih.operations
             public string LastName { get; set; }
             public string Email { get; set; }
             public string Id { get; set; }
-            public DexihHubUser.EPermission Permission { get; set; }
+            public EPermission Permission { get; set; }
         }
 
-        public async Task<DexihHub> GetUserHub(long hubKey, ApplicationUser user)
+        public async Task<DexihHub> GetUserHub(long hubKey, ApplicationUser user, CancellationToken cancellationToken)
 		{
 			if (user.IsAdmin)
 			{
-				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid);
+				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
 			}
 			else
 			{
-				var hub = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid);
+				var hub = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid, cancellationToken: cancellationToken);
 				if (hub == null)
 				{
 					throw new RepositoryManagerException($"A hub with key {hubKey} is not available to the current user.");
 				}
-				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid);
+				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
 			}
 		}
 
-		public async Task<string> GetHubEncryptionKey(long hubKey)
+		public async Task<string> GetHubEncryptionKey(long hubKey, CancellationToken cancellationToken)
 		{
-			var hub = await DbContext.DexihHubs.SingleAsync(c => c.HubKey == hubKey);
+			var hub = await DbContext.DexihHubs.SingleAsync(c => c.HubKey == hubKey, cancellationToken: cancellationToken);
 			return hub.EncryptionKey;
 		}
 
-		public async Task<DexihHub> SaveHub(DexihHub hub, ApplicationUser user)
+		public async Task<DexihHub> SaveHub(DexihHub hub, ApplicationUser user, CancellationToken cancellationToken)
 		{
 			try
 			{
 				if (hub.HubKey > 0 && !user.IsAdmin)
 				{
-					var permission = await ValidateHub(user, hub.HubKey);
+					var permission = await ValidateHub(user, hub.HubKey, cancellationToken);
 
-					if(permission != DexihHubUser.EPermission.Owner)
+					if(permission != EPermission.Owner)
 					{
 						throw new RepositoryException("Only owners of the hub are able to make modifications.");
 					}
@@ -821,7 +812,7 @@ namespace dexih.operations
 
 				if (hub.HubKey > 0)
 				{
-					dbHub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hub.HubKey && c.IsValid);
+					dbHub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hub.HubKey && c.IsValid, cancellationToken: cancellationToken);
 					if (dbHub != null)
 					{
 						hub.CopyProperties(dbHub, true);
@@ -841,16 +832,16 @@ namespace dexih.operations
 				}
 				
                 //save the hub to generate a hub key.
-                await DbContext.SaveChangesAsync();
-				await ResetHubCache(hub.HubKey);
-				await ResetHubPermissions(hub.HubKey);
+                await DbContext.SaveChangesAsync(cancellationToken);
+				await ResetHubCache(hub.HubKey, cancellationToken);
+				await ResetHubPermissions(hub.HubKey, cancellationToken);
 
 				// if new hub, then update with current user, and update the quota.
 				if (isNew && !user.IsAdmin)
 				{
 					user.HubQuota--;
-					await UpdateUserAsync(user);
-					await HubSetUserPermissions(dbHub.HubKey, new[] { user.Id }, DexihHubUser.EPermission.Owner);
+					await UpdateUserAsync(user, cancellationToken);
+					await HubSetUserPermissions(dbHub.HubKey, new[] { user.Id }, EPermission.Owner, cancellationToken);
 				}
 
 				return dbHub;
@@ -861,20 +852,20 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihHub[]> DeleteHubs(ApplicationUser user, long[] hubKeys)
+        public async Task<DexihHub[]> DeleteHubs(ApplicationUser user, long[] hubKeys, CancellationToken cancellationToken)
 		{
 			try
 			{
 				var dbHubs = await DbContext.DexihHubs
 					.Where(c => hubKeys.Contains(c.HubKey))
-					.ToArrayAsync();
+					.ToArrayAsync(cancellationToken: cancellationToken);
 
 				foreach (var dbHub in dbHubs)
 				{
 					if (!user.IsAdmin)
 					{
-						var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == dbHub.HubKey && c.UserId == user.Id && c.IsValid);
-						if (hubUser == null || hubUser.Permission != DexihHubUser.EPermission.Owner)
+						var hubUser = await DbContext.DexihHubUser.SingleOrDefaultAsync(c => c.HubKey == dbHub.HubKey && c.UserId == user.Id && c.IsValid, cancellationToken: cancellationToken);
+						if (hubUser == null || hubUser.Permission != EPermission.Owner)
 						{
 							throw new RepositoryManagerException($"Failed to delete the hub with name {dbHub.Name} as user does not have owner permission on this hub.");
 						}
@@ -882,12 +873,12 @@ namespace dexih.operations
 
 					dbHub.IsValid = false;
 
-					await ResetHubCache(dbHub.HubKey);
-					await ResetHubPermissions(dbHub.HubKey);
+					await ResetHubCache(dbHub.HubKey, cancellationToken);
+					await ResetHubPermissions(dbHub.HubKey, cancellationToken);
 				}
 				
-				await ResetUserCache(user.Id);
-				await DbContext.SaveChangesAsync();
+				await ResetUserCache(user.Id, cancellationToken);
+				await DbContext.SaveChangesAsync(cancellationToken);
 				
 
                 return dbHubs;
@@ -899,7 +890,7 @@ namespace dexih.operations
         }
 
 
-        public async Task HubSetUserPermissions(long hubKey, IEnumerable<string> userIds, DexihHubUser.EPermission permission)
+        public async Task HubSetUserPermissions(long hubKey, IEnumerable<string> userIds, EPermission permission, CancellationToken cancellationToken)
         {
             try
             {
@@ -926,11 +917,11 @@ namespace dexih.operations
 		                userHub.IsValid = true;
 	                }
 
-	                await ResetUserCache(userId);
-                    await DbContext.SaveChangesAsync();
+	                await ResetUserCache(userId, cancellationToken);
+                    await DbContext.SaveChangesAsync(cancellationToken);
                 }
 	            
-	            await ResetHubPermissions(hubKey);
+	            await ResetHubPermissions(hubKey, cancellationToken);
 
             }
             catch (Exception ex)
@@ -939,18 +930,18 @@ namespace dexih.operations
             }
         }
 
-    public async Task HubDeleteUsers(long hubKey, IEnumerable<string> userIds)
+    public async Task HubDeleteUsers(long hubKey, IEnumerable<string> userIds, CancellationToken cancellationToken)
 		{
             try
             {
-	            var usersHub = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && userIds.Contains(c.UserId)).ToListAsync();
+	            var usersHub = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && userIds.Contains(c.UserId)).ToListAsync(cancellationToken: cancellationToken);
 	            foreach (var userHub in usersHub)
 	            {
 		            userHub.IsValid = false;
-		            await ResetUserCache(userHub.UserId);
+		            await ResetUserCache(userHub.UserId, cancellationToken);
 	            }
-	            await DbContext.SaveChangesAsync();
-	            await ResetHubPermissions(hubKey);
+	            await DbContext.SaveChangesAsync(cancellationToken);
+	            await ResetHubPermissions(hubKey, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -961,16 +952,16 @@ namespace dexih.operations
         #endregion
 
         #region Encrypt Functions
-        public async Task<string> DecryptString(long hubKey, string value)
+        public async Task<string> DecryptString(long hubKey, string value, CancellationToken cancellationToken)
 		{
-			var key = await GetHubEncryptionKey(hubKey);
+			var key = await GetHubEncryptionKey(hubKey, cancellationToken);
 			var decryptResult = Dexih.Utils.Crypto.EncryptString.Decrypt(value, key, 1000);
 			return decryptResult;
 		}
 
-		public async Task<string> EncryptString(long hubKey, string value)
+		public async Task<string> EncryptString(long hubKey, string value, CancellationToken cancellationToken)
 		{
-			var key = await GetHubEncryptionKey(hubKey);
+			var key = await GetHubEncryptionKey(hubKey, cancellationToken);
 			var encryptResult = Dexih.Utils.Crypto.EncryptString.Encrypt(value, key, 1000);
 			return encryptResult;
 		}
@@ -986,7 +977,7 @@ namespace dexih.operations
 		/// <param name="hubKey"></param>
 		/// <returns></returns>
 		/// <exception cref="ApplicationUserException"></exception>
-		public Task<DexihHubUser.EPermission> ValidateHub(ApplicationUser user, long hubKey)
+		public Task<EPermission> ValidateHub(ApplicationUser user, long hubKey, CancellationToken cancellationToken)
 		{
 			var validate = _cacheService.GetOrCreateAsync(CacheKeys.UserHubPermission(user.Id, hubKey), TimeSpan.FromMinutes(1),  async () =>
 			{
@@ -995,7 +986,7 @@ namespace dexih.operations
 					throw new ApplicationUserException("The users email address has not been confirmed.");
 				}
 
-				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey);
+				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey, cancellationToken: cancellationToken);
 
 				if (hub == null)
 				{
@@ -1004,14 +995,14 @@ namespace dexih.operations
 
 				if (user.IsAdmin)
 				{
-					return DexihHubUser.EPermission.Owner;
+					return EPermission.Owner;
 				}
 
 				var hubUser =
-					await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid);
+					await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid, cancellationToken: cancellationToken);
 
-				if (hubUser.Permission == DexihHubUser.EPermission.Suspended ||
-				    hubUser.Permission == DexihHubUser.EPermission.None)
+				if (hubUser.Permission == EPermission.Suspended ||
+				    hubUser.Permission == EPermission.None)
 				{
 					throw new ApplicationUserException($"The users does not have access to the hub with key {hubKey}.");
 				}
@@ -1019,7 +1010,7 @@ namespace dexih.operations
 				{
 					return hubUser.Permission;
 				}
-			});
+			}, cancellationToken);
 
 			return validate;
 		}
@@ -1028,7 +1019,7 @@ namespace dexih.operations
 		
 		
         #region Connection Functions
-        public async Task<DexihConnection> SaveConnection(long hubKey, DexihConnection connection)
+        public async Task<DexihConnection> SaveConnection(long hubKey, DexihConnection connection, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -1039,7 +1030,7 @@ namespace dexih.operations
                         c.HubKey == hubKey &&
                         c.Name == connection.Name && 
                         c.Key != connection.Key && 
-                        c.IsValid);
+                        c.IsValid, cancellationToken: cancellationToken);
 
 				if (sameName != null)
 				{
@@ -1049,7 +1040,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (connection.Key > 0)
 				{
-					dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(d => d.Key == connection.Key);
+					dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(d => d.Key == connection.Key, cancellationToken: cancellationToken);
 					if (dbConnection != null)
 					{
 						connection.CopyProperties(dbConnection);
@@ -1068,19 +1059,19 @@ namespace dexih.operations
 				if (!string.IsNullOrEmpty(dbConnection.PasswordRaw))
 				{
 					// if the UsePasswordVariable variable is set, then do not encrypt the password (which will be a variable name).
-					dbConnection.Password = dbConnection.UsePasswordVariable ? dbConnection.PasswordRaw : await EncryptString(connection.HubKey, dbConnection.PasswordRaw);
+					dbConnection.Password = dbConnection.UsePasswordVariable ? dbConnection.PasswordRaw : await EncryptString(connection.HubKey, dbConnection.PasswordRaw, cancellationToken);
 				}
 
 				if (!string.IsNullOrEmpty(dbConnection.ConnectionStringRaw))
 				{
 					// if the UseConnectionStringVariable is set, then do not encrypt the password (which will be a variable name).
-					dbConnection.ConnectionString = dbConnection.UseConnectionStringVariable ? dbConnection.ConnectionStringRaw : await EncryptString(connection.HubKey, dbConnection.ConnectionStringRaw);
+					dbConnection.ConnectionString = dbConnection.UseConnectionStringVariable ? dbConnection.ConnectionStringRaw : await EncryptString(connection.HubKey, dbConnection.ConnectionStringRaw, cancellationToken);
 				}
 
 				dbConnection.HubKey = hubKey;
 				dbConnection.IsValid = true;
 
-				await SaveHubChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey, cancellationToken);
 				
 				// var dbConnection2 = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == dbConnection.ConnectionKey);
 
@@ -1092,19 +1083,19 @@ namespace dexih.operations
             }
         }
 
-		public async Task<DexihConnection> DeleteConnection(long hubKey, long connectionKey)
+		public async Task<DexihConnection> DeleteConnection(long hubKey, long connectionKey, CancellationToken cancellationToken)
 		{
-			var connections = await DeleteConnections(hubKey, new[] {connectionKey});
+			var connections = await DeleteConnections(hubKey, new[] {connectionKey}, cancellationToken);
 			return connections[0];
 		}
 
-        public async Task<DexihConnection[]> DeleteConnections(long hubKey, long[] connectionKeys)
+        public async Task<DexihConnection[]> DeleteConnections(long hubKey, long[] connectionKeys, CancellationToken cancellationToken)
 		{
             try
             {
                 var dbConnections = await DbContext.DexihConnections
                     .Where(c => c.HubKey == hubKey && connectionKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var connection in dbConnections)
                 {
@@ -1112,7 +1103,7 @@ namespace dexih.operations
                 }
 
                 var dbtables = await DbContext.DexihTables
-	                .Where(c => connectionKeys.Contains(c.ConnectionKey) && c.IsValid).ToArrayAsync();
+	                .Where(c => connectionKeys.Contains(c.ConnectionKey) && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
                 
                 foreach (var table in dbtables)
                 {
@@ -1124,7 +1115,7 @@ namespace dexih.operations
 	                }
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbConnections;
             }
@@ -1136,12 +1127,12 @@ namespace dexih.operations
 
 
 
-        public async Task<DexihConnection> GetConnection(long hubKey, long connectionKey, bool includeTables)
+        public async Task<DexihConnection> GetConnection(long hubKey, long connectionKey, bool includeTables, CancellationToken cancellationToken)
 		{
             try
             {
                 var dbConnection = await DbContext.DexihConnections
-                      .SingleOrDefaultAsync(c => c.Key == connectionKey && c.HubKey == hubKey && c.IsValid);
+                      .SingleOrDefaultAsync(c => c.Key == connectionKey && c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
 
                 if (dbConnection == null)
                 {
@@ -1169,13 +1160,13 @@ namespace dexih.operations
 
 		#region Table Functions
 
-		public async Task<DexihTable> SaveTable(long hubKey,DexihTable hubTable, bool includeColumns, bool includeFileFormat = false)
+		public async Task<DexihTable> SaveTable(long hubKey,DexihTable hubTable, bool includeColumns, bool includeFileFormat, CancellationToken cancellationToken)
 		{
-			var tables = await SaveTables(hubKey, new[] {hubTable}, includeColumns, includeFileFormat);
+			var tables = await SaveTables(hubKey, new[] {hubTable}, includeColumns, includeFileFormat, cancellationToken);
 			return tables[0];
 		}
 		
-		public async Task<DexihTable[]> SaveTables(long hubKey, IEnumerable<DexihTable> tables, bool includeColumns, bool includeFileFormat = false)
+		public async Task<DexihTable[]> SaveTables(long hubKey, IEnumerable<DexihTable> tables, bool includeColumns, bool includeFileFormat, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -1186,7 +1177,7 @@ namespace dexih.operations
 					DexihTable dbTable;
 
 					//check there are no datajobs with the same name
-					var sameName = await DbContext.DexihTables.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == table.ConnectionKey && c.Name == table.Name && c.Key != table.Key && c.IsValid);
+					var sameName = await DbContext.DexihTables.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.ConnectionKey == table.ConnectionKey && c.Name == table.Name && c.Key != table.Key && c.IsValid, cancellationToken: cancellationToken);
 					if (sameName != null)
 					{
                         throw new RepositoryManagerException($"A table with the name {table.Name} already exists in the repository.");
@@ -1199,11 +1190,11 @@ namespace dexih.operations
 
 					if (includeFileFormat && table.FileFormat != null)
 					{
-						var dbFileFormat = await DbContext.DexihFileFormats.SingleOrDefaultAsync(f => f.HubKey == hubKey && f.Key == table.FileFormat.Key);
+						var dbFileFormat = await DbContext.DexihFileFormats.SingleOrDefaultAsync(f => f.HubKey == hubKey && f.Key == table.FileFormat.Key, cancellationToken: cancellationToken);
 						if (dbFileFormat == null)
 						{
 							table.EntityStatus.Message = $"The table could not be saved as the table contains the fileformat {table.FileFormat.Key} that no longer exists in the repository.";
-							table.EntityStatus.LastStatus = EntityStatus.EStatus.Error;
+							table.EntityStatus.LastStatus = EStatus.Error;
                             throw new RepositoryManagerException(table.EntityStatus.Message);
                         }
 
@@ -1211,11 +1202,11 @@ namespace dexih.operations
 						table.FileFormat = dbFileFormat;
 					}
 
-					var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == table.ConnectionKey);
+					var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == table.ConnectionKey, cancellationToken: cancellationToken);
                     if (dbConnection == null)
                     {
                         table.EntityStatus.Message = $"The table could not be saved as the table contains connection that no longer exists in the repository.";
-                        table.EntityStatus.LastStatus = EntityStatus.EStatus.Error;
+                        table.EntityStatus.LastStatus = EStatus.Error;
                         throw new RepositoryManagerException(table.EntityStatus.Message);
                     }
 
@@ -1234,7 +1225,7 @@ namespace dexih.operations
 					}
 					else
 					{
-						dbTable = await GetTable(hubKey, table.Key, true);
+						dbTable = await GetTable(hubKey, table.Key, true, cancellationToken);
 						
 						if (dbTable == null)
 						{
@@ -1279,7 +1270,7 @@ namespace dexih.operations
 					_logger.LogTrace("Saving table: " + table.Name);
 				}
 				
-				await SaveHubChangesAsync(hubKey);				
+				await SaveHubChangesAsync(hubKey, cancellationToken);				
 				return savedTables.ToArray();
 			}
             catch (Exception ex)
@@ -1288,14 +1279,14 @@ namespace dexih.operations
             }
         }
 
-		public async Task<DexihTable> DeleteTable(long hubKey, long tableKey)
+		public async Task<DexihTable> DeleteTable(long hubKey, long tableKey, CancellationToken cancellationToken)
 		{
-			var tables = await DeleteTables(hubKey, new[] {tableKey});
+			var tables = await DeleteTables(hubKey, new[] {tableKey}, cancellationToken);
 			return tables[0];
 		}
 
 
-        public async Task<DexihTable[]> DeleteTables(long hubKey, long[] tableKeys)
+        public async Task<DexihTable[]> DeleteTables(long hubKey, long[] tableKeys, CancellationToken cancellationToken)
 		{
             try
             {
@@ -1303,7 +1294,7 @@ namespace dexih.operations
                     .Include(d => d.DexihTableColumns)
                     .Include(f => f.FileFormat)
                     .Where(c => c.HubKey == hubKey && tableKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var table in dbTables)
                 {
@@ -1320,7 +1311,7 @@ namespace dexih.operations
                     }
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbTables;
             }
@@ -1330,7 +1321,7 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihTable[]> ShareTables(long hubKey, long[] tableKeys, bool isShared)
+        public async Task<DexihTable[]> ShareTables(long hubKey, long[] tableKeys, bool isShared, CancellationToken cancellationToken)
         {
             try
             {
@@ -1338,14 +1329,14 @@ namespace dexih.operations
                     .Include(d => d.DexihTableColumns)
                     .Include(f => f.FileFormat)
                     .Where(c => c.HubKey == hubKey && tableKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var table in dbTables)
                 {
                     table.IsShared = isShared;
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbTables;
             }
@@ -1356,7 +1347,7 @@ namespace dexih.operations
 
         }
 		
-		public async Task<DexihTable[]> GetTables(long hubKey, IEnumerable<long> tableKeys, bool includeColumns)
+		public async Task<DexihTable[]> GetTables(long hubKey, IEnumerable<long> tableKeys, bool includeColumns, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -1367,7 +1358,7 @@ namespace dexih.operations
 					await DbContext.DexihTableColumns
 						.Where(c => c.TableKey != null && c.IsValid && c.HubKey == hubKey && tableKeys.Contains(c.TableKey.Value))
 						.Include(c=>c.ChildColumns)
-						.LoadAsync();
+						.LoadAsync(cancellationToken: cancellationToken);
 				}
 
 				return dbTables;
@@ -1379,12 +1370,12 @@ namespace dexih.operations
 		}
 		
 
-        public async Task<DexihTable> GetTable(long hubKey, long tableKey, bool includeColumns)
+        public async Task<DexihTable> GetTable(long hubKey, long tableKey, bool includeColumns, CancellationToken cancellationToken)
 		{
             try
             {
                 var dbTable = await DbContext.DexihTables
-	                .SingleOrDefaultAsync(c => c.Key == tableKey && c.HubKey == hubKey && c.IsValid);
+	                .SingleOrDefaultAsync(c => c.Key == tableKey && c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
 
                 if (dbTable == null)
                 {
@@ -1395,14 +1386,14 @@ namespace dexih.operations
 	            {
 		            dbTable.FileFormat =
 			            await DbContext.DexihFileFormats.SingleOrDefaultAsync(
-				            c => c.Key == dbTable.FileFormatKey && c.IsValid);
+				            c => c.Key == dbTable.FileFormatKey && c.IsValid, cancellationToken: cancellationToken);
 	            }
 
                 if (includeColumns)
                 {
                     await DbContext.Entry(dbTable).Collection(a => a.DexihTableColumns).Query()
 						.Where(c => c.HubKey == hubKey && c.IsValid && dbTable.Key == c.TableKey)
-						.Include(c=>c.ChildColumns).LoadAsync();
+						.Include(c=>c.ChildColumns).LoadAsync(cancellationToken: cancellationToken);
                 }
 
                 return dbTable;
@@ -1413,12 +1404,12 @@ namespace dexih.operations
             }
         }
 
-		public async Task<DexihView> GetView(long hubKey, long viewKey)
+		public async Task<DexihView> GetView(long hubKey, long viewKey, CancellationToken cancellationToken)
 		{
 			try
 			{
 				var dbView = await DbContext.DexihViews
-					.SingleOrDefaultAsync(c => c.Key == viewKey && c.HubKey == hubKey && c.IsValid);
+					.SingleOrDefaultAsync(c => c.Key == viewKey && c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
 
 				if (dbView == null)
 				{
@@ -1426,7 +1417,7 @@ namespace dexih.operations
 				}
 
 				await DbContext.Entry(dbView).Collection(a => a.Parameters).Query()
-					.Where(c => c.HubKey == hubKey && c.IsValid && dbView.Key == c.ViewKey).LoadAsync();
+					.Where(c => c.HubKey == hubKey && c.IsValid && dbView.Key == c.ViewKey).LoadAsync(cancellationToken: cancellationToken);
 
 				return dbView;
 			}
@@ -1436,12 +1427,12 @@ namespace dexih.operations
 			}
 		}
 
-		public async Task<DexihDashboard> GetDashboard(long hubKey, long dashboardKey)
+		public async Task<DexihDashboard> GetDashboard(long hubKey, long dashboardKey, CancellationToken cancellationToken)
 		{
 			try
 			{
 				var dbDashboard = await DbContext.DexihDashboards
-					.SingleOrDefaultAsync(c => c.Key == dashboardKey && c.HubKey == hubKey && c.IsValid);
+					.SingleOrDefaultAsync(c => c.Key == dashboardKey && c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
 
 				if (dbDashboard == null)
 				{
@@ -1449,11 +1440,11 @@ namespace dexih.operations
 				}
 
 				await DbContext.Entry(dbDashboard).Collection(a => a.Parameters).Query()
-					.Where(c => c.HubKey == hubKey && c.IsValid && dbDashboard.Key == c.DashboardKey).LoadAsync();
+					.Where(c => c.HubKey == hubKey && c.IsValid && dbDashboard.Key == c.DashboardKey).LoadAsync(cancellationToken: cancellationToken);
 
 				var items = await DbContext.DexihDashboardItems.Where(c => c.HubKey == hubKey && c.IsValid && dbDashboard.Key == c.DashboardKey).ToHashSetAsync();
 				var parameters = await DbContext.DexihDashboardItemParameters.Where(c => c.IsValid && c.HubKey == hubKey && items.Select(k => k.Key).Contains(c.DashboardItemKey))
-					.ToHashSetAsync();
+					.ToHashSetAsync(cancellationToken: cancellationToken);
 			
 				return dbDashboard;
 			}
@@ -1485,7 +1476,7 @@ namespace dexih.operations
 		            return TransformDelta.EUpdateStrategy.Reload;
 	            else if (hubTable.DexihTableColumns.Count(c => c.DeltaType == EDeltaType.NaturalKey) == 0)
 	            {
-		            // no natrual key.  Reload is the only choice
+		            // no natural key.  Reload is the only choice
 		            return TransformDelta.EUpdateStrategy.Reload;
 	            }
 	            else
@@ -1503,7 +1494,7 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihDatalink[]> SaveDatalinks(long hubKey, DexihDatalink[] hubDatalinks, bool includeTargetTable)
+        public async Task<DexihDatalink[]> SaveDatalinks(long hubKey, DexihDatalink[] hubDatalinks, bool includeTargetTable, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -1513,7 +1504,7 @@ namespace dexih.operations
 					//check there are no datajobs with the same name
 					var sameName = await DbContext.DexihDatalinks.FirstOrDefaultAsync(c =>
 						c.HubKey == hubKey && c.Name == datalink.Name && c.Key != datalink.Key &&
-						c.IsValid);
+						c.IsValid, cancellationToken: cancellationToken);
 					if (sameName != null)
 					{
 						throw new RepositoryManagerException(
@@ -1657,7 +1648,7 @@ namespace dexih.operations
 //						.Select(x => x)
 //						.ToList();
 					
-					await SaveHubChangesAsync(hubKey);
+					await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 }
 
@@ -1672,7 +1663,7 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihDatalink[]> DeleteDatalinks(long hubKey, long[] datalinkKeys)
+        public async Task<DexihDatalink[]> DeleteDatalinks(long hubKey, long[] datalinkKeys, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -1721,7 +1712,7 @@ namespace dexih.operations
 					}).ToList();
 				}
 
-				await SaveHubChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey, cancellationToken);
 
 				return dbDatalinks;
 			}
@@ -1731,7 +1722,7 @@ namespace dexih.operations
             }
         }
 
-        public async Task ShareItems(long hubKey, long[] keys, SharedData.EObjectType objectType, bool isShared)
+        public async Task ShareItems(long hubKey, long[] keys, EDataObjectType objectType, bool isShared, CancellationToken cancellationToken)
         {
             try
             {
@@ -1739,31 +1730,31 @@ namespace dexih.operations
 	            
 	            switch (objectType)
 	            {
-		            case SharedData.EObjectType.Table:
+		            case EDataObjectType.Table:
 			            foreach (var table in cache.Hub.DexihTables.Where(c => keys.Contains(c.Key)))
 			            {
 				            table.IsShared = isShared;
 			            }
 			            break;
-		            case SharedData.EObjectType.Datalink:
+		            case EDataObjectType.Datalink:
 			            foreach (var table in cache.Hub.DexihDatalinks.Where(c => keys.Contains(c.Key)))
 			            {
 				            table.IsShared = isShared;
 			            }
 			            break;
-		            case SharedData.EObjectType.View:
+		            case EDataObjectType.View:
 			            foreach (var table in cache.Hub.DexihViews.Where(c => keys.Contains(c.Key)))
 			            {
 				            table.IsShared = isShared;
 			            }
 			            break;
-		            case SharedData.EObjectType.Dashboard:
+		            case EDataObjectType.Dashboard:
 			            foreach (var table in cache.Hub.DexihDashboards.Where(c => keys.Contains(c.Key)))
 			            {
 				            table.IsShared = isShared;
 			            }
 			            break;
-		            case SharedData.EObjectType.Api:
+		            case EDataObjectType.Api:
 			            foreach (var table in cache.Hub.DexihApis.Where(c => keys.Contains(c.Key)))
 			            {
 				            table.IsShared = isShared;
@@ -1773,7 +1764,7 @@ namespace dexih.operations
 			            throw new ArgumentOutOfRangeException(nameof(objectType), objectType, null);
 	            }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -1783,7 +1774,7 @@ namespace dexih.operations
 
         public async Task<DexihDatalink[]> NewDatalinks(long hubKey, 
 	        string datalinkName, 
-	        DexihDatalink.EDatalinkType datalinkType, 
+	        EDatalinkType datalinkType, 
 	        long? targetConnectionKey, 
 	        long[] sourceTableKeys, 
 	        long? targetTableKey, 
@@ -1791,7 +1782,7 @@ namespace dexih.operations
 	        long? auditConnectionKey, 
 	        bool addSourceColumns,
 	        EDeltaType[] auditColumns,
-	        NamingStandards namingStandards)
+	        NamingStandards namingStandards, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -1809,19 +1800,19 @@ namespace dexih.operations
 
                 long tempColumnKeys = -1;
 
-				var sourceTables = await DbContext.DexihTables.Where(c => c.HubKey == hubKey && sourceTableKeys.Contains(c.Key) && c.IsValid).ToDictionaryAsync(c => c.Key);
+				var sourceTables = await DbContext.DexihTables.Where(c => c.HubKey == hubKey && sourceTableKeys.Contains(c.Key) && c.IsValid).ToDictionaryAsync(c => c.Key, cancellationToken: cancellationToken);
 				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && c.TableKey != null && sourceTables.Keys.Contains(c.TableKey.Value) && c.IsValid).Include(c => c.ChildColumns).LoadAsync();
-				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == targetTableKey);
-				var targetCon = targetConnectionKey == null ? null : await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == targetConnectionKey);
+				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == targetTableKey, cancellationToken: cancellationToken);
+				var targetCon = targetConnectionKey == null ? null : await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == targetConnectionKey, cancellationToken: cancellationToken);
 
 				foreach (var sourceTableKey in sourceTableKeys)
 				{
 					if (sourceTableKey == 0 && targetTableKey != null && targetTableName != null)
 					{
-                        throw new RepositoryManagerException("There is no source table selected, so the target table cannot be autonamed and must be defined.");
+                        throw new RepositoryManagerException("There is no source table selected, so the target table cannot be auto-named and must be defined.");
 					}
 
-					if (!string.IsNullOrEmpty(datalinkName) && await DbContext.DexihDatalinks.AnyAsync(c => c.Name == datalinkName && c.IsValid))
+					if (!string.IsNullOrEmpty(datalinkName) && await DbContext.DexihDatalinks.AnyAsync(c => c.Name == datalinkName && c.IsValid, cancellationToken: cancellationToken))
 					{
                         throw new RepositoryManagerException("There is already an existing datalink with the name " + datalinkName + ".");
 					}
@@ -1841,7 +1832,7 @@ namespace dexih.operations
 						var count = 0;
 						var baseName = namingStandards.ApplyNamingStandard(datalinkType + ".Datalink.Name", sourceTable.Name);
 						string[] newName = {baseName};
-						while (await DbContext.DexihDatalinks.AnyAsync(c => c.HubKey == hubKey && c.Name == newName[0] && c.IsValid))
+						while (await DbContext.DexihDatalinks.AnyAsync(c => c.HubKey == hubKey && c.Name == newName[0] && c.IsValid, cancellationToken: cancellationToken))
 						{
 							newName[0] = $"{baseName} ({count++})";
 
@@ -1889,7 +1880,7 @@ namespace dexih.operations
                     {
 	                    if (targetCon != null)
 	                    {
-		                    targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns, namingStandards);
+		                    targetTable = await CreateDefaultTargetTable(hubKey, datalinkType, sourceTable, targetTableName, targetCon, addSourceColumns, auditColumns, namingStandards, cancellationToken);
 		                    var target = new DexihDatalinkTarget {Table = targetTable, IsValid = true};
 		                    datalink.DexihDatalinkTargets.Add(target);
 		                    datalink.LoadStrategy = TransformWriterTarget.ETransformWriterMethod.Bulk;
@@ -1898,7 +1889,7 @@ namespace dexih.operations
 
 					//add a mapping transform, with source/target fields mapped.
 					var mappingTransform = Transforms.GetDefaultMappingTransform();
-					var datalinkTransform = CreateDefaultDatalinkTransform(hubKey, mappingTransform);
+					var datalinkTransform = CreateDefaultDatalinkTransform(hubKey, mappingTransform, cancellationToken);
 					datalinkTransform.PassThroughColumns = true;
 
 					if (targetTable != null)
@@ -1913,15 +1904,15 @@ namespace dexih.operations
 							//any columns which have been renamed in the target table, will get a mapping created for them, as passthrough won't map
 							if (sourceColumn != null && sourceColumn.Name != targetColumn.Name)
 							{
-								var item = new DexihDatalinkTransformItem()
-								{
-									Position = position++,
-									TransformItemType = DexihDatalinkTransformItem.ETransformItemType.ColumnPair
-								};
+                                var item = new DexihDatalinkTransformItem
+                                {
+                                    Position = position++,
+                                    TransformItemType = ETransformItemType.ColumnPair,
+                                    SourceDatalinkColumn = sourceColumn
+                                };
 
-								item.SourceDatalinkColumn = sourceColumn;
 
-								var newColumn = new DexihDatalinkColumn();
+                                var newColumn = new DexihDatalinkColumn();
 								targetColumn.CopyProperties(newColumn, true);
 								newColumn.Key = tempColumnKeys--;
 								item.TargetDatalinkColumn = newColumn;
@@ -1948,7 +1939,7 @@ namespace dexih.operations
 				foreach (var entry in changedEntriesCopy)
 					entry.State = EntityState.Detached;
 
-				var savedDatalinks = await SaveDatalinks(hubKey, newDatalinks.ToArray(), true);
+				var savedDatalinks = await SaveDatalinks(hubKey, newDatalinks.ToArray(), true, cancellationToken);
 				return savedDatalinks;
 
 			}
@@ -1962,7 +1953,7 @@ namespace dexih.operations
 
         #region Datajob Functions
         
-        public async Task<DexihDatajob[]> SaveDatajobs(long hubKey, DexihDatajob[] hubDatajobs)
+        public async Task<DexihDatajob[]> SaveDatajobs(long hubKey, DexihDatajob[] hubDatajobs, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -1975,7 +1966,7 @@ namespace dexih.operations
 					}
 					
 					//check there are no datajobs with the same name
-					var sameName = await DbContext.DexihDatajobs.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datajob.Name && c.Key != datajob.Key && c.IsValid);
+					var sameName = await DbContext.DexihDatajobs.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datajob.Name && c.Key != datajob.Key && c.IsValid, cancellationToken: cancellationToken);
 					if (sameName != null)
 					{
                         throw new RepositoryManagerException($"A datajob with the name {datajob.Name} already exists in the repository.");
@@ -2043,7 +2034,7 @@ namespace dexih.operations
 					}
 				}
 
-				await SaveHubChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey, cancellationToken);
 				return savedDatajobs.ToArray();
 			}
             catch (Exception ex)
@@ -2052,7 +2043,7 @@ namespace dexih.operations
             }
         }
 
-        public async Task<bool> DeleteDatajobs(long hubKey, long[] datajobKeys)
+        public async Task<bool> DeleteDatajobs(long hubKey, long[] datajobKeys, CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -2061,7 +2052,7 @@ namespace dexih.operations
 					.Include(s => s.DexihDatalinkSteps)
 						.ThenInclude(d => d.DexihDatalinkDependencies)
 					.Where(c => c.HubKey == hubKey && datajobKeys.Contains(c.Key))
-					.ToArrayAsync();
+					.ToArrayAsync(cancellationToken: cancellationToken);
 
 				foreach (var datajob in datajobs)
 				{
@@ -2083,7 +2074,7 @@ namespace dexih.operations
 					}
 				}
 
-				await SaveHubChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey, cancellationToken);
 				return true;
 			}
             catch (Exception ex)
@@ -2103,13 +2094,13 @@ namespace dexih.operations
 		/// <param name="iPAddress"></param>
 		/// <param name="remoteSettings"></param>
 		/// <returns></returns>
-		public async Task<DexihRemoteAgent> RemoteAgentLogin(string iPAddress, string remoteAgentId)
+		public async Task<DexihRemoteAgent> RemoteAgentLogin(string iPAddress, string remoteAgentId, CancellationToken cancellationToken)
 		{
             try
             {
 	            var remoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(c => 
 		            c.RemoteAgentId == remoteAgentId && 
-		            c.IsValid);
+		            c.IsValid, cancellationToken: cancellationToken);
 
 	            if (remoteAgent == null)
 	            {
@@ -2118,7 +2109,7 @@ namespace dexih.operations
 
 	            remoteAgent.LastLoginDateTime = DateTime.Now;
 				remoteAgent.LastLoginIpAddress = iPAddress;
-				await DbContext.SaveChangesAsync();
+				await DbContext.SaveChangesAsync(cancellationToken);
 				return remoteAgent;
             }
             catch (Exception ex)
@@ -2127,13 +2118,13 @@ namespace dexih.operations
             }
         }
 		
-		public Task<DexihRemoteAgent> GetRemoteAgent(long remoteAgentKey)
+		public Task<DexihRemoteAgent> GetRemoteAgent(long remoteAgentKey, CancellationToken cancellationToken)
 		{
 			return DbContext.DexihRemoteAgents.SingleOrDefaultAsync(
-				c => c.RemoteAgentKey == remoteAgentKey && c.IsValid);
+				c => c.RemoteAgentKey == remoteAgentKey && c.IsValid, cancellationToken: cancellationToken);
 		}
 		
-	   public async Task<DexihRemoteAgent> SaveRemoteAgent(string userId, DexihRemoteAgent hubRemoteAgent)
+	   public async Task<DexihRemoteAgent> SaveRemoteAgent(string userId, DexihRemoteAgent hubRemoteAgent, CancellationToken cancellationToken)
 		{
             try
             {
@@ -2142,7 +2133,7 @@ namespace dexih.operations
                 //if there is a remoteAgentKey, retrieve the record from the database, and copy the properties across.
                 if (hubRemoteAgent.RemoteAgentKey > 0)
                 {
-                    dbRemoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(d => d.RemoteAgentKey == hubRemoteAgent.RemoteAgentKey && d.IsValid);
+                    dbRemoteAgent = await DbContext.DexihRemoteAgents.SingleOrDefaultAsync(d => d.RemoteAgentKey == hubRemoteAgent.RemoteAgentKey && d.IsValid, cancellationToken: cancellationToken);
                     if (dbRemoteAgent != null)
                     {
 	                    if (dbRemoteAgent.UserId == userId)
@@ -2175,7 +2166,7 @@ namespace dexih.operations
 
                 dbRemoteAgent.IsValid = true;
 
-	            await DbContext.SaveChangesAsync();
+	            await DbContext.SaveChangesAsync(cancellationToken);
 
                 return dbRemoteAgent;
             }
@@ -2185,12 +2176,12 @@ namespace dexih.operations
             }
         }
 		
-		public async Task<bool> DeleteRemoteAgent(ApplicationUser user, long remoteAgentKey)
+		public async Task<bool> DeleteRemoteAgent(ApplicationUser user, long remoteAgentKey, CancellationToken cancellationToken)
 		{
 			try
 			{
 				var dbItem = await DbContext.DexihRemoteAgents
-					.SingleAsync(c => c.RemoteAgentKey == remoteAgentKey);
+					.SingleAsync(c => c.RemoteAgentKey == remoteAgentKey, cancellationToken: cancellationToken);
 
 				if (dbItem.UserId != user.Id && !user.IsAdmin)
 				{
@@ -2206,7 +2197,7 @@ namespace dexih.operations
 					hub.IsValid = false;
 				}
 				
-				await DbContext.SaveChangesAsync();
+				await DbContext.SaveChangesAsync(cancellationToken);
 
 				return true;
 			}
@@ -2216,55 +2207,54 @@ namespace dexih.operations
 			}
 		}
 
-		/// <summary>
-		/// Gets a list of all hubs which have been authorized for the remote agent.
-		/// </summary>
-		/// <param name="iPAddress"></param>
-		/// <param name="remoteSettings"></param>
-		/// <returns></returns>
-		public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(string iPAddress, RemoteSettings remoteSettings)
-		{
-			return await _cacheService.GetOrCreateAsync(CacheKeys.RemoteAgentHubs(remoteSettings.AppSettings.RemoteAgentId), TimeSpan.FromMinutes(1), 
-				async () =>
-				{
-					var hubs = await GetUserHubs(remoteSettings.Runtime.User);
+		///// <summary>
+		///// Gets a list of all hubs which have been authorized for the remote agent.
+		///// </summary>
+		///// <param name="remoteSettings"></param>
+		///// <returns></returns>
+		//public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(RemoteSettings remoteSettings, CancellationToken cancellationToken)
+		//{
+		//	return await _cacheService.GetOrCreateAsync(CacheKeys.RemoteAgentHubs(remoteSettings.AppSettings.RemoteAgentId), TimeSpan.FromMinutes(1), 
+		//		async () =>
+		//		{
+		//			var hubs = await GetUserHubs(remoteSettings.Runtime.User, cancellationToken);
 			
-					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Where(c => 
-						c.RemoteAgent.RemoteAgentId == remoteSettings.AppSettings.RemoteAgentId &&
-						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
-						c.IsAuthorized &&
-						c.IsValid).ToArrayAsync();
+		//			var remoteAgents = await DbContext.DexihRemoteAgentHubs.Where(c => 
+		//				c.RemoteAgent.RemoteAgentId == remoteSettings.AppSettings.RemoteAgentId &&
+		//				hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
+		//				c.IsAuthorized &&
+		//				c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 
-					return remoteAgents;
-				});
-		}
+		//			return remoteAgents;
+		//		}, cancellationToken);
+		//}
 		
 		/// <summary>
 		/// Gets a list of all remote agents available to the user.
 		/// </summary>
 		/// <param name="user"></param>
 		/// <returns></returns>
-		public async Task<DexihRemoteAgentHub[]> AuthorizedUserRemoteAgentHubs(ApplicationUser user)
+		public async Task<DexihRemoteAgentHub[]> AuthorizedUserRemoteAgentHubs(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			return await _cacheService.GetOrCreateAsync( CacheKeys.RemoteAgentUserHubs(user.Id), TimeSpan.FromMinutes(1), 
 				async () =>
 				{
-					var hubs = await GetUserHubs(user);
+					var hubs = await GetUserHubs(user, cancellationToken);
 			
 					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Include(c => c.RemoteAgent).Where(c => 
 						hubs.Select(h => h.HubKey).Contains(c.HubKey) &&
 						c.IsAuthorized &&
-						c.IsValid).ToArrayAsync();
+						c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 
 					return remoteAgents;
-				});
+				}, cancellationToken);
 		}
 		
 		/// <summary>
 		/// Gets a list of all hubs which have been authorized for the remote agent.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(long remoteAgentKey)
+		public async Task<DexihRemoteAgentHub[]> AuthorizedRemoteAgentHubs(long remoteAgentKey, CancellationToken cancellationToken)
 		{
 			return await _cacheService.GetOrCreateAsync(CacheKeys.RemoteAgentKeyHubs(remoteAgentKey),TimeSpan.FromMinutes(1), 
 				async () =>
@@ -2272,29 +2262,29 @@ namespace dexih.operations
 					var remoteAgents = await DbContext.DexihRemoteAgentHubs.Where(c => 
 						c.RemoteAgentKey == remoteAgentKey &&
 						c.IsAuthorized &&
-						c.IsValid).ToArrayAsync();
+						c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 
 					return remoteAgents;
-				});
+				}, cancellationToken);
 		}
 
-		public Task<DexihRemoteAgentHub> AuthorizedRemoteAgentHub(long hubKey, long remoteAgentKey)
+		public Task<DexihRemoteAgentHub> AuthorizedRemoteAgentHub(long hubKey, long remoteAgentKey, CancellationToken cancellationToken)
 		{
-			return DbContext.DexihRemoteAgentHubs.FirstOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentKey == remoteAgentKey && d.IsAuthorized && d.IsValid);
+			return DbContext.DexihRemoteAgentHubs.FirstOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentKey == remoteAgentKey && d.IsAuthorized && d.IsValid, cancellationToken: cancellationToken);
 		}
 
-		public async Task<DexihRemoteAgent[]> GetRemoteAgents(ApplicationUser user)
+		public async Task<DexihRemoteAgent[]> GetRemoteAgents(ApplicationUser user, CancellationToken cancellationToken)
 		{
-			var userHubs = (await GetUserHubs(user)).Select(c=>c.HubKey);
+			var userHubs = (await GetUserHubs(user, cancellationToken)).Select(c=>c.HubKey);
 			
 			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => 
 				c.IsValid && 
 				((user.IsAdmin || c.UserId == user.Id) || c.DexihRemoteAgentHubs.Any(d => userHubs.Contains(d.HubKey)))
-				).ToArrayAsync();
+				).ToArrayAsync(cancellationToken: cancellationToken);
 			return remoteAgents;
 		}
 
-        public async Task<DexihRemoteAgentHub> SaveRemoteAgentHub(string userId, long hubKey, DexihRemoteAgentHub hubRemoteAgent)
+        public async Task<DexihRemoteAgentHub> SaveRemoteAgentHub(string userId, long hubKey, DexihRemoteAgentHub hubRemoteAgent, CancellationToken cancellationToken)
 		{
             try
             {
@@ -2303,7 +2293,7 @@ namespace dexih.operations
                 //if there is a remoteAgentKey, retrieve the record from the database, and copy the properties across.
                 if (hubRemoteAgent.RemoteAgentHubKey > 0)
                 {
-                    dbRemoteAgent = await DbContext.DexihRemoteAgentHubs.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentHubKey == hubRemoteAgent.RemoteAgentHubKey && d.IsValid);
+                    dbRemoteAgent = await DbContext.DexihRemoteAgentHubs.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.RemoteAgentHubKey == hubRemoteAgent.RemoteAgentHubKey && d.IsValid, cancellationToken: cancellationToken);
                     if (dbRemoteAgent != null)
                     {
 	                    hubRemoteAgent.CopyProperties(dbRemoteAgent, true);
@@ -2322,7 +2312,7 @@ namespace dexih.operations
 
                 dbRemoteAgent.IsValid = true;
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbRemoteAgent;
             }
@@ -2333,15 +2323,15 @@ namespace dexih.operations
 
         }
 
-        public async Task<bool> DeleteRemoteAgentHub(long hubKey, long remoteAgentHubKey)
+        public async Task<bool> DeleteRemoteAgentHub(long hubKey, long remoteAgentHubKey, CancellationToken cancellationToken)
 		{
             try
             {
                 var dbItem = await DbContext.DexihRemoteAgentHubs
-                    .SingleAsync(c => c.HubKey == hubKey && c.RemoteAgentHubKey == remoteAgentHubKey);
+                    .SingleAsync(c => c.HubKey == hubKey && c.RemoteAgentHubKey == remoteAgentHubKey, cancellationToken: cancellationToken);
 
                 dbItem.IsValid = false;
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return true;
             }
@@ -2355,7 +2345,7 @@ namespace dexih.operations
 
         #region Datalink Transform Functions
 
-        private DexihDatalinkTransform CreateDefaultDatalinkTransform(long hubKey, TransformReference transform)
+        private DexihDatalinkTransform CreateDefaultDatalinkTransform(long hubKey, TransformReference transform, CancellationToken cancellationToken)
 		{
             try
             {
@@ -2381,13 +2371,13 @@ namespace dexih.operations
 
         private async Task<DexihTable> CreateDefaultTargetTable(
 	        long hubKey, 
-	        DexihDatalink.EDatalinkType datalinkType, 
+	        EDatalinkType datalinkType, 
 	        DexihTable sourceTable, 
 	        string tableName, 
 	        DexihConnection targetConnection,
 	        bool addSourceColumns,
 	        EDeltaType[] auditColumns,
-	        NamingStandards namingStandards)
+	        NamingStandards namingStandards, CancellationToken cancellationToken)
 		{
             try
             {
@@ -2407,7 +2397,7 @@ namespace dexih.operations
                         throw new RepositoryManagerException("There is no name specified for the validation table, and no source table to auto-name the table from.");
                     }
 
-					if(await DbContext.DexihTables.AnyAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnection.Key && c.Name == tableName && c.IsValid))
+					if(await DbContext.DexihTables.AnyAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnection.Key && c.Name == tableName && c.IsValid, cancellationToken: cancellationToken))
 					{
 						throw new RepositoryManagerException($"The target table could not be created as a table with the name {tableName} already exists.");
 					}
@@ -2428,7 +2418,7 @@ namespace dexih.operations
 					var count = 0;
 					var baseName = namingStandards.ApplyNamingStandard(datalinkType + ".Table.Name", sourceTable.BaseTableName);
 					var newName = baseName;
-					while (await DbContext.DexihTables.AnyAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnection.Key && c.Name == newName && c.IsValid))
+					while (await DbContext.DexihTables.AnyAsync(c => c.HubKey == hubKey && c.ConnectionKey == targetConnection.Key && c.Name == newName && c.IsValid, cancellationToken: cancellationToken))
 					{
 						newName = $"{baseName}_{count++}";
 
@@ -2533,14 +2523,14 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihColumnValidation[]> DeleteColumnValidations(long hubKey, long[] columnValidationKeys)
+        public async Task<DexihColumnValidation[]> DeleteColumnValidations(long hubKey, long[] columnValidationKeys, CancellationToken cancellationToken)
 		{
             try
             {
                 var dbValidations = await DbContext.DexihColumnValidations
                     .Include(column => column.DexihColumnValidationColumn)
                     .Where(c => c.HubKey == hubKey && columnValidationKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var validation in dbValidations)
                 {
@@ -2551,7 +2541,7 @@ namespace dexih.operations
                     }
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbValidations;
             }
@@ -2562,14 +2552,14 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihColumnValidation> SaveColumnValidation(long hubKey, DexihColumnValidation validation)
+        public async Task<DexihColumnValidation> SaveColumnValidation(long hubKey, DexihColumnValidation validation, CancellationToken cancellationToken)
 		{
 			try
 			{
 				DexihColumnValidation dbColumnValidation;
 
 				//check there are no connections with the same name
-				var sameName = await DbContext.DexihColumnValidations.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == validation.Name && c.Key != validation.Key && c.IsValid);
+				var sameName = await DbContext.DexihColumnValidations.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == validation.Name && c.Key != validation.Key && c.IsValid, cancellationToken: cancellationToken);
 				if (sameName != null)
 				{
                     throw new RepositoryManagerException($"A column validation with the name {validation.Name} already exists in the repository.");
@@ -2578,7 +2568,7 @@ namespace dexih.operations
 				//if there is a connectionKey, retrieve the record from the database, and copy the properties across.
 				if (validation.Key > 0)
 				{
-					dbColumnValidation = await DbContext.DexihColumnValidations.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == validation.Key);
+					dbColumnValidation = await DbContext.DexihColumnValidations.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == validation.Key, cancellationToken: cancellationToken);
 					if (dbColumnValidation != null)
 					{
 						validation.CopyProperties(dbColumnValidation, true);
@@ -2599,7 +2589,7 @@ namespace dexih.operations
 				dbColumnValidation.HubKey = hubKey;
 				dbColumnValidation.IsValid = true;
 
-				await SaveHubChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey, cancellationToken);
 
 				return dbColumnValidation;
 			}
@@ -2609,20 +2599,20 @@ namespace dexih.operations
             }
         }
 		
-	  	public async Task<DexihCustomFunction[]> DeleteCustomFunctions(long hubKey, long[] customFunctionKeys)
+	  	public async Task<DexihCustomFunction[]> DeleteCustomFunctions(long hubKey, long[] customFunctionKeys, CancellationToken cancellationToken)
 		{
             try
             {
                 var dbFunctions = await DbContext.DexihCustomFunctions
                     .Where(c => c.HubKey == hubKey && customFunctionKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var function in dbFunctions)
                 {
 	                function.IsValid = false;
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbFunctions;
             }
@@ -2633,17 +2623,17 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihCustomFunction> SaveCustomFunction(long hubKey, DexihCustomFunction function)
+        public async Task<DexihCustomFunction> SaveCustomFunction(long hubKey, DexihCustomFunction function, CancellationToken cancellationToken)
 		{
 			try
 			{
 				DexihCustomFunction dbFunction;
 
 				//check there are no connections with the same name
-				var sameName = await DbContext.DexihCustomFunctions.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == function.Name && c.Key != function.Key && c.IsValid);
+				var sameName = await DbContext.DexihCustomFunctions.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == function.Name && c.Key != function.Key && c.IsValid, cancellationToken: cancellationToken);
 				if (sameName != null)
 				{
-                    throw new RepositoryManagerException($"A custom funciton with the name {function.Name} already exists in the hub.");
+                    throw new RepositoryManagerException($"A custom function with the name {function.Name} already exists in the hub.");
 				}
 
 				//if there is a connectionKey, retrieve the record from the database, and copy the properties across.
@@ -2676,7 +2666,7 @@ namespace dexih.operations
 //				.Select(x => x)
 //				.ToList();
 				
-				await SaveHubChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey, cancellationToken);
 
 				return dbFunction;
 			}
@@ -2686,20 +2676,20 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihFileFormat[]> DeleteFileFormats(long hubKey, long[] fileFormatKeys)
+        public async Task<DexihFileFormat[]> DeleteFileFormats(long hubKey, long[] fileFormatKeys, CancellationToken cancellationToken)
 		{
             try
             {
                 var dbFileFormats = await DbContext.DexihFileFormats
                     .Where(c => c.HubKey == hubKey && fileFormatKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var fileformat in dbFileFormats)
                 {
                     fileformat.IsValid = false;
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbFileFormats;
             }
@@ -2710,14 +2700,14 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihFileFormat> SaveFileFormat(long hubKey, DexihFileFormat fileformat)
+        public async Task<DexihFileFormat> SaveFileFormat(long hubKey, DexihFileFormat fileformat, CancellationToken cancellationToken)
 		{
 			try
 			{
 				DexihFileFormat dbFileFormat;
 
 				//check there are no connections with the same name
-				var sameName = await DbContext.DexihFileFormats.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == fileformat.Name && c.Key != fileformat.Key && c.IsValid);
+				var sameName = await DbContext.DexihFileFormats.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == fileformat.Name && c.Key != fileformat.Key && c.IsValid, cancellationToken: cancellationToken);
 				if (sameName != null)
 				{
                     throw new RepositoryManagerException($"A file format with the name {fileformat.Name} already exists in the repository.");
@@ -2726,7 +2716,7 @@ namespace dexih.operations
 				//if there is a connectionKey, retrieve the record from the database, and copy the properties across.
 				if (fileformat.Key > 0)
 				{
-					dbFileFormat = await DbContext.DexihFileFormats.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == fileformat.Key);
+					dbFileFormat = await DbContext.DexihFileFormats.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == fileformat.Key, cancellationToken: cancellationToken);
 					if (dbFileFormat != null)
 					{
 						fileformat.CopyProperties(dbFileFormat, true);
@@ -2746,7 +2736,7 @@ namespace dexih.operations
 
 				dbFileFormat.IsValid = true;
 
-				await SaveHubChangesAsync(hubKey);
+				await SaveHubChangesAsync(hubKey, cancellationToken);
 
 				return dbFileFormat;
 			}
@@ -2756,20 +2746,20 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihHubVariable[]> DeleteHubVariables(long hubKey, long[] hubVariableKeys)
+        public async Task<DexihHubVariable[]> DeleteHubVariables(long hubKey, long[] hubVariableKeys, CancellationToken cancellationToken)
         {
             try
             {
                 var dbHubVariables = await DbContext.DexihHubVariables
                     .Where(c => c.HubKey == hubKey && hubVariableKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var hubVariable in dbHubVariables)
                 {
                     hubVariable.IsValid = false;
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbHubVariables;
             }
@@ -2780,14 +2770,14 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihHubVariable> SaveHubVariable(long hubKey, DexihHubVariable hubHubVariable)
+        public async Task<DexihHubVariable> SaveHubVariable(long hubKey, DexihHubVariable hubHubVariable, CancellationToken cancellationToken)
         {
             try
             {
                 DexihHubVariable dbHubHubVariable;
 
                 //check there are no connections with the same name
-                var sameName = await DbContext.DexihHubVariables.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == hubHubVariable.Name && c.Key != hubHubVariable.Key && c.IsValid);
+                var sameName = await DbContext.DexihHubVariables.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == hubHubVariable.Name && c.Key != hubHubVariable.Key && c.IsValid, cancellationToken: cancellationToken);
                 if (sameName != null)
                 {
                     throw new RepositoryManagerException($"A variable with the name {hubHubVariable.Name} already exists in the repository.");
@@ -2796,7 +2786,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (hubHubVariable.Key > 0)
                 {
-                    dbHubHubVariable = await DbContext.DexihHubVariables.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == hubHubVariable.Key);
+                    dbHubHubVariable = await DbContext.DexihHubVariables.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == hubHubVariable.Key, cancellationToken: cancellationToken);
                     if (dbHubHubVariable != null)
                     {
                         hubHubVariable.CopyProperties(dbHubHubVariable, true);
@@ -2816,7 +2806,7 @@ namespace dexih.operations
 
                 dbHubHubVariable.IsValid = true;
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbHubHubVariable;
             }
@@ -2826,13 +2816,13 @@ namespace dexih.operations
             }
         }
 
-	   public async Task<DexihView[]> DeleteViews(long hubKey, long[] viewKeys)
+	   public async Task<DexihView[]> DeleteViews(long hubKey, long[] viewKeys, CancellationToken cancellationToken)
         {
             try
             {
                 var dbViews = await DbContext.DexihViews
                     .Where(c => c.HubKey == hubKey && viewKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var view in dbViews)
                 {
@@ -2850,14 +2840,14 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihView> SaveView(long hubKey, DexihView view)
+        public async Task<DexihView> SaveView(long hubKey, DexihView view, CancellationToken cancellationToken)
         {
             try
             {
                 DexihView dbView;
 
                 //check there are no connections with the same name
-                var sameName = await DbContext.DexihViews.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == view.Name && c.Key != view.Key && c.IsValid);
+                var sameName = await DbContext.DexihViews.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == view.Name && c.Key != view.Key && c.IsValid, cancellationToken: cancellationToken);
                 if (sameName != null)
                 {
                     throw new RepositoryManagerException($"A view with the name {view.Name} already exists in the repository.");
@@ -2866,7 +2856,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (view.Key > 0)
                 {
-	                dbView = await GetView(hubKey, view.Key);
+	                dbView = await GetView(hubKey, view.Key, cancellationToken);
                     if (dbView != null)
                     {
 	                    view.CopyProperties(dbView, false);
@@ -2886,7 +2876,7 @@ namespace dexih.operations
 
                 dbView.IsValid = true;
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbView;
             }
@@ -2897,13 +2887,13 @@ namespace dexih.operations
         }
         
         
-        public async Task<DexihDashboard[]> DeleteDashboards(long hubKey, long[] dashboardKeys)
+        public async Task<DexihDashboard[]> DeleteDashboards(long hubKey, long[] dashboardKeys, CancellationToken cancellationToken)
         {
             try
             {
                 var dbDashboards = await DbContext.DexihDashboards
                     .Where(c => c.HubKey == hubKey && dashboardKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var dashboard in dbDashboards)
                 {
@@ -2915,7 +2905,7 @@ namespace dexih.operations
 	                }
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbDashboards;
             }
@@ -2926,14 +2916,14 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihDashboard> SaveDashboard(long hubKey, DexihDashboard dashboard)
+        public async Task<DexihDashboard> SaveDashboard(long hubKey, DexihDashboard dashboard, CancellationToken cancellationToken)
         {
             try
             {
                 DexihDashboard dbDashboard;
 
                 //check there are no connections with the same name
-                var sameName = await DbContext.DexihDashboards.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == dashboard.Name && c.Key != dashboard.Key && c.IsValid);
+                var sameName = await DbContext.DexihDashboards.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == dashboard.Name && c.Key != dashboard.Key && c.IsValid, cancellationToken: cancellationToken);
                 if (sameName != null)
                 {
                     throw new RepositoryManagerException($"A dashboard with the name {dashboard.Name} already exists in the repository.");
@@ -2942,7 +2932,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (dashboard.Key > 0)
                 {
-	                dbDashboard = await GetDashboard(hubKey, dashboard.Key);
+	                dbDashboard = await GetDashboard(hubKey, dashboard.Key, cancellationToken);
                     if (dbDashboard != null)
                     {
 	                    dashboard.CopyProperties(dbDashboard, false);
@@ -2961,7 +2951,7 @@ namespace dexih.operations
 
                 dbDashboard.IsValid = true;
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbDashboard;
             }
@@ -2971,20 +2961,20 @@ namespace dexih.operations
             }
         }
         
-          public async Task<DexihApi[]> DeleteApis(long hubKey, long[] apiKeys)
+          public async Task<DexihApi[]> DeleteApis(long hubKey, long[] apiKeys, CancellationToken cancellationToken)
         {
             try
             {
                 var dbApis = await DbContext.DexihApis
                     .Where(c => c.HubKey == hubKey && apiKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var api in dbApis)
                 {
 	                api.IsValid = false;
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbApis;
             }
@@ -2994,14 +2984,14 @@ namespace dexih.operations
             }
         }
 
-        public async Task<DexihApi> SaveApi(long hubKey, DexihApi api)
+        public async Task<DexihApi> SaveApi(long hubKey, DexihApi api, CancellationToken cancellationToken)
         {
             try
             {
 	            DexihApi dbApi;
 
                 //check there are no connections with the same name
-                var sameName = await DbContext.DexihApis.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == api.Name && c.Key != api.Key && c.IsValid);
+                var sameName = await DbContext.DexihApis.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == api.Name && c.Key != api.Key && c.IsValid, cancellationToken: cancellationToken);
                 if (sameName != null)
                 {
                     throw new RepositoryManagerException($"A API with the name {api.Name} already exists in the repository.");
@@ -3010,7 +3000,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (api.Key > 0)
                 {
-                    dbApi = await DbContext.DexihApis.Include(c => c.Parameters).SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == api.Key);
+                    dbApi = await DbContext.DexihApis.Include(c => c.Parameters).SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == api.Key, cancellationToken: cancellationToken);
                     if (dbApi != null)
                     {
 	                    api.CopyProperties(dbApi, false);
@@ -3029,7 +3019,7 @@ namespace dexih.operations
 
                 dbApi.IsValid = true;
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbApi;
             }
@@ -3039,20 +3029,20 @@ namespace dexih.operations
             }
         }
 		
-		public async Task<DexihDatalinkTest[]> DeleteDatalinkTests(long hubKey, long[] datalinkTestKeys)
+		public async Task<DexihDatalinkTest[]> DeleteDatalinkTests(long hubKey, long[] datalinkTestKeys, CancellationToken cancellationToken)
         {
             try
             {
                 var dbTests = await DbContext.DexihDatalinkTests
                     .Where(c => c.HubKey == hubKey && datalinkTestKeys.Contains(c.Key) && c.IsValid)
-                    .ToArrayAsync();
+                    .ToArrayAsync(cancellationToken: cancellationToken);
 
                 foreach (var item in dbTests)
                 {
 	                item.IsValid = false;
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbTests;
             }
@@ -3063,14 +3053,14 @@ namespace dexih.operations
 
         }
 
-        public async Task<DexihDatalinkTest> SaveDatalinkTest(long hubKey, DexihDatalinkTest datalinkTest)
+        public async Task<DexihDatalinkTest> SaveDatalinkTest(long hubKey, DexihDatalinkTest datalinkTest, CancellationToken cancellationToken)
         {
             try
             {
 	            DexihDatalinkTest dbDatalinkTest;
 
                 //check there are no connections with the same name
-                var sameName = await DbContext.DexihDatalinkTests.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datalinkTest.Name && c.Key != datalinkTest.Key && c.IsValid);
+                var sameName = await DbContext.DexihDatalinkTests.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == datalinkTest.Name && c.Key != datalinkTest.Key && c.IsValid, cancellationToken: cancellationToken);
                 if (sameName != null)
                 {
                     throw new RepositoryManagerException($"A test with the name {datalinkTest.Name} already exists in the repository.");
@@ -3101,7 +3091,7 @@ namespace dexih.operations
 	            dbDatalinkTest.UpdateDate = DateTime.Now;	            
 	            dbDatalinkTest.IsValid = true;
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbDatalinkTest;
             }
@@ -3122,7 +3112,7 @@ namespace dexih.operations
         /// <param name="targetConnectionKey"></param>
         /// <param name="sourceConnectionKey"></param>
         /// <returns></returns>
-        public async Task<DexihDatalinkTest> NewDatalinkTest(long hubKey, DexihHub hub, string name, long[] datalinkKeys, long auditConnectionKey, long targetConnectionKey, long sourceConnectionKey)
+        public async Task<DexihDatalinkTest> NewDatalinkTest(long hubKey, DexihHub hub, string name, long[] datalinkKeys, long auditConnectionKey, long targetConnectionKey, long sourceConnectionKey, CancellationToken cancellationToken)
 		{
 			var datalinks = hub.DexihDatalinks.Where(c => datalinkKeys.Contains(c.Key)).ToArray();
 			
@@ -3168,7 +3158,7 @@ namespace dexih.operations
 						TestConnectionKey = sourceConnectionKey,
 						TestTableName = $"{table.Name}_test_{uniqueId}",
 						TestSchema = "",
-						Action = DexihDatalinkTestTable.ETestTableAction.DropCreateCopy,
+						Action = ETestTableAction.DropCreateCopy,
 					};
 					datalinkStep.DexihDatalinkTestTables.Add(testTable);
 				}
@@ -3184,7 +3174,7 @@ namespace dexih.operations
 
 			DbContext.DexihDatalinkTests.Add(datalinkTest);
 			
-			await SaveHubChangesAsync(hubKey);
+			await SaveHubChangesAsync(hubKey, cancellationToken);
 
 			return datalinkTest;
 		}
@@ -3307,7 +3297,7 @@ namespace dexih.operations
 		/// <param name="columnValidationsAction"></param>
 		/// <returns></returns>
 		/// <exception cref="ArgumentOutOfRangeException"></exception>
-		public async Task<Import> CreateImportPlan(long hubKey, DexihHub hub, ImportAction[] importActions)
+		public async Task<Import> CreateImportPlan(long hubKey, DexihHub hub, ImportAction[] importActions, CancellationToken cancellationToken)
 		{
 			var keySequence = -1;
 			var plan = new Import(hubKey);
@@ -3474,7 +3464,7 @@ namespace dexih.operations
 
 			foreach (var view in views.importObjects.Select(c => c.Item))
 			{
-				if (view.SourceType == ESourceType.Datalink && view.SourceDatalinkKey != null)
+				if (view.SourceType == EDataObjectType.Datalink && view.SourceDatalinkKey != null)
 				{
 					if (datalinks.keyMappings.TryGetValue(view.SourceDatalinkKey.Value,
 						out var sourceDatalinkKey))
@@ -3488,7 +3478,7 @@ namespace dexih.operations
 					}
 				}
 				
-				if (view.SourceType == ESourceType.Table && view.SourceTableKey != null)
+				if (view.SourceType == EDataObjectType.Table && view.SourceTableKey != null)
 				{
 					if (tables.keyMappings.TryGetValue(view.SourceTableKey.Value, out var sourceTableKey))
 					{
@@ -3734,7 +3724,7 @@ namespace dexih.operations
 		/// <param name="import"></param>
 		/// <param name="allowPasswordImport">Allows the import to import passwords/connection strings</param>
 		/// <returns></returns>
-		public async Task ImportPackage(Import import, bool allowPasswordImport)
+		public async Task ImportPackage(Import import, bool allowPasswordImport, CancellationToken cancellationToken)
 		{
 			//load all the objects into dictionaries, which can be used to reference them by their key
 			
@@ -4087,17 +4077,17 @@ namespace dexih.operations
 				column.UpdateDate = DateTime.Now;
 			}
 
-			await DbContext.AddRangeAsync(hubVariables.Values);
-			await DbContext.AddRangeAsync(columnValidations.Values);
-			await DbContext.AddRangeAsync(fileFormats.Values);
-			await DbContext.AddRangeAsync(connections.Values);
-			await DbContext.AddRangeAsync(tables.Values);
-			await DbContext.AddRangeAsync(datalinks.Values);
-			await DbContext.AddRangeAsync(datajobs.Values);
-			await DbContext.AddRangeAsync(datalinkTests.Values);
-			await DbContext.AddRangeAsync(apis.Values);
-			await DbContext.AddRangeAsync(views.Values);
-			await DbContext.AddRangeAsync(dashboards.Values);
+			await DbContext.AddRangeAsync(hubVariables.Values, cancellationToken);
+			await DbContext.AddRangeAsync(columnValidations.Values, cancellationToken);
+			await DbContext.AddRangeAsync(fileFormats.Values, cancellationToken);
+			await DbContext.AddRangeAsync(connections.Values, cancellationToken);
+			await DbContext.AddRangeAsync(tables.Values, cancellationToken);
+			await DbContext.AddRangeAsync(datalinks.Values, cancellationToken);
+			await DbContext.AddRangeAsync(datajobs.Values, cancellationToken);
+			await DbContext.AddRangeAsync(datalinkTests.Values, cancellationToken);
+			await DbContext.AddRangeAsync(apis.Values, cancellationToken);
+			await DbContext.AddRangeAsync(views.Values, cancellationToken);
+			await DbContext.AddRangeAsync(dashboards.Values, cancellationToken);
 
 			var entries = DbContext.ChangeTracker.Entries()
 				.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
@@ -4118,7 +4108,7 @@ namespace dexih.operations
 				}
 			}
 
-			await SaveHubChangesAsync(import.HubKey, CancellationToken.None);
+			await SaveHubChangesAsync(import.HubKey, cancellationToken);
 
 		}
 

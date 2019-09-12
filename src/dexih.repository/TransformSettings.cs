@@ -1,18 +1,23 @@
 ﻿using System;
 using System.Text;
 using System.Linq;
+using ProtoBuf;
 
 namespace dexih.repository
 {
     /// <summary>
     /// Transform Settings is used to pass various parameters when creating the transforms.
     /// </summary>
-    [Serializable]
+    [ProtoContract]
     public class TransformSettings
     {
+        [ProtoMember(1)]
         public DexihHubVariable[] HubVariables { get; set; }
-        
+
+        [ProtoMember(2)]
         public InputParameterBase[] InputParameters { get; set; }
+
+        [ProtoMember(3)]
         public RemoteSettings RemoteSettings { get; set; }
 
         public bool HasVariables()

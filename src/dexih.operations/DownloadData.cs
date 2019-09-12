@@ -1,6 +1,7 @@
 ﻿using dexih.functions.Query;
 using dexih.repository;
 using dexih.transforms;
+using ProtoBuf;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -11,47 +12,59 @@ using static dexih.transforms.Transform;
 
 namespace dexih.operations
 {
+    [ProtoContract]
     public class DownloadData
     {
-        private readonly TransformSettings _transformSettings;
-        private readonly CacheManager _cache;
-        private readonly DownloadObject[] _downloadObjects;
-        private readonly EDownloadFormat _downloadFormat;
-        private readonly bool _zipFiles;
+        [ProtoMember(1)]
+        public TransformSettings TransformSettings { get; set; }
+
+        [ProtoMember(2)]
+        public CacheManager Cache { get; set; }
+
+        [ProtoMember(3)]
+        public DownloadObject[] DownloadObjects { get; set; }
+
+        [ProtoMember(4)]
+        public EDownloadFormat DownloadFormat { get; set; }
+
+        [ProtoMember(5)]
+        public bool ZipFiles { get; set; }
+
+        public DownloadData() { }
 
         public DownloadData(TransformSettings transformSettings, CacheManager cache, DownloadObject[] downloadObjects, EDownloadFormat downloadFormat, bool zipFiles)
         {
-            _transformSettings = transformSettings;
-            _cache = cache;
-            _downloadObjects = downloadObjects;
-            _downloadFormat = downloadFormat;
-            _zipFiles = zipFiles;
+            TransformSettings = transformSettings;
+            Cache = cache;
+            DownloadObjects = downloadObjects;
+            DownloadFormat = downloadFormat;
+            ZipFiles = zipFiles;
         }
 
         public async Task<(string FileName, Stream Stream)> GetStream(CancellationToken cancellationToken)
         {
             try
             {
-                var transformManager = new TransformsManager(_transformSettings);
+                var transformManager = new TransformsManager(TransformSettings);
 
                 var zipStream = new MemoryStream();
                 var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true);
 
-                foreach (var downloadObject in _downloadObjects)
+                foreach (var downloadObject in DownloadObjects)
                 {
                     Transform transform = null;
                     var name = "";
 
-                    if (downloadObject.ObjectType == SharedData.EObjectType.Table)
+                    if (downloadObject.ObjectType == EDataObjectType.Table)
                     {
-                        var dbTable = _cache.Hub.DexihTables.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                        var dbTable = Cache.Hub.DexihTables.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
 
                         if (dbTable != null)
                         {
-                            var dbConnection = _cache.Hub.DexihConnections.SingleOrDefault( c => c.Key == dbTable.ConnectionKey);
-                            var connection = dbConnection.GetConnection(_transformSettings);
-                            var table = dbTable.GetTable(_cache.Hub, connection, downloadObject.InputColumns,
-                                _transformSettings);
+                            var dbConnection = Cache.Hub.DexihConnections.SingleOrDefault( c => c.Key == dbTable.ConnectionKey);
+                            var connection = dbConnection.GetConnection(TransformSettings);
+                            var table = dbTable.GetTable(Cache.Hub, connection, downloadObject.InputColumns,
+                                TransformSettings);
                             name = table.Name;
 
                             if (downloadObject.InputColumns != null)
@@ -76,12 +89,12 @@ namespace dexih.operations
                             }
 
                             transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields,
-                                _cache.CacheEncryptionKey);
+                                Cache.CacheEncryptionKey);
                         }
                     }
                     else
                     {
-                        var dbDatalink = _cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                        var dbDatalink = Cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
 
                         if (dbDatalink == null)
                         {
@@ -94,7 +107,7 @@ namespace dexih.operations
                         };
                         
                         //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(_cache.Hub, dbDatalink, downloadObject.InputColumns, downloadObject.DatalinkTransformKey, null, transformWriterOptions);
+                        var runPlan = transformManager.CreateRunPlan(Cache.Hub, dbDatalink, downloadObject.InputColumns, downloadObject.DatalinkTransformKey, null, transformWriterOptions);
                         transform = runPlan.sourceTransform;
                         var openReturn = await transform.Open(0, null, cancellationToken);
                         if (!openReturn)
@@ -110,12 +123,12 @@ namespace dexih.operations
 
                     Stream fileStream = null;
 
-                    switch (_downloadFormat)
+                    switch (DownloadFormat)
                     {
                         case EDownloadFormat.Csv:
                             name = name + ".csv";
                             fileStream = new StreamCsv(transform);
-                            if (!_zipFiles)
+                            if (!ZipFiles)
                             {
                                 return (name, fileStream);
                             }
@@ -123,7 +136,7 @@ namespace dexih.operations
                         case EDownloadFormat.Json:
                             name = name + ".json";
                             fileStream = new StreamJson(name, transform);
-                            if (!_zipFiles)
+                            if (!ZipFiles)
                             {
                                 return (name, fileStream);
                             }
@@ -131,14 +144,14 @@ namespace dexih.operations
                         case EDownloadFormat.JsonCompact:
                             name = name + ".json";
                             fileStream = new StreamJsonCompact(name, transform);
-                            if (!_zipFiles)
+                            if (!ZipFiles)
                             {
                                 return (name, fileStream);
                             }
                             break;
                             
                         default:
-                            throw new Exception("The file format " + _downloadFormat + " is not currently supported for downloading data.");
+                            throw new Exception("The file format " + DownloadFormat + " is not currently supported for downloading data.");
                     }
 
                     var entry = archive.CreateEntry(name);
@@ -148,7 +161,7 @@ namespace dexih.operations
                     }
                 }
 
-                if (_zipFiles)
+                if (ZipFiles)
                 {
                     archive.Dispose();
                     zipStream.Seek(0, SeekOrigin.Begin);
@@ -163,22 +176,33 @@ namespace dexih.operations
             }
         }
 
+        [ProtoContract]
         public class DownloadObject
         {
-            public SharedData.EObjectType ObjectType { get; set; }
+            [ProtoMember(1)]
+            public EDataObjectType ObjectType { get; set; }
+
+            [ProtoMember(2)]
             public long ObjectKey { get; set; }
+
+            [ProtoMember(3)]
             public SelectQuery Query { get; set; }
+
+            [ProtoMember(4)]
             public InputParameters InputParameters { get; set; }
+
+            [ProtoMember(5)]
             public InputColumn[] InputColumns { get; set; }
 
             // used when downloading data from a specific a transform data.
+            [ProtoMember(6)]
             public long? DatalinkTransformKey { get; set; }
 
         }
 
         public enum EDownloadFormat
         {
-            Csv, Json, JsonCompact
+            Csv = 1, Json, JsonCompact
         }
     }
 }

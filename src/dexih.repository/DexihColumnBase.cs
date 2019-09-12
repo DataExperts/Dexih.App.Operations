@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using ProtoBuf;
 using static dexih.functions.TableColumn;
 using static Dexih.Utils.DataType.DataType;
 
@@ -8,45 +9,67 @@ namespace dexih.repository
     /// <summary>
     /// Base class for table columns.  Inherited by DexihTableColumn and DexihDatalinkColumn
     /// </summary>
-    [Serializable]
+    [ProtoContract]
+    [ProtoInclude(100, typeof(DexihDatalinkColumn))]
+    [ProtoInclude(200, typeof(DexihDatalinkStepColumn))]
+    [ProtoInclude(300, typeof(DexihTableColumn))]
     public class DexihColumnBase: DexihHubNamedEntity
     {
+        [ProtoMember(1)]
         public int Position { get; set; }
 
+        [ProtoMember(2)]
         public string LogicalName { get; set; }
-        
+
+        [ProtoMember(3)]
         public string ColumnGroup { get; set; }
-        
+
+        [ProtoMember(4)]
         public ETypeCode DataType { get; set; }
 
+        [ProtoMember(5)]
         public int? MaxLength { get; set; }
 
+        [ProtoMember(6)]
         public int? Precision { get; set; }
+
+        [ProtoMember(7)]
         public bool? IsUnicode { get; set; }
 
+        [ProtoMember(8)]
         public int? Scale { get; set; }
 
+        [ProtoMember(9)]
         public bool AllowDbNull { get; set; }
 
+        [ProtoMember(10)]
         public EDeltaType DeltaType { get; set; }
 
+        [ProtoMember(11)]
         public string DefaultValue { get; set; }
+
+        [ProtoMember(12)]
         public bool IsUnique { get; set; }
 
+        [ProtoMember(13)]
         public bool IsMandatory { get; set; }
 
+        [ProtoMember(14)]
         public bool IsIncrementalUpdate { get; set; }
 
+        [ProtoMember(15)]
         public bool IsInput { get; set; }
-        
+
         /// <summary>
         /// The number of array dimensions (zero for non array).
         /// </summary>
+        [ProtoMember(16)]
         public int Rank { get; set; }
 
         public bool IsArray() => Rank > 0;
 
-        
+
+        [ProtoMember(17)]
         public ESecurityFlag SecurityFlag { get; set; }
 
 
@@ -156,7 +179,7 @@ namespace dexih.repository
                    SecurityFlag = ESecurityFlag.StrongEncrypted;
                    break;
                case ESecurityFlag.OneWayHash:
-                   SecurityFlag = ESecurityFlag.OnWayHashed;
+                   SecurityFlag = ESecurityFlag.OneWayHashed;
                    break;
                case ESecurityFlag.FastDecrypt:
                case ESecurityFlag.StrongDecrypt:
