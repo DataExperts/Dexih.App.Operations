@@ -1,21 +1,23 @@
-using ProtoBuf;
+using dexih.functions;
+using MessagePack;
 
 namespace dexih.repository
 {
     /// <summary>
     /// Base class used for defining input parameters passed into datalink, view, api, jobs etc.
     /// </summary>
-    [ProtoContract]
-    [ProtoInclude(100, typeof(DexihApiParameter))]
-    [ProtoInclude(200, typeof(DexihDashboardParameter))]
-    [ProtoInclude(300, typeof(DexihDashboardItemParameter))]
-    [ProtoInclude(400, typeof(DexihDatajobParameter))]
-    [ProtoInclude(500, typeof(DexihDatalinkParameter))]
-    [ProtoInclude(600, typeof(DexihDatalinkStepParameter))]
-    [ProtoInclude(700, typeof(DexihViewParameter))]
+    [MessagePackObject]
+    [ProtoInherit(3000)]
+    [MessagePack.Union(0, typeof(DexihApiParameter))]
+    [MessagePack.Union(1, typeof(DexihDashboardParameter))]
+    [MessagePack.Union(2, typeof(DexihDashboardItemParameter))]
+    [MessagePack.Union(3, typeof(DexihDatajobParameter))]
+    [MessagePack.Union(4, typeof(DexihDatalinkParameter))]
+    [MessagePack.Union(5, typeof(DexihDatalinkStepParameter))]
+    [MessagePack.Union(6, typeof(DexihViewParameter))]
     public class InputParameterBase: DexihHubNamedEntity
     {
-        [ProtoMember(1)]
+        [Key(7)]
         public string Value { get; set; }
     }
 }

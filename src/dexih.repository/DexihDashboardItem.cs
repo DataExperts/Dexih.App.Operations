@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDashboardItem: DexihHubNamedEntity
     {
         public DexihDashboardItem()
@@ -13,38 +13,38 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDashboardItemParameter>();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public int Cols { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public int Rows { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public int X { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public int Y { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public bool Header { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public bool Scrollable { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public long ViewKey { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihView View { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         [CopyParentCollectionKey(nameof(Key))]
         public long? DashboardKey { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public ICollection<DexihDashboardItemParameter> Parameters { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDashboard Dashboard { get; set; }
 
     }

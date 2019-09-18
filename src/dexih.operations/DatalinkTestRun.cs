@@ -511,7 +511,7 @@ namespace dexih.operations
             return;
         }
 
-        public async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
+        public async Task StartAsync(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
         {
             void ProgressUpdate(TransformWriterResult writerResult)
             {
@@ -544,9 +544,9 @@ namespace dexih.operations
             throw new NotImplementedException();
         }
 
-        public Task Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+        public void Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            
         }
     }
 }

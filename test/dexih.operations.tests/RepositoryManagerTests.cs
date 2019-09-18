@@ -6,7 +6,16 @@ using Xunit;
 using Microsoft.Extensions.Logging;
 using static Dexih.Utils.DataType.DataType;
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using dexih.functions;
+using dexih.transforms;
 using Dexih.Utils.CopyProperties;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using static dexih.repository.DexihDatalinkTable;
 
 namespace dexih.operations.tests
@@ -39,17 +48,22 @@ namespace dexih.operations.tests
         public async Task<RepositoryManager> CreateRepositoryWithHub()
         {
             var context = await CreateRepositoryEmpty();
-            var database = new RepositoryManager("key", context, _loggerFactory);
+            var userStore = new UserStore<ApplicationUser>(context);
+            var userManager = MockHelpers.TestUserManager(userStore);
+            // instance of the memory cache.
+            var memoryCache = new MemoryDistributedCache(new OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
+            var cacheService = new CacheService(memoryCache);
+
+            var database = new RepositoryManager( context, userManager,cacheService, _loggerFactory);
             var hub = new DexihHub()
             {
                 Name = "test",
                 Description = "hub description",
                 EncryptionKey = "123"
             };
-            var newHub = await database.SaveHub(hub);
+            var newHub = await database.SaveHub(hub, new ApplicationUser(), CancellationToken.None);
 
-            Assert.Equal(1, context.DexihHubs.Where(c=>!c.IsInternal).Count());
-            Assert.True(await database.GetInternalConnectionKey(newHub.HubKey) > 0);
+            Assert.Equal(1, context.DexihHubs.Count());
 
             return database;
         }
@@ -61,30 +75,32 @@ namespace dexih.operations.tests
             var connection = new DexihConnection()
             {
                 Name = "source",
-                Purpose = DexihConnection.EConnectionPurpose.Source,
+                Purpose = EConnectionPurpose.Source,
                 Server = "source server",
-                DatabaseTypeKey = database.DbContext.DexihDatabaseTypes.First().DatabaseTypeKey,
+                ConnectionClassName = "test",
+                ConnectionAssemblyName = "asembly",
                 HubKey = hub.HubKey
             };
 
-            var saveConnectionResult = await database.SaveConnection(hub.HubKey, connection);
+            var saveConnectionResult = await database.SaveConnection(hub.HubKey, connection, CancellationToken.None);
 
             connection = new DexihConnection()
             {
                 Name = "managed",
-                Purpose = DexihConnection.EConnectionPurpose.Managed,
+                Purpose = EConnectionPurpose.Managed,
                 Server = "managed server",
-                DatabaseTypeKey = database.DbContext.DexihDatabaseTypes.First().DatabaseTypeKey,
+                ConnectionClassName = "test",
+                ConnectionAssemblyName = "asembly",
                 HubKey = hub.HubKey
             };
 
-            saveConnectionResult = await database.SaveConnection(hub.HubKey, connection);
+            saveConnectionResult = await database.SaveConnection(hub.HubKey, connection, CancellationToken.None);
 
-            var dbSourceConnection = database.DbContext.DexihConnections.Single(c => c.Purpose == DexihConnection.EConnectionPurpose.Source && c.IsValid);
+            var dbSourceConnection = database.DbContext.DexihConnections.Single(c => c.Purpose == EConnectionPurpose.Source && c.IsValid);
             Assert.Equal("source", dbSourceConnection.Name);
             Assert.Equal("source server", dbSourceConnection.Server);
 
-            var dbManagedConnection = database.DbContext.DexihConnections.Single(c => c.Purpose == DexihConnection.EConnectionPurpose.Managed && c.IsValid);
+            var dbManagedConnection = database.DbContext.DexihConnections.Single(c => c.Purpose == EConnectionPurpose.Managed && c.IsValid);
             Assert.Equal("managed", dbManagedConnection.Name);
             Assert.Equal("managed server", dbManagedConnection.Server);
 
@@ -102,16 +118,16 @@ namespace dexih.operations.tests
                 Description = "table description",
                 BaseTableName = "table1",
                 DexihTableColumns = new DexihTableColumn[] {
-                    new DexihTableColumn() { Name = "key1", LogicalName = "key1", Datatype = ETypeCode.String, DeltaType = functions.TableColumn.EDeltaType.NaturalKey },
-                    new DexihTableColumn() { Name = "natural key", LogicalName = "natural key", Datatype = ETypeCode.Int32, DeltaType = functions.TableColumn.EDeltaType.TrackingField },
-                    new DexihTableColumn() { Name = "ignore", LogicalName = "ignore", Datatype = ETypeCode.Int32, DeltaType = functions.TableColumn.EDeltaType.IgnoreField }
+                    new DexihTableColumn() { Name = "key1", LogicalName = "key1", DataType = ETypeCode.String, DeltaType = functions.TableColumn.EDeltaType.NaturalKey },
+                    new DexihTableColumn() { Name = "natural key", LogicalName = "natural key", DataType = ETypeCode.Int32, DeltaType = functions.TableColumn.EDeltaType.TrackingField },
+                    new DexihTableColumn() { Name = "ignore", LogicalName = "ignore", DataType = ETypeCode.Int32, DeltaType = functions.TableColumn.EDeltaType.IgnoreField }
                 },
-                ConnectionKey = dbConnection.ConnectionKey,
+                ConnectionKey = dbConnection.Key,
 				HubKey = dbConnection.HubKey
 
             };
 
-			await database.SaveTables(dbConnection.HubKey, new DexihTable[] { table }, true, false);
+			await database.SaveTables(dbConnection.HubKey, new DexihTable[] { table }, true, false, CancellationToken.None);
 
             return database;
         }
@@ -123,10 +139,7 @@ namespace dexih.operations.tests
         {
             using (var context = await CreateRepositoryEmpty())
             {
-                Assert.True(context.DexihDatabaseTypes.Count() > 0);
-                Assert.True(context.DexihProfileRules.Count() > 0);
-                Assert.True(context.DexihStandardFunctions.Count() > 0);
-                Assert.True(context.DexihTransforms.Count() > 0);
+                Assert.True(context.Users.Any());
             }
         }
 
@@ -150,10 +163,10 @@ namespace dexih.operations.tests
 
                 //test2: modify the connection and resave
                 dbConnection.Server = "source server 2";
-                var saveConnectionResult = await database.SaveConnection(dbConnection.HubKey, dbConnection);
+                var saveConnectionResult = await database.SaveConnection(dbConnection.HubKey, dbConnection, CancellationToken.None);
                 Assert.NotNull(saveConnectionResult);
 
-                dbConnection = database.DbContext.DexihConnections.Single(c => c.ConnectionKey == saveConnectionResult.ConnectionKey && c.IsValid);
+                dbConnection = database.DbContext.DexihConnections.Single(c => c.Key == saveConnectionResult.Key && c.IsValid);
                 Assert.Equal("source", dbConnection.Name);
                 Assert.Equal("source server 2", dbConnection.Server);
 
@@ -163,21 +176,22 @@ namespace dexih.operations.tests
                 {
                     Name = "source",
                     Server = "source server 3",
-                    DatabaseTypeKey = database.DbContext.DexihDatabaseTypes.First().DatabaseTypeKey
+                    ConnectionClassName = "class",
+                    ConnectionAssemblyName = "assembly"
                 };
 
-                Assert.Throws<AggregateException>(() => database.SaveConnection(dbConnection.HubKey, connection).Result);
+                Assert.Throws<AggregateException>(() => database.SaveConnection(dbConnection.HubKey, connection, CancellationToken.None).Result);
 
 				// test4: delete the connection.
-				var deleteReturn = await database.DeleteConnections(dbConnection.HubKey, new long[] { dbConnection.ConnectionKey });
+				var deleteReturn = await database.DeleteConnections(dbConnection.HubKey, new long[] { dbConnection.Key }, CancellationToken.None);
 				Assert.NotNull(deleteReturn);
 
 				// check the connection is deleted
-				var dbConnection2 = await database.DbContext.DexihConnections.SingleOrDefaultAsync(c => c.ConnectionKey == dbConnection.ConnectionKey && c.IsValid);
+				var dbConnection2 = await database.DbContext.DexihConnections.SingleOrDefaultAsync(c => c.Key == dbConnection.Key && c.IsValid);
 				Assert.Null(dbConnection2);
 
 				//test 5: create a new connection with the same name as the deleted one.  save should succeed
-				saveConnectionResult = await database.SaveConnection(dbConnection.HubKey, connection);
+				saveConnectionResult = await database.SaveConnection(dbConnection.HubKey, connection, CancellationToken.None);
 				Assert.NotNull(saveConnectionResult);
 
 			}
@@ -191,7 +205,7 @@ namespace dexih.operations.tests
             {
                 var dbConnection = await database.DbContext.DexihConnections.FirstAsync(c => c.Name == "source" && c.IsValid);
 
-                var dbTable = await database.DbContext.DexihTables.Include(d => d.DexihTableColumns).SingleOrDefaultAsync(c => c.ConnectionKey == dbConnection.ConnectionKey);
+                var dbTable = await database.DbContext.DexihTables.Include(d => d.DexihTableColumns).SingleOrDefaultAsync(c => c.ConnectionKey == dbConnection.Key);
 
                 Assert.NotNull(dbTable);
                 Assert.Equal("table1", dbTable.Name);
@@ -200,33 +214,33 @@ namespace dexih.operations.tests
 
                 //test2: update the table, and check update has succeeded.
                 dbTable.Name = "updated table";
-				var saveResult = await database.SaveTables(dbConnection.HubKey, new DexihTable[] { dbTable }, true, false);
+				var saveResult = await database.SaveTables(dbConnection.HubKey, new DexihTable[] { dbTable }, true, false, CancellationToken.None);
                 Assert.NotNull(saveResult);
 
-                var dbTable2 = await database.DbContext.DexihTables.Include(d => d.DexihTableColumns).SingleOrDefaultAsync(c => c.TableKey == dbTable.TableKey && c.IsValid);
+                var dbTable2 = await database.DbContext.DexihTables.Include(d => d.DexihTableColumns).SingleOrDefaultAsync(c => c.Key == dbTable.Key && c.IsValid);
                 Assert.Equal("updated table", dbTable2.Name);
 
                 //test3: create a new table with the same name.  save should fail
                 var duplicateTable = new DexihTable()
                 {
 	                Name = "updated table",
-                    ConnectionKey = dbConnection.ConnectionKey,
+                    ConnectionKey = dbConnection.Key,
                     BaseTableName = "updated table",
 					HubKey = dbConnection.HubKey
                 };
 
-                Assert.Throws<AggregateException>(() => database.SaveTables(dbConnection.HubKey, new DexihTable[] { duplicateTable }, true, false).Result);
+                Assert.Throws<AggregateException>(() => database.SaveTables(dbConnection.HubKey, new DexihTable[] { duplicateTable }, true, false, CancellationToken.None).Result);
 
 				// test4: delete the table.
-				var deleteReturn = await database.DeleteTables(dbConnection.HubKey, new long[] { dbTable.TableKey });
+				var deleteReturn = await database.DeleteTables(dbConnection.HubKey, new long[] { dbTable.Key }, CancellationToken.None);
 				Assert.NotNull(deleteReturn);
 
 				// check the table is deleted
-				dbTable = await database.DbContext.DexihTables.SingleOrDefaultAsync(c => c.TableKey == dbTable2.TableKey && c.IsValid);
+				dbTable = await database.DbContext.DexihTables.SingleOrDefaultAsync(c => c.Key == dbTable2.Key && c.IsValid);
 				Assert.Null(dbTable);
 
 				//test 5: create a new table with the same name as the deleted one.  save should succeed
-				var saveResult2 = await database.SaveTables(dbConnection.HubKey, new DexihTable[] {duplicateTable }, true, false);
+				var saveResult2 = await database.SaveTables(dbConnection.HubKey, new DexihTable[] {duplicateTable }, true, false, CancellationToken.None);
 				Assert.NotNull(saveResult2);
 			}
         }
@@ -251,13 +265,13 @@ namespace dexih.operations.tests
 					IsDefault = true,
 				};
 
-				var saveFileResult = await database.SaveFileFormat(dbConnection.HubKey, fileFormat);
+				var saveFileResult = await database.SaveFileFormat(dbConnection.HubKey, fileFormat, CancellationToken.None);
 
 				Assert.NotNull(saveFileResult);
 
 				// lookup the fileformat and check save was correct.
 				var fileFormat2 = saveFileResult;
-				var fileFormat3 = await database.DbContext.DexihFileFormat.SingleAsync(c => c.FileFormatKey == fileFormat2.FileFormatKey && c.IsValid);
+				var fileFormat3 = await database.DbContext.DexihFileFormats.SingleAsync(c => c.Key == fileFormat2.Key && c.IsValid);
 
 				Assert.Equal("new format", fileFormat3.Name);
 				Assert.Equal(100, fileFormat3.BufferSize);
@@ -269,10 +283,10 @@ namespace dexih.operations.tests
 
 				//test2: update the fileformat, and check update has succeeded.
 				fileFormat3.Name = "updated format";
-				var saveResult = await database.SaveFileFormat(dbConnection.HubKey, fileFormat3);
+				var saveResult = await database.SaveFileFormat(dbConnection.HubKey, fileFormat3, CancellationToken.None);
 				Assert.NotNull(saveResult);
 
-				var fileFormat4 = await database.DbContext.DexihFileFormat.SingleAsync(c => c.FileFormatKey == fileFormat2.FileFormatKey && c.IsValid);
+				var fileFormat4 = await database.DbContext.DexihFileFormats.SingleAsync(c => c.Key == fileFormat2.Key && c.IsValid);
 				Assert.Equal("updated format", fileFormat4.Name);
 
 				//test3: create a new table with the same name.  save should fail
@@ -285,18 +299,18 @@ namespace dexih.operations.tests
 					Delimiter = ",",
 				};
 
-                Assert.Throws<AggregateException>(() => database.SaveFileFormat(dbConnection.HubKey, duplicateFormat).Result);
+                Assert.Throws<AggregateException>(() => database.SaveFileFormat(dbConnection.HubKey, duplicateFormat, CancellationToken.None).Result);
 
 				// test4: delete the fileformat.
-				var deleteReturn = await database.DeleteFileFormats(dbConnection.HubKey, new long[] { fileFormat3.FileFormatKey });
+				var deleteReturn = await database.DeleteFileFormats(dbConnection.HubKey, new long[] { fileFormat3.Key }, CancellationToken.None);
 				Assert.NotNull(deleteReturn);
 
 				// check the fileformat is deleted
-				var fileFormat5 = await database.DbContext.DexihFileFormat.SingleOrDefaultAsync(c => c.FileFormatKey ==fileFormat3.FileFormatKey && c.IsValid);
+				var fileFormat5 = await database.DbContext.DexihFileFormats.SingleOrDefaultAsync(c => c.Key ==fileFormat3.Key && c.IsValid);
 				Assert.Null(fileFormat5);
 
 				//test 5: create a new fileformat with the same name as the deleted one.  save should succeed
-				var saveResult2 = await database.SaveFileFormat(dbConnection.HubKey, duplicateFormat);
+				var saveResult2 = await database.SaveFileFormat(dbConnection.HubKey, duplicateFormat, CancellationToken.None);
 				Assert.NotNull(saveResult2);
 
 			}
@@ -316,13 +330,13 @@ namespace dexih.operations.tests
 					Name = "new validation",
 					HubKey = dbConnection.HubKey,
 					AllowDbNull = true,
-					CleanAction = DexihColumnValidation.ECleanAction.DefaultValue,
-					Datatype = ETypeCode.String,
-					DefaultValue = "default",
+					CleanAction = ECleanAction.DefaultValue,
+					DataType = ETypeCode.String,
+					CleanValue = "default",
 					Description = "validation description",
-					InvalidAction = functions.Function.EInvalidAction.Clean,
-					ListOfValues = new [] {"abc", "ndef", "nhij"},
-					ListOfNotValues = new [] {"jkl", "nnmo", "npqr"},
+					InvalidAction = TransformFunction.EInvalidAction.Clean,
+					ListOfValues = new List<string> {"abc", "ndef", "nhij"},
+					ListOfNotValues = new List<string> {"jkl", "nnmo", "npqr"},
 					LookupIsValid = true,
 					LookupMultipleRecords = true,
 					MaxLength = 10,
@@ -331,25 +345,25 @@ namespace dexih.operations.tests
 					MinValue = 40,
 					PatternMatch = "pattern",
 					RegexMatch = "regex",
-					LookupColumnKey = lookupColumn.ColumnKey
+					LookupColumnKey = lookupColumn.Key
 				};
 
-				var saveResult = await database.SaveColumnValidation(dbConnection.HubKey, validation);
+				var saveResult = await database.SaveColumnValidation(dbConnection.HubKey, validation, CancellationToken.None);
 
 				Assert.NotNull(saveResult);
 
 				// lookup the validation and check savde was correctly.
 				var validation2 = saveResult;
-				var validation3 = await database.DbContext.DexihColumnValidation.SingleAsync(c => c.ColumnValidationKey == validation2.ColumnValidationKey && c.IsValid);
+				var validation3 = await database.DbContext.DexihColumnValidations.SingleAsync(c => c.Key == validation2.Key && c.IsValid);
 
 				Assert.Equal("new validation", validation3.Name);
 				Assert.Equal(dbConnection.HubKey, validation3.HubKey);
 				Assert.True(validation3.AllowDbNull);
-				Assert.Equal(DexihColumnValidation.ECleanAction.DefaultValue, validation3.CleanAction);
-				Assert.Equal(ETypeCode.String, validation3.Datatype);
-				Assert.Equal("default", validation3.DefaultValue);
+				Assert.Equal(ECleanAction.DefaultValue, validation3.CleanAction);
+				Assert.Equal(ETypeCode.String, validation3.DataType);
+				Assert.Equal("default", validation3.CleanValue);
 				Assert.Equal("validation description", validation3.Description);
-				Assert.Equal(functions.Function.EInvalidAction.Clean, validation3.InvalidAction);
+				Assert.Equal(TransformFunction.EInvalidAction.Clean, validation3.InvalidAction);
 				Assert.Equal(new [] {"abc", "ndef", "nhij"}, validation3.ListOfValues);
 				Assert.Equal(new [] {"jkl", "nnmo", "npqr"}, validation3.ListOfNotValues);
 				Assert.True(validation3.LookupIsValid);
@@ -360,14 +374,14 @@ namespace dexih.operations.tests
 				Assert.Equal(40, validation3.MinValue);
 				Assert.Equal("pattern", validation3.PatternMatch);
 				Assert.Equal("regex", validation3.RegexMatch);
-				Assert.Equal(lookupColumn.ColumnKey, validation3.LookupColumnKey);
+				Assert.Equal(lookupColumn.Key, validation3.LookupColumnKey);
 
 				//test2: update the fileformat, and check update has succeeded.
 				validation3.Name = "updated validation";
-				var saveResult2 = await database.SaveColumnValidation(dbConnection.HubKey, validation3);
+				var saveResult2 = await database.SaveColumnValidation(dbConnection.HubKey, validation3, CancellationToken.None);
 				Assert.NotNull(saveResult2);
 
-				var validation4 = await database.DbContext.DexihColumnValidation.SingleAsync(c => c.ColumnValidationKey == validation2.ColumnValidationKey && c.IsValid);
+				var validation4 = await database.DbContext.DexihColumnValidations.SingleAsync(c => c.Key == validation2.Key && c.IsValid);
 				Assert.Equal("updated validation", validation4.Name);
 
 				//test3: create a new table with the same name.  save should fail
@@ -375,21 +389,21 @@ namespace dexih.operations.tests
 				{
 					Name = "updated validation",
 					HubKey = dbConnection.HubKey,
-					Datatype = ETypeCode.String,
+					DataType = ETypeCode.String,
 				};
 
-                Assert.Throws<AggregateException>(() => database.SaveColumnValidation(dbConnection.HubKey, duplicate).Result);
+                Assert.Throws<AggregateException>(() => database.SaveColumnValidation(dbConnection.HubKey, duplicate, CancellationToken.None).Result);
 
 				// test4: delete the fileformat.
-				var deleteReturn = await database.DeleteColumnValidations(dbConnection.HubKey, new long[] { validation3.ColumnValidationKey });
+				var deleteReturn = await database.DeleteColumnValidations(dbConnection.HubKey, new long[] { validation3.Key }, CancellationToken.None);
 				Assert.NotNull(deleteReturn);
 
 				// check the fileformat is deleted
-				var validation5 = await database.DbContext.DexihColumnValidation.SingleOrDefaultAsync(c => c.ColumnValidationKey == validation3.ColumnValidationKey && c.IsValid);
+				var validation5 = await database.DbContext.DexihColumnValidations.SingleOrDefaultAsync(c => c.Key == validation3.Key && c.IsValid);
 				Assert.Null(validation5);
 
 				//test 5: create a new valiation with the same name as the deleted one.  save should succeed
-				var saveResult3 = await database.SaveColumnValidation(dbConnection.HubKey, duplicate);
+				var saveResult3 = await database.SaveColumnValidation(dbConnection.HubKey, duplicate, CancellationToken.None);
 				Assert.NotNull(saveResult3);
 			}
 		}
@@ -398,21 +412,22 @@ namespace dexih.operations.tests
         public async Task NewDatalink()
         {
             //test 1, create initial table
-            using (var database = await CreateRepositoryWithSourceTable())
+            using (var repositoryManager = await CreateRepositoryWithSourceTable())
             {
-                var dbSourceConnection = await database.DbContext.DexihConnections.SingleOrDefaultAsync(c => c.Name == "source" && c.IsValid);
-                var dbManagedConnection = await database.DbContext.DexihConnections.SingleOrDefaultAsync(c => c.Name == "managed" && c.IsValid);
-                var dbSourceTable = await database.DbContext.DexihTables.FirstAsync(c => c.Name == "table1" && c.IsValid);
+                var dbSourceConnection = await repositoryManager.DbContext.DexihConnections.SingleOrDefaultAsync(c => c.Name == "source" && c.IsValid);
+                var dbManagedConnection = await repositoryManager.DbContext.DexihConnections.SingleOrDefaultAsync(c => c.Name == "managed" && c.IsValid);
+                var dbSourceTable = await repositoryManager.DbContext.DexihTables.FirstAsync(c => c.Name == "table1" && c.IsValid);
 
-                var newDatalinks = await database.NewDatalinks(
+                var newDatalinks = await repositoryManager.NewDatalinks(
                     dbSourceConnection.HubKey, 
+                    "test", 
+                    EDatalinkType.Stage, 
+                    dbManagedConnection.Key, 
+                    new long[] { dbSourceTable.Key }, 
                     null, 
-                    DexihDatalink.EDatalinkType.Stage, 
-                    dbManagedConnection.ConnectionKey, 
-                    new long[] { dbSourceTable.TableKey }, 
                     null, 
-                    null, 
-                    dbManagedConnection.ConnectionKey
+                    dbManagedConnection.Key,
+                    true, null, new NamingStandards(), CancellationToken.None
                     );
 
                 Assert.Single(newDatalinks);
@@ -420,35 +435,37 @@ namespace dexih.operations.tests
                 var newDatalink = newDatalinks[0];
 
                 Assert.NotNull(newDatalink);
+                
+                var cacheManager = new CacheManager(dbSourceConnection.HubKey, "abc", _loggerFactory.CreateLogger("test"));
+                
 
-                var dbDatalink = await database.GetDatalink(newDatalink.HubKey, newDatalink.DatalinkKey);
+                var dbDatalink = await cacheManager.GetDatalink(newDatalink.Key, repositoryManager.DbContext);
 
                 // check the datalink properties are set.
                 Assert.False(dbDatalink.AddDefaultRow);
-                Assert.Equal(dbManagedConnection.ConnectionKey, dbDatalink.AuditConnectionKey);
-                Assert.Equal(DexihDatalink.EDatalinkType.Stage, dbDatalink.DatalinkType);
+                Assert.Equal(dbManagedConnection.Key, dbDatalink.AuditConnectionKey);
+                Assert.Equal(EDatalinkType.Stage, dbDatalink.DatalinkType);
                 Assert.Equal(1, dbDatalink.DexihDatalinkTransforms.Count);
                 Assert.Equal(dbSourceConnection.HubKey, dbDatalink.HubKey);
                 Assert.False(dbDatalink.IsShared);
                 Assert.True(dbDatalink.IsValid);
-                Assert.False(dbDatalink.NoDataload);
+                Assert.False(dbDatalink.IsQuery);
                 Assert.False(dbDatalink.RollbackOnFail);
                 Assert.Null(dbDatalink.SourceDatalinkTable.SourceDatalinkKey);
-                Assert.Equal(dbSourceTable.TableKey, dbDatalink.SourceDatalinkTable.SourceTableKey);
+                Assert.Equal(dbSourceTable.Key, dbDatalink.SourceDatalinkTable.SourceTableKey);
                 Assert.Equal(ESourceType.Table, dbDatalink.SourceDatalinkTable.SourceType);
-                Assert.True(dbDatalink.TargetTableKey > 0);
-                Assert.Equal(transforms.TransformDelta.EUpdateStrategy.AppendUpdateDelete, dbDatalink.UpdateStrategy.Strategy);
-                Assert.False(dbDatalink.VirtualTargetTable);
+                Assert.True(dbDatalink.DexihDatalinkTargets.Count > 0);
+                Assert.Equal(transforms.TransformDelta.EUpdateStrategy.AppendUpdateDelete, dbDatalink.UpdateStrategy);
 
                 // check target table created properly.
-                var dbTable = await database.GetTable(newDatalink.HubKey, (long)newDatalink.TargetTableKey, true);
+                var dbTable = await repositoryManager.GetTable(newDatalink.HubKey, (long)newDatalink.Key, true, CancellationToken.None);
 
                 Assert.Equal("stgtable1", dbTable.Name);
                 Assert.Equal(dbSourceTable.Name, dbTable.BaseTableName);
 
                 //should be no sourcesurrgate key, as source table has no surrogate key
                 Assert.Null(dbTable.DexihTableColumns.SingleOrDefault(c => c.DeltaType == functions.TableColumn.EDeltaType.SourceSurrogateKey));
-                Assert.NotNull(dbTable.DexihTableColumns.SingleOrDefault(c => c.DeltaType == functions.TableColumn.EDeltaType.SurrogateKey));
+                Assert.NotNull(dbTable.DexihTableColumns.SingleOrDefault(c => c.DeltaType == functions.TableColumn.EDeltaType.AutoIncrement));
                 Assert.NotNull(dbTable.DexihTableColumns.SingleOrDefault(c => c.DeltaType == functions.TableColumn.EDeltaType.CreateAuditKey));
                 Assert.NotNull(dbTable.DexihTableColumns.SingleOrDefault(c => c.DeltaType == functions.TableColumn.EDeltaType.UpdateAuditKey));
                 Assert.NotNull(dbTable.DexihTableColumns.SingleOrDefault(c => c.DeltaType == functions.TableColumn.EDeltaType.CreateDate));
@@ -458,20 +475,21 @@ namespace dexih.operations.tests
                 // check target columns were created
                 foreach(var col in dbSourceTable.DexihTableColumns)
                 {
+	                // var name = dbManagedConnection.DatabaseType.RemoveUnsupportedCharacaters(col.Name);
+	                var name = col.Name;
                     if(col.DeltaType == functions.TableColumn.EDeltaType.IgnoreField)
                     {
-                        Assert.Null(dbTable.DexihTableColumns.SingleOrDefault(c => c.Name == dbManagedConnection.DatabaseType.RemoveUnsupportedCharacaters(col.Name)));
+                        Assert.Null(dbTable.DexihTableColumns.SingleOrDefault(c => c.Name == name));
                     }
                     else
                     {
-                        var name = dbManagedConnection.DatabaseType.RemoveUnsupportedCharacaters(col.Name);
                         var targetColumn = dbTable.DexihTableColumns.SingleOrDefault(c => c.Name == name);
                         Assert.NotNull(targetColumn);
 
                         //if the target column name is cleaned and not the same, then a mapping should be created.
                         if(name != col.Name)
                         {
-                            var datalinkTransform = dbDatalink.DexihDatalinkTransforms.SingleOrDefault(c => c.Transform.TransformType == DexihTransform.ETransformType.Mapping);
+                            var datalinkTransform = dbDatalink.DexihDatalinkTransforms.SingleOrDefault(c => c.TransformType == ETransformType.Mapping);
                             Assert.NotNull(datalinkTransform);
 
                             var mapping = datalinkTransform.DexihDatalinkTransformItems.SingleOrDefault(c => c.SourceDatalinkColumn.Name == col.Name);
@@ -482,15 +500,15 @@ namespace dexih.operations.tests
                 }
 
                 dbDatalink.Name = "new name";
-                await database.SaveDatalinks(dbSourceConnection.HubKey, new DexihDatalink[] { dbDatalink }, false);
-                var dbDatalink2 = await database.GetDatalink(dbDatalink.HubKey, dbDatalink.DatalinkKey);
+                await repositoryManager.SaveDatalinks(dbSourceConnection.HubKey, new DexihDatalink[] { dbDatalink }, false, CancellationToken.None);
+                var dbDatalink2 = await cacheManager.GetDatalink(dbDatalink.Key, repositoryManager.DbContext);
                 Assert.Equal("new name", dbDatalink2.Name);
 
                 var dbDatalink3 = new DexihDatalink();
                 dbDatalink2.CopyProperties(dbDatalink3);
                 dbDatalink3.Name = "newer name";
-                await database.SaveDatalinks(dbSourceConnection.HubKey, new DexihDatalink[] { dbDatalink3 }, false);
-                var dbDatalink4 = await database.GetDatalink(dbDatalink.HubKey, dbDatalink.DatalinkKey);
+                await repositoryManager.SaveDatalinks(dbSourceConnection.HubKey, new DexihDatalink[] { dbDatalink3 }, false, CancellationToken.None);
+                var dbDatalink4 = await cacheManager.GetDatalink(dbDatalink.Key, repositoryManager.DbContext);
                 Assert.Equal("newer name", dbDatalink4.Name);
 
             }

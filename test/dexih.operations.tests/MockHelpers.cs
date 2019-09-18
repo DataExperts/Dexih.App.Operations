@@ -4,8 +4,13 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Moq;
 using System.Threading.Tasks;
+using dexih.repository;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+using Moq;
 
 namespace dexih.operations.tests
 {
@@ -91,6 +96,34 @@ namespace dexih.operations.tests
                 new IdentityErrorDescriber(),
                 null,
                 null);
+        }
+
+        public static RepositoryManager CreateRepositoryManager()
+        {
+            // create an in memory database for testing
+            var options = new DbContextOptionsBuilder<DexihRepositoryContext>()
+                .UseInMemoryDatabase("dexih_repository")
+                .Options;
+            
+            var repositoryContext = new DexihRepositoryContext(options);
+            repositoryContext.Database.EnsureCreated();
+            
+
+            // instance of the memory cache.
+            var memoryCache = new MemoryDistributedCache(new OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
+            
+            var cacheService = new CacheService(memoryCache);
+
+            var userStore = new UserStore<ApplicationUser>(repositoryContext);
+            var roleStore = new RoleStore<IdentityRole>(repositoryContext);
+            var userManager = TestUserManager(userStore);
+            var roleManager = TestRoleManager(roleStore);
+
+            var seedData = new SeedData();
+            seedData.UpdateReferenceData(repositoryContext, roleManager, userManager).Wait();
+
+            return new RepositoryManager(repositoryContext, userManager, cacheService, new LoggerFactory());
+                        
         }
 
     }

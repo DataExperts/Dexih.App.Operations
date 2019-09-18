@@ -1,31 +1,33 @@
 ﻿using System;
+using dexih.functions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using ProtoBuf;
+using MessagePack;
 using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
-    [ProtoContract]
-    [ProtoInclude(100, typeof(DexihCustomFunctionParameter))]
-    [ProtoInclude(200, typeof(DexihFunctionParameterBase))]
+    [MessagePackObject]
+    [ProtoInherit(4000)]
+    [MessagePack.Union(0, typeof(DexihCustomFunctionParameter))]
+    [MessagePack.Union(1, typeof(DexihFunctionParameterBase))]
     public class DexihParameterBase : DexihHubNamedEntity
     {
 
 
-        [ProtoMember(1)]
+        [Key(7)]
         public int Position { get; set; } = 0;
 
-        [ProtoMember(2)]
+        [Key(8)]
         public EParameterDirection Direction { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public ETypeCode DataType { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public bool IsGeneric { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public int Rank { get; set; } = 0;
 
         public bool IsInput() => Direction == EParameterDirection.Input || Direction == EParameterDirection.ResultInput || Direction == EParameterDirection.Join;

@@ -1,18 +1,18 @@
-using ProtoBuf;
+using MessagePack;
 using System;
 using System.Collections.Generic;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDatalinkTest: DexihHubNamedEntity
     {
         public DexihDatalinkTest() => DexihDatalinkTestSteps = new HashSet<DexihDatalinkTestStep>();
 
-        [ProtoMember(1)]
+        [Key(7)]
         public long? AuditConnectionKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public ICollection<DexihDatalinkTestStep> DexihDatalinkTestSteps { get; set; }
     }
 }

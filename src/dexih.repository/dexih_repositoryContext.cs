@@ -1286,7 +1286,7 @@ namespace dexih.repository
                 entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
+                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
                 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1332,7 +1332,7 @@ namespace dexih.repository
                 entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
                     .HasConversion(
                         v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
+                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1580,7 +1580,7 @@ namespace dexih.repository
                 entity.Property(e => e.SortColumnKeys).HasColumnName("sort_column_keys").HasMaxLength(500)
                     .HasConversion(
                         v => v == null ? null : string.Join(",", v),
-                        v => string.IsNullOrEmpty(v) ? new List<long>() : v.Split(",", StringSplitOptions.None).Select(long.Parse).ToList());
+                        v => string.IsNullOrEmpty(v) ? new long[0] : v.Split(",", StringSplitOptions.None).Select(long.Parse).ToArray());
 
                 entity.Property(e => e.RestfulUri).HasColumnName("restful_uri").HasMaxLength(2000);
                 entity.Property(e => e.RowPath).HasColumnName("row_path").HasMaxLength(2000);

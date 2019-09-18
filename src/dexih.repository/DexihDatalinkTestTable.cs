@@ -1,57 +1,57 @@
 using System;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDatalinkTestTable: DexihHubNamedEntity
     {
-        [ProtoMember(1)]
+        [Key(7)]
         [CopyParentCollectionKey]
         public long DatalinkTestStepKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public ETestTableAction Action { get; set; }
 
         /// <summary>
         /// The original table key for the table definitions.
         /// </summary>
-        [ProtoMember(3)]
+        [Key(9)]
         public long TableKey { get; set; }
 
         /// <summary>
         /// The connection key where the test data should be pulled from
         /// </summary>
-        [ProtoMember(4)]
+        [Key(10)]
         public long SourceConnectionKey { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public string SourceSchema { get; set; }
 
         /// <summary>
         /// The table name containing the test data.
         /// </summary>
-        [ProtoMember(6)]
+        [Key(12)]
         public string SourceTableName { get; set; }
 
         /// <summary>
         /// The connection key where the test data should be loaded
         /// </summary>
-        [ProtoMember(7)]
+        [Key(13)]
         public long TestConnectionKey { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public string TestSchema { get; set; }
 
         /// <summary>
         /// The name of the table where the test data should be loaded.
         /// </summary>
-        [ProtoMember(9)]
+        [Key(15)]
         public string TestTableName { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihDatalinkTestStep DatalinkTestStep { get; set; }
     }
 }

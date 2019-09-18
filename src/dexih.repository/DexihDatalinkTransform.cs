@@ -15,69 +15,69 @@ using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.Extensions.Logging;
 using static dexih.transforms.Transforms.TransformAttribute;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDatalinkTransform : DexihHubNamedEntity
     {
 		public DexihDatalinkTransform() => DexihDatalinkTransformItems = new HashSet<DexihDatalinkTransformItem>();
 
-        [ProtoMember(1)]
+        [Key(7)]
         [CopyParentCollectionKey]
 		public long DatalinkKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public int Position { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public bool PassThroughColumns { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public long? JoinDatalinkTableKey { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public long? JoinSortDatalinkColumnKey { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public long? NodeDatalinkColumnKey { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public ETransformType TransformType { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public string TransformClassName { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public string TransformAssemblyName { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         public EDuplicateStrategy JoinDuplicateStrategy { get; set; }
 
-        [ProtoMember(11)]
+        [Key(17)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [ProtoMember(12)]
+        [Key(18)]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalink Datalink { get; set; }
 
-        [ProtoMember(13)]
+        [Key(19)]
         public DexihDatalinkTable JoinDatalinkTable { get; set; }
 
-        [ProtoMember(14)]
+        [Key(20)]
         public DexihDatalinkColumn JoinSortDatalinkColumn { get; set; }
 
-        [ProtoMember(15)]
+        [Key(21)]
         public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
 
-        [ProtoMember(16)]
+        [Key(22)]
         public long MaxInputRows { get; set; } = 0;
 
-        [ProtoMember(17)]
+        [Key(23)]
         public long MaxOutputRows { get; set; } = 0;
 
         /// <summary>

@@ -1,22 +1,22 @@
 using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDatalinkParameter: InputParameterBase
     {
         public DexihDatalinkParameter()
         {
         }
 
-        [ProtoMember(1)]
+        [Key(8)]
         [CopyParentCollectionKey]
         public long DatalinkKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalink Datalink { get; set; }
 
     }

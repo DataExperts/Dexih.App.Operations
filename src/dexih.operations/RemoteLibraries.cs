@@ -3,20 +3,20 @@ using System.Collections.Generic;
 using dexih.functions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.operations
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class RemoteLibraries
     {
-        [ProtoMember(1)]
+        [Key(0)]
         public List<FunctionReference> Functions { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public List<ConnectionReference> Connections { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public List<TransformReference> Transforms { get; set; }
     }
 }

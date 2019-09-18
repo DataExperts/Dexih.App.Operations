@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
 using dexih.repository;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -20,28 +22,7 @@ namespace dexih.operations.tests
     {
         public RepositoryManagerTests()
         {
-            // create an in memory database for testing
-            var options = new DbContextOptionsBuilder<DexihRepositoryContext>()
-                .UseInMemoryDatabase("dexih_repository")
-                .Options;
-            
-            var repositoryContext = new DexihRepositoryContext(options);
-            repositoryContext.Database.EnsureCreated();
-            
-
-            // instance of the memory cache.
-            var memoryCache = new MemoryDistributedCache(new OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
-
-            var userStore = new UserStore<ApplicationUser>(repositoryContext);
-            var roleStore = new RoleStore<IdentityRole>(repositoryContext);
-            var userManager = MockHelpers.TestUserManager(userStore);
-            var roleManager = MockHelpers.TestRoleManager(roleStore);
-
-            var seedData = new SeedData();
-            seedData.UpdateReferenceData(repositoryContext, roleManager, userManager).Wait();
-
-            _repositoryManager = new RepositoryManager("key", repositoryContext, userManager, memoryCache);
-                        
+            _repositoryManager = MockHelpers.CreateRepositoryManager();
         }
 
         private readonly RepositoryManager _repositoryManager;
@@ -62,7 +43,7 @@ namespace dexih.operations.tests
                 Description = "Description",
             };
 
-            return await _repositoryManager.SaveHub(hub, user);
+            return await _repositoryManager.SaveHub(hub, user, CancellationToken.None);
         }
 
         private async Task<ApplicationUser> CreateUser(ApplicationUser.EUserRole userRole)
@@ -79,7 +60,7 @@ namespace dexih.operations.tests
                 UserRole = userRole
             };
 
-            await _repositoryManager.CreateUserAsync(appUser);
+            await _repositoryManager.CreateUserAsync(appUser, null, CancellationToken.None);
             return appUser;
         }
 
@@ -88,7 +69,7 @@ namespace dexih.operations.tests
         {
             var appUser = await CreateUser(ApplicationUser.EUserRole.Manager);
 
-            var retrievedUser = await _repositoryManager.GetUserFromEmail(appUser.Email);
+            var retrievedUser = await _repositoryManager.GetUserFromEmail(appUser.Email, CancellationToken.None);
             Assert.Equal(appUser.FirstName, retrievedUser.FirstName);
             Assert.Equal(appUser.LastName, retrievedUser.LastName);
             Assert.Equal(appUser.Email, retrievedUser.Email);
@@ -105,57 +86,57 @@ namespace dexih.operations.tests
             Assert.True(hub.HubKey > 0);
             
             // retrieve hub
-            var retrievedHub = await _repositoryManager.GetHub(hub.HubKey);
+            var retrievedHub = await _repositoryManager.GetHub(hub.HubKey, CancellationToken.None);
             
             Assert.Equal(hub.Name, retrievedHub.Name);
             Assert.Equal(hub.Description, retrievedHub.Description);
 
             // set a user to owner access 
             var user = await CreateUser(ApplicationUser.EUserRole.Manager);
-            await _repositoryManager.HubSetUserPermissions(hub.HubKey, new[] {user.Id}, DexihHubUser.EPermission.Owner);
+            await _repositoryManager.HubSetUserPermissions(hub.HubKey, new[] {user.Id}, EPermission.Owner, CancellationToken.None);
 
             var adminUser = await CreateUser(ApplicationUser.EUserRole.Administrator);
 
             // get users for the hub
-            var hubUsers = await _repositoryManager.GetHubUsers(hub.HubKey);
+            var hubUsers = await _repositoryManager.GetHubUsers(hub.HubKey, CancellationToken.None);
             Assert.NotNull(hubUsers.SingleOrDefault(c => c.Email == user.Email));
 
             // get hubs for the user
-            var hubs = await _repositoryManager.GetUserHubs(user);
+            var hubs = await _repositoryManager.GetUserHubs(user, CancellationToken.None);
             Assert.NotNull(hubs.SingleOrDefault(c=>c.HubKey == hub.HubKey));
             
             // load the hub into the cache
-            var hubCache = await _repositoryManager.GetHub(hub.HubKey);
+            var hubCache = await _repositoryManager.GetHub(hub.HubKey, CancellationToken.None);
             Assert.Equal(hub.Name, hubCache.Name);
             
             // check admin also can get the hub
-            hubs = await _repositoryManager.GetUserHubs(adminUser);
+            hubs = await _repositoryManager.GetUserHubs(adminUser, CancellationToken.None);
             Assert.NotNull(hubs.SingleOrDefault(c=>c.HubKey == hub.HubKey));
             
             // remote permission for the user
-            await _repositoryManager.HubSetUserPermissions(hub.HubKey, new[] {user.Id}, DexihHubUser.EPermission.None);
+            await _repositoryManager.HubSetUserPermissions(hub.HubKey, new[] {user.Id}, EPermission.None, CancellationToken.None);
 
             // get users for the hub
-            hubUsers = await _repositoryManager.GetHubUsers(hub.HubKey);
-            Assert.NotNull(hubUsers.SingleOrDefault(c => c.Email == user.Email && c.Permission == DexihHubUser.EPermission.None));
+            hubUsers = await _repositoryManager.GetHubUsers(hub.HubKey, CancellationToken.None);
+            Assert.NotNull(hubUsers.SingleOrDefault(c => c.Email == user.Email && c.Permission == EPermission.None));
 
             // get hubs for the user
-            hubs = await _repositoryManager.GetUserHubs(user);
+            hubs = await _repositoryManager.GetUserHubs(user, CancellationToken.None);
             Assert.Null(hubs.SingleOrDefault(c=>c.HubKey == hub.HubKey));
 
             // delete hub (this will fail as permissions have been set to none.
-            await Assert.ThrowsAsync<RepositoryManagerException>(async () => await _repositoryManager.DeleteHubs(user, new[] {hub.HubKey}));
+            await Assert.ThrowsAsync<RepositoryManagerException>(async () => await _repositoryManager.DeleteHubs(user, new[] {hub.HubKey}, CancellationToken.None));
 
             // set users permission back to owner and then delete.
-            await _repositoryManager.HubSetUserPermissions(hub.HubKey, new[] {user.Id}, DexihHubUser.EPermission.Owner);
-            await _repositoryManager.DeleteHubs(user, new[] {hub.HubKey});
+            await _repositoryManager.HubSetUserPermissions(hub.HubKey, new[] {user.Id}, EPermission.Owner, CancellationToken.None);
+            await _repositoryManager.DeleteHubs(user, new[] {hub.HubKey}, CancellationToken.None);
                 
             // check hub is gone
-            hubs = await _repositoryManager.GetUserHubs(adminUser);
+            hubs = await _repositoryManager.GetUserHubs(adminUser, CancellationToken.None);
             Assert.Null(hubs.SingleOrDefault(c=>c.HubKey == hub.HubKey));
             
             // should raise exception loading the hub cache
-            await Assert.ThrowsAsync<CacheManagerException>(async () => await _repositoryManager.GetHub(hub.HubKey));
+            await Assert.ThrowsAsync<CacheManagerException>(async () => await _repositoryManager.GetHub(hub.HubKey, CancellationToken.None));
         }
 
         [Fact]
@@ -172,7 +153,7 @@ namespace dexih.operations.tests
                 Server = "server",
                 Password = "password",
             };
-            await _repositoryManager.SaveConnection(hub.HubKey, connection);
+            await _repositoryManager.SaveConnection(hub.HubKey, connection, CancellationToken.None);
             
             Assert.True(connection.Key > 0);
             
@@ -206,12 +187,12 @@ namespace dexih.operations.tests
                 }
             };
 
-            var savedTable = await _repositoryManager.SaveTable(hub.HubKey, table, true);
+            var savedTable = await _repositoryManager.SaveTable(hub.HubKey, table, true, false, CancellationToken.None);
 
             Assert.True(savedTable.Key > 0);
             
             // retrieve the connection and the table
-            var retrievedConnection = await _repositoryManager.GetConnection(hub.HubKey, connection.Key, true);
+            var retrievedConnection = await _repositoryManager.GetConnection(hub.HubKey, connection.Key, true, CancellationToken.None);
             Assert.Equal(connection.Key, retrievedConnection.Key);
             Assert.Equal(connection.ConnectionAssemblyName, retrievedConnection.ConnectionAssemblyName);
             Assert.Equal(connection.Server, retrievedConnection.Server);
@@ -241,22 +222,22 @@ namespace dexih.operations.tests
             // add a column
             retrievedTable.DexihTableColumns.Add(new DexihTableColumn() {Name = "column3", DataType = DataType.ETypeCode.Int32, DeltaType = TableColumn.EDeltaType.TrackingField});
             
-            var savedTable2 = await _repositoryManager.SaveTable(hub.HubKey, retrievedTable, true);
+            var savedTable2 = await _repositoryManager.SaveTable(hub.HubKey, retrievedTable, true, false, CancellationToken.None);
             var columns2 = savedTable2.DexihTableColumns.Where(c=>c.IsValid).ToArray();
-            var retrievedTable2 = await _repositoryManager.GetTable(hub.HubKey, savedTable2.Key, true);
+            var retrievedTable2 = await _repositoryManager.GetTable(hub.HubKey, savedTable2.Key, true, CancellationToken.None);
             Assert.Equal(savedTable2.Name, retrievedTable2.Name);
             Assert.Equal(2, columns2.Length);
             Assert.Equal("column1 updated", columns2[0].Name);
             Assert.Equal("column3", columns2[1].Name);
             
             // delete the table
-            await _repositoryManager.DeleteTables(hub.HubKey, new[] {savedTable.Key});
+            await _repositoryManager.DeleteTables(hub.HubKey, new[] {savedTable.Key}, CancellationToken.None);
             
             // confirm table deleted
-            await Assert.ThrowsAsync<RepositoryManagerException>(async () => await _repositoryManager.GetTable(hub.HubKey, savedTable.Key, true));
+            await Assert.ThrowsAsync<RepositoryManagerException>(async () => await _repositoryManager.GetTable(hub.HubKey, savedTable.Key, true, CancellationToken.None));
 
             // retrieve the connection with tables, and confirm table not retrieved.
-            retrievedConnection = await _repositoryManager.GetConnection(hub.HubKey, connection.Key, true);
+            retrievedConnection = await _repositoryManager.GetConnection(hub.HubKey, connection.Key, true, CancellationToken.None);
             Assert.Equal(0, hub.DexihTables.Count(c => c.IsValid));
         }
     }

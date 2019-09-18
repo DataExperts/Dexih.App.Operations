@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="RIDER_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$USER_HOME$/.nuget/packages/microsoft.visualstudio.threading.analyzers/16.3.52/build/AdditionalFiles/vs-threading.LegacyThreadSwitchingMembers.txt" />
+    <content url="file://$USER_HOME$/.nuget/packages/microsoft.visualstudio.threading.analyzers/16.3.52/build/AdditionalFiles/vs-threading.MainThreadAssertingMethods.txt" />
+    <content url="file://$USER_HOME$/.nuget/packages/microsoft.visualstudio.threading.analyzers/16.3.52/build/AdditionalFiles/vs-threading.MainThreadSwitchingMethods.txt" />
+    <content url="file://$USER_HOME$/.nuget/packages/microsoft.visualstudio.threading.analyzers/16.3.52/build/AdditionalFiles/vs-threading.MembersRequiringMainThread.txt" />
+    <content url="file://$USER_HOME$/.nuget/packages/xunit.runner.visualstudio/2.3.0/build/netcoreapp1.0/xunit.runner.reporters.netcoreapp10.dll" />
+    <content url="file://$USER_HOME$/.nuget/packages/xunit.runner.visualstudio/2.3.0/build/netcoreapp1.0/xunit.runner.utility.netcoreapp10.dll" />
+    <content url="file://$USER_HOME$/.nuget/packages/xunit.runner.visualstudio/2.3.0/build/netcoreapp1.0/xunit.runner.visualstudio.dotnetcore.testadapter.dll" />
+    <content url="file://$MODULE_DIR$/../.." />
+    <content url="file://$MODULE_DIR$/../../../dexih.transforms/src/dexih.connections.flatfile" />
+    <content url="file://$MODULE_DIR$/../../../dexih.transforms/src/dexih.functions" />
+    <content url="file://$MODULE_DIR$/../../../dexih.transforms/src/dexih.transforms" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

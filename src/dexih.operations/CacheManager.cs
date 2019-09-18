@@ -10,36 +10,36 @@ using System.Linq;
 using System.Threading.Tasks;
 using dexih.operations.Extensions;
 using Dexih.Utils.CopyProperties;
+using MessagePack;
 using Microsoft.Extensions.Logging;
-using ProtoBuf;
 
 namespace dexih.operations
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class CacheManager
     {
-        [ProtoMember(1)]
+        [Key(0)]
         public DexihHub Hub { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public string BuildVersion { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public DateTime BuildDate { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public string GoogleClientId { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public string MicrosoftClientId { get; set; }
 
-        [ProtoMember(6)]
+        [Key(5)]
         public string GoogleMapsAPIKey { get; set; }
-
-        public ILogger _logger;
-
-        [ProtoMember(7)]
+        
+        [Key(6)]
         public RemoteLibraries DefaultRemoteLibraries { get; set; }
+
+        private ILogger _logger;
 
 		public CacheManager()
 		{
@@ -59,12 +59,13 @@ namespace dexih.operations
 		}
 
         
-
+		[Key(7)]
         public long HubKey { get; set; }
         
 	    /// <summary>
         /// Key used to encrypt cache fields (such as passwords) when they are saved to repository or json file.
         /// </summary>
+        [Key(8)]
         public string CacheEncryptionKey { get; set; }
 
         public async Task<DexihHub> InitHub(DexihRepositoryContext dbContext)

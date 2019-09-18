@@ -1,31 +1,31 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihRemoteAgentHub : DexihHubEntity
     {
 
-        [ProtoMember(1)]
+        [Key(4)]
         [CopyCollectionKey((long)0, true)]
         public long RemoteAgentHubKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(5)]
         public long RemoteAgentKey { get; set; }
 
-        [ProtoMember(3)]
+        [Key(6)]
         public bool IsDefault { get; set; }
 
-        [ProtoMember(4)]
+        [Key(7)]
         public bool IsAuthorized { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihHub Hub { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihRemoteAgent RemoteAgent { get; set; }
 
     }

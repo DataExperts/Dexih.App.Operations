@@ -1,40 +1,40 @@
 using System;
 using Dexih.Utils.DataType;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class InputColumn
     {
-        [ProtoMember(1)]
+        [Key(0)]
         public long DatalinkKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public string DatalinkName { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public string Name { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public string LogicalName { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public DataType.ETypeCode DataType { get; set; }
 
-        [ProtoMember(6)]
+        [Key(5)]
         public int Rank { get; set; }
 
         private object _value;
 
-        [ProtoMember(7)]
+        [Key(6)]
         public object Value
         {
             get => _value ?? DefaultValue;
             set => _value = value;
         }
 
-        [ProtoMember(8)]
+        [Key(7)]
         public object DefaultValue { get; set; }
     }
 }

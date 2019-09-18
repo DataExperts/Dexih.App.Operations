@@ -7,36 +7,36 @@ using System.Text;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.ManagedTasks;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihTrigger : DexihHubNamedEntity
     {
-        [ProtoMember(1)]
+        [Key(7)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public DateTime? StartDate { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public TimeSpan? IntervalTime { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public List<ManagedTaskSchedule.EDayOfWeek> DaysOfWeek { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public TimeSpan? StartTime { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public TimeSpan? EndTime { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public string CronExpression { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public int? MaxRecurs { get; set; }
 
         [NotMapped]
@@ -63,7 +63,7 @@ namespace dexih.repository
             }
         }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatajob Datajob { get; set; }
 
         public ManagedTaskSchedule CreateManagedTaskSchedule()

@@ -1,7 +1,7 @@
 ﻿using dexih.functions.Query;
 using dexih.repository;
 using dexih.transforms;
-using ProtoBuf;
+using MessagePack;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -12,22 +12,22 @@ using static dexih.transforms.Transform;
 
 namespace dexih.operations
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DownloadData
     {
-        [ProtoMember(1)]
+        [Key(0)]
         public TransformSettings TransformSettings { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public CacheManager Cache { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public DownloadObject[] DownloadObjects { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public EDownloadFormat DownloadFormat { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public bool ZipFiles { get; set; }
 
         public DownloadData() { }
@@ -157,7 +157,7 @@ namespace dexih.operations
                     var entry = archive.CreateEntry(name);
                     using (var entryStream = entry.Open())
                     {
-                        fileStream.CopyTo(entryStream);
+                        await fileStream.CopyToAsync(entryStream, cancellationToken);
                     }
                 }
 
@@ -176,26 +176,26 @@ namespace dexih.operations
             }
         }
 
-        [ProtoContract]
+        [MessagePackObject]
         public class DownloadObject
         {
-            [ProtoMember(1)]
+            [Key(0)]
             public EDataObjectType ObjectType { get; set; }
 
-            [ProtoMember(2)]
+            [Key(1)]
             public long ObjectKey { get; set; }
 
-            [ProtoMember(3)]
+            [Key(2)]
             public SelectQuery Query { get; set; }
 
-            [ProtoMember(4)]
+            [Key(3)]
             public InputParameters InputParameters { get; set; }
 
-            [ProtoMember(5)]
+            [Key(4)]
             public InputColumn[] InputColumns { get; set; }
 
             // used when downloading data from a specific a transform data.
-            [ProtoMember(6)]
+            [Key(5)]
             public long? DatalinkTransformKey { get; set; }
 
         }

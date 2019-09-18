@@ -20,11 +20,11 @@ using dexih.transforms.Mapping;
 using Microsoft.Extensions.Logging;
 using static dexih.functions.Query.SelectColumn;
 using Dexih.Utils.DataType;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-	[ProtoContract]
+	[MessagePackObject]
 	public class DexihDatalinkTransformItem : DexihHubNamedEntity
 	{
 
@@ -33,124 +33,124 @@ namespace dexih.repository
 
 
 
-        [ProtoMember(1)]
+        [Key(7)]
         [CopyParentCollectionKey]
 		public long DatalinkTransformKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public int Position { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public ETransformItemType TransformItemType { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public long? TargetDatalinkColumnKey { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public long? SourceDatalinkColumnKey { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public long? JoinDatalinkColumnKey { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public long? FilterDatalinkColumnKey { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public string SourceValue { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public string JoinValue { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         public string FilterValue { get; set; }
 
-        [ProtoMember(11)]
+        [Key(17)]
         public string FunctionClassName { get; set; }
 
-        [ProtoMember(12)]
+        [Key(18)]
         public string FunctionAssemblyName { get; set; }
 
-        [ProtoMember(13)]
+        [Key(19)]
         public string FunctionMethodName { get; set; }
 
-        [ProtoMember(14)]
+        [Key(20)]
         public bool IsGeneric { get; set; }
 
-        [ProtoMember(15)]
+        [Key(21)]
         public ETypeCode? GenericTypeCode { get; set; }
 
-        [ProtoMember(16)]
+        [Key(22)]
         public MapFunction.EFunctionCaching FunctionCaching { get; set; }
 
-        [ProtoMember(17)]
+        [Key(23)]
         public long? CustomFunctionKey { get; set; }
 
-        [ProtoMember(18)]
+        [Key(24)]
         public Sort.EDirection? SortDirection { get; set; }
 
-        [ProtoMember(19)]
+        [Key(25)]
         public ECompare? FilterCompare { get; set; }
 
-        [ProtoMember(20)]
+        [Key(26)]
         public EAggregate? Aggregate { get; set; }
 
-        [ProtoMember(21)]
+        [Key(27)]
         public ESeriesGrain? SeriesGrain { get; set; }
 
-        [ProtoMember(22)]
+        [Key(28)]
         public bool SeriesFill { get; set; }
 
-        [ProtoMember(23)]
+        [Key(29)]
         public string SeriesStart { get; set; }
 
-        [ProtoMember(24)]
+        [Key(30)]
         public string SeriesFinish { get; set; }
 
-        [ProtoMember(25)]
+        [Key(31)]
         public string FunctionCode { get; set; }
 
-        [ProtoMember(26)]
+        [Key(32)]
         public string FunctionResultCode { get; set; }
 
-        [ProtoMember(27)]
+        [Key(33)]
         public EErrorAction OnError { get; set; }
 
-        [ProtoMember(28)]
+        [Key(34)]
         public EErrorAction OnNull { get; set; }
 
-        [ProtoMember(29)]
+        [Key(35)]
         public bool NotCondition { get; set; }
 
-        [ProtoMember(30)]
+        [Key(36)]
         public TransformFunction.EInvalidAction InvalidAction { get; set; }
 
-        [ProtoMember(31)]
+        [Key(37)]
         [NotMapped, CopyIgnore]
 		public EntityStatus EntityStatus { get; set; }
 
-        [ProtoMember(32)]
+        [Key(38)]
         public ICollection<DexihFunctionParameter> DexihFunctionParameters { get; set; }
 
-		[JsonIgnore, CopyIgnore]
+		[JsonIgnore, CopyIgnore, IgnoreMember]
 		public virtual DexihDatalinkTransform Dt { get; set; }
 
-        [ProtoMember(33)]
+        [Key(39)]
         [CopyIgnore]
 		public virtual DexihDatalinkColumn SourceDatalinkColumn { get; set; }
 
-        [ProtoMember(34)]
+        [Key(40)]
         [CopyIgnore]
 		public virtual DexihDatalinkColumn TargetDatalinkColumn { get; set; }
 
-        [ProtoMember(35)]
+        [Key(41)]
         [CopyIgnore]
 		public virtual DexihDatalinkColumn JoinDatalinkColumn { get; set; }
 
-        [ProtoMember(36)]
+        [Key(42)]
         [CopyIgnore]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
 		private Parameter ConvertParameter(DexihFunctionParameterBase parameter, EParameterDirection direction)

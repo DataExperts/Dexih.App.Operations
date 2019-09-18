@@ -1,31 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
-    [ProtoInclude(100, typeof(DexihFunctionArrayParameter))]
-    [ProtoInclude(200, typeof(DexihFunctionParameter))]
+    [MessagePackObject]
+    [ProtoInherit(2000)]
+    [MessagePack.Union(0, typeof(DexihFunctionArrayParameter))]
+    [MessagePack.Union(1, typeof(DexihFunctionParameter))]
     public class DexihFunctionParameterBase: DexihParameterBase
     {
-        [ProtoMember(1)]
+        [Key(12)]
         public long? DatalinkColumnKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(13)]
         public string Value { get; set; }
 
-        [ProtoMember(3)]
-        public List<string> ListOfValues { get; set; }
+        [Key(14)]
+        public string[] ListOfValues { get; set; }
 
-        [ProtoMember(4)]
+        [Key(15)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [ProtoMember(5)]
+        [Key(16)]
         [CopyIgnore]
         public DexihDatalinkColumn DatalinkColumn { get; set; }
     }
+
 }

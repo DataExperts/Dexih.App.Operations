@@ -1,12 +1,12 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
     // Add profile data for application users by adding properties to the ApplicationUser class
-    [ProtoContract]
+    [MessagePackObject]
     public class ApplicationUser : IdentityUser
     {
     
@@ -16,59 +16,59 @@ namespace dexih.repository
 	    }
 
 	    [NotMapped]
-        [ProtoIgnore]
+        [IgnoreMember]
         public EUserRole UserRole { get; set; } = EUserRole.None;
 
 	    [NotMapped]
-        [ProtoIgnore]
+        [IgnoreMember]
         public bool IsAdmin => UserRole == EUserRole.Administrator;
 
         [NotMapped]
-        [ProtoIgnore]
+        [IgnoreMember]
         public bool IsManager => UserRole == EUserRole.Manager;
 
         [NotMapped]
-        [ProtoIgnore]
+        [IgnoreMember]
         public bool IsUser => UserRole == EUserRole.User;
 
         [NotMapped]
-        [ProtoIgnore]
+        [IgnoreMember]
         public bool IsViewer => UserRole == EUserRole.Viewer;
 
-        [ProtoMember(1)]
+        [Key(0)]
 		public bool IsInvited { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public bool IsRegistered { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public bool IsEnabled { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public string FirstName { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public string LastName { get; set; }
 
-        [ProtoMember(6)]
+        [Key(5)]
         public bool Terms { get; set; }
 
-        [ProtoMember(7)]
+        [Key(6)]
         public bool Subscription { get; set; }
 
-        [ProtoMember(8)]
+        [Key(7)]
         public int InviteQuota { get; set; }
 
-        [ProtoMember(9)]
+        [Key(8)]
         public int HubQuota { get; set; }
 
-        [ProtoMember(10)]
+        [Key(9)]
         public string PrivateKey { get; set; }
 
-        [ProtoMember(11)]
+        [Key(10)]
         public string CertificateChain { get; set; }
 
-        [ProtoMember(12)]
+        [Key(11)]
         public DateTime? CertificateExpiry { get; set; }
 
 		public bool CanLogin()

@@ -1,10 +1,10 @@
-using ProtoBuf;
+using MessagePack;
 using System.Collections;
 using System.Collections.Generic;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDashboard: DexihHubNamedEntity
     {
         public DexihDashboard()
@@ -13,28 +13,28 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDashboardParameter>();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public bool IsShared { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public int MinRows { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public int MinCols { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public int MaxRows { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public int MaxCols { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public bool AutoRefresh { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public ICollection<DexihDashboardItem>  DexihDashboardItems { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public ICollection<DexihDashboardParameter> Parameters { get; set; }
     }
 }

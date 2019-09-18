@@ -6,11 +6,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihConnection : DexihHubNamedEntity
     {
         #region Enums
@@ -24,67 +24,67 @@ namespace dexih.repository
         }
 
 
-        [ProtoMember(1)]
+        [Key(7)]
         public string ConnectionAssemblyName { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public string ConnectionClassName { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public EConnectionPurpose Purpose { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public string Server { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public bool UseWindowsAuth { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public string Username { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public string Password { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public bool UsePasswordVariable { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public string DefaultDatabase { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         public string Filename { get; set; }
 
-        [ProtoMember(11)]
+        [Key(17)]
         public bool UseConnectionString { get; set; }
 
-        [ProtoMember(12)]
+        [Key(18)]
         public string ConnectionString { get; set; }
 
-        [ProtoMember(13)]
+        [Key(19)]
         public bool UseConnectionStringVariable { get; set; }
 
-        [ProtoMember(14)]
+        [Key(20)]
         public bool EmbedTableKey { get; set; }
 
         //these store the raw (unencrypted values) and are not saved to the database.
-        [ProtoMember(15)]
+        [Key(21)]
         [NotMapped]
         public string PasswordRaw { get; set; }
 
-        [ProtoMember(16)]
+        [Key(22)]
         [NotMapped]
         public string ConnectionStringRaw { get; set; }
 
-        [JsonIgnore]
+        [JsonIgnore, IgnoreMember]
         public ICollection<DexihTable> DexihTables { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalink> DexihDatalinkAuditConnections { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihHub Hub { get; set; }
 
         public string GetPassword(string key, int iterations)

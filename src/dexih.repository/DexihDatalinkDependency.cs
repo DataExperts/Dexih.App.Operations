@@ -1,24 +1,24 @@
 ﻿using System;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihDatalinkDependency : DexihHubNamedEntity
     {
-        [ProtoMember(1)]
+        [Key(7)]
         [CopyParentCollectionKey]
         public long DatalinkStepKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public long DependentDatalinkStepKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
          public virtual DexihDatalinkStep DatalinkStep { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihDatalinkStep DependentDatalinkStep { get; set; }
 
 

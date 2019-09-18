@@ -1,81 +1,84 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.File;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
 	public partial class DexihFileFormat : DexihHubNamedEntity
     {
 		public DexihFileFormat() => DexihTables = new HashSet<DexihTable>();
 
-        [ProtoMember(1)]
+        [Key(7)]
         public bool IsDefault { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public bool MatchHeaderRecord { get; set; } = true;
 
-        [ProtoMember(3)]
+        [Key(9)]
         public int SkipHeaderRows { get; set; } = 0;
 
-        [ProtoMember(4)]
+        [Key(10)]
         public bool AllowComments { get; set; } = false;
 
-        [ProtoMember(5)]
+        [Key(11)]
         public int BufferSize { get; set; } = 2048;
 
-        [ProtoMember(6)]
+        [Key(12)]
+        [DefaultValue(35)]
         public char Comment { get; set; } = '#';
 
-        [ProtoMember(7)]
+        [Key(13)]
         public string Delimiter { get; set; } = ",";
 
-        [ProtoMember(8)]
+        [Key(14)]
         public bool DetectColumnCountChanges { get; set; } = false;
 
-        [ProtoMember(9)]
+        [Key(15)]
         public bool HasHeaderRecord { get; set; } = true;
 
-        [ProtoMember(10)]
+        [Key(16)]
         public bool IgnoreHeaderWhiteSpace { get; set; } = false;
 
-        [ProtoMember(11)]
+        [Key(17)]
         public bool IgnoreReadingExceptions { get; set; } = false;
 
-        [ProtoMember(12)]
+        [Key(18)]
         public bool IgnoreQuotes { get; set; } = false;
 
-        [ProtoMember(13)]
+        [Key(19)]
+        [DefaultValue(34)]
         public char Quote { get; set; } = '\"';
 
-        [ProtoMember(14)]
+        [Key(20)]
         public bool QuoteAllFields { get; set; } = false;
 
-        [ProtoMember(15)]
+        [Key(21)]
         public bool QuoteNoFields { get; set; } = false;
 
-        [ProtoMember(16)]
+        [Key(22)]
         public bool SkipEmptyRecords { get; set; } = false;
 
-        [ProtoMember(17)]
+        [Key(23)]
         public bool TrimFields { get; set; } = false;
 
-        [ProtoMember(18)]
+        [Key(24)]
         public bool TrimHeaders { get; set; } = false;
 
-        [ProtoMember(19)]
+        [Key(25)]
         public bool WillThrowOnMissingField { get; set; } = true;
 
-        [ProtoMember(20)]
+        [Key(26)]
         public bool SetWhiteSpaceCellsToNull { get; set; } = true;
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihTable> DexihTables { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihHub Hub { get; set; }
 
         /// <summary>

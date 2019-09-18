@@ -4,11 +4,11 @@ using System.Linq;
 using Newtonsoft.Json;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-	[ProtoContract]
+	[MessagePackObject]
     public partial class DexihDatalinkColumn : DexihColumnBase
     {
         public DexihDatalinkColumn()
@@ -23,49 +23,49 @@ namespace dexih.repository
         }
 
         // don't reset negative keys here, as they need to be maintained when copying datalinks across.
-        [ProtoMember(1)]
+        [Key(24)]
         [CopyCollectionKey((long)0, false)]
         public new long Key { get; set; }
 
-        [ProtoMember(2)]
+        [Key(25)]
         [CopyParentCollectionKey(nameof(DexihDatalinkTable.Key), nameof(DexihDatalinkTable))]
         public long? DatalinkTableKey { get; set; }
 	    
-	    [JsonIgnore, CopyIgnore]
+	    [JsonIgnore, CopyIgnore, IgnoreMember]
 	    public DexihDatalinkColumn ParentColumn { get; set; }
 	    
-	    [JsonIgnore, CopyParentCollectionKey(nameof(DexihDatalinkColumn.Key), nameof(DexihDatalinkColumn))]
+	    [JsonIgnore, IgnoreMember, CopyParentCollectionKey(nameof(DexihDatalinkColumn.Key), nameof(DexihDatalinkColumn))]
 	    public long? ParentDatalinkColumnKey { get; set; }
 
-        [ProtoMember(3)]
+        [Key(26)]
         public ICollection<DexihDatalinkColumn> ChildColumns { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalinkTable DatalinkTable { get; set; }
 
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemsSourceColumn { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemsTargetColumn { get; set; }
 
-	    [JsonIgnore, CopyIgnore]
+	    [JsonIgnore, CopyIgnore, IgnoreMember]
 	    public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemsJoinColumn { get; set; }
 
-	    [JsonIgnore, CopyIgnore]
+	    [JsonIgnore, CopyIgnore, IgnoreMember]
 	    public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemsFilterColumn { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihFunctionParameter> DexihFunctionParameterColumn { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransformsJoinSortColumn { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransformsNodeColumn { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTarget> DexihDatalinkTargetNodeColumn { get; set; }
 
 		public TableColumn GetTableColumn(InputColumn[] inputColumns)

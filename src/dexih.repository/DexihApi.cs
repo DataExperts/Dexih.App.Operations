@@ -5,11 +5,11 @@ using System.Linq;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihApi: DexihHubNamedEntity
     {
         public DexihApi()
@@ -17,37 +17,37 @@ namespace dexih.repository
             Parameters = new HashSet<DexihApiParameter>();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public ESourceType SourceType { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceTableKey { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceDatalinkKey { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public bool AutoStart { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public bool CacheQueries { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public TimeSpan? CacheResetInterval { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public string LogDirectory { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         [CopyReference]
         public SelectQuery SelectQuery { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public ICollection<DexihApiParameter> Parameters { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         public bool IsShared { get; set; }
 
         

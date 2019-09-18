@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihRemoteAgent : DexihBaseEntity
     {        
         public DexihRemoteAgent()
@@ -15,42 +15,42 @@ namespace dexih.repository
             DexihRemoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
         }
         
-        [ProtoMember(1)]
+        [Key(3)]
         [CopyCollectionKey((long)0, true)]
         public long RemoteAgentKey { get; set; }
 
-        [ProtoMember(3)]
+        [Key(4)]
         public string Name { get; set; }
 
-        [ProtoMember(4)]
+        [Key(5)]
         public string UserId { get; set; }
 
-        [ProtoMember(5)]
+        [Key(6)]
         public bool RestrictIp { get; set; }
 
-        [ProtoMember(6)]
+        [Key(7)]
         public bool AllowExternalConnect { get; set; }
 
-        [ProtoMember(7)]
+        [Key(8)]
         public List<string> IpAddresses { get; set; }
 
-        [ProtoMember(8)]
+        [Key(9)]
         public string RemoteAgentId { get; set; }
 
-        [ProtoMember(9)]
+        [Key(10)]
         public string HashedToken { get; set; }
 
-        [ProtoMember(10)]
+        [Key(11)]
         public string LastLoginIpAddress { get; set; }
 
-        [ProtoMember(11)]
+        [Key(12)]
         public DateTime? LastLoginDateTime { get; set; }
 
-        [ProtoMember(12)]
+        [Key(13)]
         [NotMapped]
         public DexihActiveAgent[] ActiveAgents { get; set; }
 
-        [ProtoMember(13)]
+        [Key(14)]
         public virtual ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
     }
 }

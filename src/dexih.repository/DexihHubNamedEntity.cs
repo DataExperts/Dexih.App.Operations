@@ -1,56 +1,57 @@
 ﻿using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
+using dexih.functions;
 
 namespace dexih.repository
 {
-    [ProtoContract]
-    [ProtoInclude(100, typeof(DexihApi))]
-    [ProtoInclude(300, typeof(DexihColumnBase))]
-    [ProtoInclude(400, typeof(DexihColumnValidation))]
-    [ProtoInclude(500, typeof(DexihConnection))]
-    [ProtoInclude(600, typeof(DexihCustomFunction))]
-    [ProtoInclude(800, typeof(DexihDashboard))]
-    [ProtoInclude(900, typeof(DexihDashboardItem))]
-    [ProtoInclude(1200, typeof(DexihDatajob))]
-    [ProtoInclude(1400, typeof(DexihDatalink))]
-    [ProtoInclude(1600, typeof(DexihDatalinkDependency))]
-    [ProtoInclude(1800, typeof(DexihDatalinkProfile))]
-    [ProtoInclude(1900, typeof(DexihDatalinkStep))]
-    [ProtoInclude(2200, typeof(DexihDatalinkTable))]
-    [ProtoInclude(2300, typeof(DexihDatalinkTarget))]
-    [ProtoInclude(2400, typeof(DexihDatalinkTest))]
-    [ProtoInclude(2500, typeof(DexihDatalinkTestStep))]
-    [ProtoInclude(2600, typeof(DexihDatalinkTestTable))]
-    [ProtoInclude(2700, typeof(DexihDatalinkTransform))]
-    [ProtoInclude(2800, typeof(DexihDatalinkTransformItem))]
-    [ProtoInclude(2900, typeof(DexihFileFormat))]
-    [ProtoInclude(3600, typeof(DexihHubVariable))]
-    [ProtoInclude(3700, typeof(InputParameterBase))]
-    [ProtoInclude(3800, typeof(DexihParameterBase))]
-    [ProtoInclude(4000, typeof(DexihRemoteAgentHub))]
-    [ProtoInclude(4100, typeof(DexihTable))]
-    [ProtoInclude(4300, typeof(DexihTrigger))]
-    [ProtoInclude(4400, typeof(DexihView))]
+    [MessagePackObject]
+    [ProtoInherit(100000)]
+    [MessagePack.Union(0, typeof(DexihApi))]
+    [MessagePack.Union(1, typeof(DexihColumnBase))]
+    [MessagePack.Union(2, typeof(DexihColumnValidation))]
+    [MessagePack.Union(3, typeof(DexihConnection))]
+    [MessagePack.Union(4, typeof(DexihCustomFunction))]
+    [MessagePack.Union(5, typeof(DexihDashboard))]
+    [MessagePack.Union(6, typeof(DexihDashboardItem))]
+    [MessagePack.Union(7, typeof(DexihDatajob))]
+    [MessagePack.Union(8, typeof(DexihDatalink))]
+    [MessagePack.Union(9, typeof(DexihDatalinkDependency))]
+    [MessagePack.Union(10, typeof(DexihDatalinkProfile))]
+    [MessagePack.Union(11, typeof(DexihDatalinkStep))]
+    [MessagePack.Union(12, typeof(DexihDatalinkTable))]
+    [MessagePack.Union(13, typeof(DexihDatalinkTarget))]
+    [MessagePack.Union(14, typeof(DexihDatalinkTest))]
+    [MessagePack.Union(15, typeof(DexihDatalinkTestStep))]
+    [MessagePack.Union(16, typeof(DexihDatalinkTestTable))]
+    [MessagePack.Union(17, typeof(DexihDatalinkTransform))]
+    [MessagePack.Union(18, typeof(DexihDatalinkTransformItem))]
+    [MessagePack.Union(19, typeof(DexihFileFormat))]
+    [MessagePack.Union(20, typeof(DexihHubVariable))]
+    [MessagePack.Union(21, typeof(InputParameterBase))]
+    [MessagePack.Union(22, typeof(DexihParameterBase))]
+    [MessagePack.Union(24, typeof(DexihTable))]
+    [MessagePack.Union(25, typeof(DexihTrigger))]
+    [MessagePack.Union(26, typeof(DexihView))]
     public class DexihHubNamedEntity : DexihHubEntity
     {
-        [ProtoMember(1)]
+        [Key(4)]
         [CopyCollectionKey((long)0, true)]
         public long Key { get; set; }
 
-        [ProtoMember(2)]
+        [Key(5)]
         [NotMapped]
         public string Name { get; set; }
 
-        [ProtoMember(3)]
+        [Key(6)]
         [NotMapped]
         public string Description { get; set; }
 
-        [JsonIgnore, CopyIgnore, NotMapped]
+        [JsonIgnore, CopyIgnore, NotMapped, IgnoreMember]
         public virtual long ParentKey => 0;
     }
 }

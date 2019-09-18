@@ -5,11 +5,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihColumnValidation : DexihHubNamedEntity
     {
 
@@ -18,64 +18,64 @@ namespace dexih.repository
             DexihColumnValidationColumn = new HashSet<DexihTableColumn>();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public ETypeCode DataType { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public int? MinLength { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public int? MaxLength { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public bool AllowDbNull { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public decimal? MinValue { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public decimal? MaxValue { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public string PatternMatch { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public string RegexMatch { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         [CopyIgnore]
         public List<string> ListOfValues { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         [CopyIgnore]
         public List<string> ListOfNotValues { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihTableColumn LookupColumn { get; set; }
 
 
-        [ProtoMember(11)]
+        [Key(17)]
         public long? LookupColumnKey { get; set; }
 
-        [ProtoMember(12)]
+        [Key(18)]
         public bool LookupIsValid { get; set; }
 
-        [ProtoMember(13)]
+        [Key(19)]
         public bool LookupMultipleRecords { get; set; }
 
-        [ProtoMember(14)]
+        [Key(20)]
         public TransformFunction.EInvalidAction InvalidAction { get; set; }
 
-        [ProtoMember(15)]
+        [Key(21)]
         public ECleanAction CleanAction { get; set; }
 
-        [ProtoMember(16)]
+        [Key(22)]
         public string CleanValue { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihHub Hub { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihTableColumn> DexihColumnValidationColumn {get; set;}
         
     }

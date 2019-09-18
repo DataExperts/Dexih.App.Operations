@@ -8,11 +8,11 @@ using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
 using dexih.transforms;
 using static Dexih.Utils.DataType.DataType;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-	[ProtoContract]
+	[MessagePackObject]
     public partial class DexihTable : DexihHubNamedEntity
     {
         public DexihTable()
@@ -23,83 +23,83 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public long ConnectionKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public string Schema {get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public string BaseTableName { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public string LogicalName { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public Table.ETableType TableType { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public string SourceConnectionName { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public long? FileFormatKey { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public string RejectedTableName { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public bool UseQuery { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         public string QueryString { get; set; }
 
-        [ProtoMember(11)]
+        [Key(17)]
         public string RowPath { get; set; }
 
-        [ProtoMember(12)]
+        [Key(18)]
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
-        [ProtoMember(13)]
-        public List<long> SortColumnKeys { get; set; } = new List<long>();
+        [Key(19)]
+        public long[] SortColumnKeys { get; set; } = new long[0];
 
-        [ProtoMember(14)]
+        [Key(20)]
         public bool AutoManageFiles { get; set; }
 
-        [ProtoMember(15)]
+        [Key(21)]
         public bool UseCustomFilePaths { get; set; }
 
-        [ProtoMember(16)]
+        [Key(22)]
         public string FileRootPath { get; set; }
 
-        [ProtoMember(17)]
+        [Key(23)]
         public string FileIncomingPath { get; set; }
 
-        [ProtoMember(18)]
+        [Key(24)]
         public string FileOutgoingPath { get; set; }
 
-        [ProtoMember(19)]
+        [Key(25)]
         public string FileProcessedPath { get; set; }
 
-        [ProtoMember(20)]
+        [Key(26)]
         public string FileRejectedPath { get; set; }
 
-        [ProtoMember(21)]
+        [Key(27)]
         public string FileMatchPattern { get; set; }
 
-        [ProtoMember(22)]
+        [Key(28)]
         public string RestfulUri { get; set; }
 
-        [ProtoMember(23)]
+        [Key(29)]
         [NotMapped]
 	    public int MaxImportLevels { get; set; }
 
-        [ProtoMember(24)]
+        [Key(30)]
         public bool IsVersioned { get; set; }
 
-        [ProtoMember(25)]
+        [Key(31)]
         public bool IsShared { get; set; }
 		
-		[NotMapped, JsonIgnore, CopyIgnore]
+		[NotMapped, JsonIgnore, CopyIgnore, IgnoreMember]
 		public List<string> OutputSortFields {
 			get {
 				var fields = new List<string>();
@@ -118,33 +118,32 @@ namespace dexih.repository
 			}
 		}
 
-        [ProtoMember(26)]
+        [Key(32)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [ProtoMember(27)]
-        [NotMapped]
+        [Key(33), NotMapped]
         public string FileSample {get;set;}
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihView> DexihViews { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTarget> DexihTargetTables { get; set; }
 
-	    [JsonIgnore, CopyIgnore]
+	    [JsonIgnore, CopyIgnore, IgnoreMember]
 	    public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
 
-        [ProtoMember(28)]
+        [Key(34)]
         public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihConnection Connection { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihFileFormat FileFormat { get; set; }
 
-        [JsonIgnore, CopyIgnore, NotMapped]
+        [JsonIgnore, CopyIgnore, NotMapped, IgnoreMember]
         public override long ParentKey => ConnectionKey;
 
 	    public Table GetTable(DexihHub hub, Connection connection, TransformSettings transformSettings)

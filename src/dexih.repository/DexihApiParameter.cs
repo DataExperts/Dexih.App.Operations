@@ -1,23 +1,23 @@
 using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihApiParameter: InputParameterBase
     {
         public DexihApiParameter()
         {
         }
 
-        [ProtoMember(1)]
+        [Key(8)]
         [CopyParentCollectionKey]
         public long ApiKey { get; set; }
 
-        [ProtoMember(2)]
-        [JsonIgnore, CopyIgnore]
+        [Key(9)]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihApi Api { get; set; }
 
     }

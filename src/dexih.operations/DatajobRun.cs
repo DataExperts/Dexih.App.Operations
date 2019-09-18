@@ -43,7 +43,7 @@ namespace dexih.operations
 		public List<DatalinkRun> DatalinkSteps { get; set; }
 		private readonly DexihHub _hub;
 		public TransformWriterResult WriterResult { get; private set; }
-		private Connection _auditConnection;
+		private readonly Connection _auditConnection;
 
 		private readonly TransformSettings _transformSettings;
 		private readonly TransformWriterOptions _transformWriterOptions;
@@ -110,7 +110,7 @@ namespace dexih.operations
 			OnFinish = null;
 		}
 
-		public Task Initialize(CancellationToken cancellationToken)
+		public async Task Initialize(CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -119,10 +119,9 @@ namespace dexih.operations
 					ResetWriterResult();	
 				}
 				
-				WriterResult.Initialize(cancellationToken);
+				await WriterResult.Initialize(cancellationToken);
 				
 				DatalinkSteps = new List<DatalinkRun>();
-				return Task.CompletedTask;
 			}
 			catch (Exception ex)
 			{
@@ -266,15 +265,15 @@ namespace dexih.operations
 
 		}
 
-		public Task Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+		public void Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
 		{
 			ResetWriterResult();	
-			return WriterResult.Schedule(startsAt, cancellationToken);
+			WriterResult.Schedule(startsAt, cancellationToken);
 		}
 
 		public object Data { get => WriterResult; set => throw new NotSupportedException(); }
 
-		public async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
+		public async Task StartAsync(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
 		{
 			void DatajobProgressUpdate(TransformWriterResult writerResult)
 			{
@@ -319,9 +318,6 @@ namespace dexih.operations
 			OnFinish = null;
 		}
 		
-		
-
-
 		private async Task WaitUntilFinished()
 		{
 			while (true)

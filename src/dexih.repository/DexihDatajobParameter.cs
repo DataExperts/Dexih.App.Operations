@@ -1,22 +1,22 @@
 using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDatajobParameter: InputParameterBase
     {
         public DexihDatajobParameter()
         {
         }
 
-        [ProtoMember(1)]
+        [Key(8)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatajob Datajob { get; set; }
 
     }

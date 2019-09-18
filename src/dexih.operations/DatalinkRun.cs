@@ -227,7 +227,7 @@ namespace dexih.operations
             }
         }
 
-        public async Task Start(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
+        public async Task StartAsync(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
         {
             progress.Report(0, 0, "Compiling datalink...");
             Build(cancellationToken);
@@ -254,9 +254,9 @@ namespace dexih.operations
             _cancellationTokenSource.Cancel();
         }
 
-        public Task Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+        public void Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            
         }
 
         public object Data { get => WriterTarget.WriterResult; set => throw new NotSupportedException(); }

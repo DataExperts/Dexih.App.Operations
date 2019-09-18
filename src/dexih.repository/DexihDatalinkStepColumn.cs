@@ -1,20 +1,20 @@
 ﻿using System;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDatalinkStepColumn : DexihColumnBase
     {
 
-        [ProtoMember(2)]
+        [Key(24)]
         [CopyParentCollectionKey]
         public long DatalinkStepKey { get; set; }
         
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalinkStep DatalinkStep { get; set; }
 
         

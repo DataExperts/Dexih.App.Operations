@@ -1,11 +1,11 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class ChartConfig
     {
         // [JsonConverter(typeof(StringEnumConverter))]
@@ -38,92 +38,91 @@ namespace dexih.repository
             Map
         }
         
-        [ProtoMember(1)]
+        [Key(0)]
         public string LabelColumn { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public string SeriesColumn { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public string[] SeriesColumns { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public string XColumn { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public string YColumn { get; set; }
 
-        [ProtoMember(6)]
+        [Key(5)]
         public string MinColumn { get; set; }
 
-        [ProtoMember(7)]
+        [Key(6)]
         public string MaxColumn { get; set; }
 
-        [ProtoMember(8)]
+        [Key(7)]
         public string RadiusColumn { get; set; }
 
-        [ProtoMember(9)]
+        [Key(8)]
         public string LatitudeColumn { get; set; }
 
-        [ProtoMember(10)]
+        [Key(9)]
         public string LongitudeColumn { get; set; }
 
-        [ProtoMember(11)]
-        public EChartType ChartType { get; set; }
+        [Key(10)] 
+        public EChartType ChartType { get; set; } = EChartType.BarVertical;
 
-        [ProtoMember(12)]
-        public string ColorScheme { get; set; }
+        [Key(11)] 
+        public string ColorScheme { get; set; } = "natural";
 
-        [ProtoMember(13)]
+        [Key(12)]
         public bool ShowGradient { get; set; }
 
-        [ProtoMember(14)]
-        public bool ShowXAxis { get; set; }
+        [Key(13)] public bool ShowXAxis { get; set; } = true;
 
-        [ProtoMember(15)]
-        public bool ShowYAxis { get; set; }
+        [Key(14)]
+        public bool ShowYAxis { get; set; } = true;
 
-        [ProtoMember(16)]
+        [Key(15)]
         public bool ShowLegend { get; set; }
 
-        [ProtoMember(17)]
+        [Key(16)]
         public string LegendPosition { get; set; }
 
-        [ProtoMember(18)]
-        public bool ShowXAxisLabel { get; set; }
+        [Key(17)]
+        public bool ShowXAxisLabel { get; set; } = true;
 
-        [ProtoMember(19)]
-        public bool ShowYAxisLabel { get; set; }
+        [Key(18)]
+        public bool ShowYAxisLabel { get; set; } = true;
 
-        [ProtoMember(20)]
+        [Key(19)]
         public bool ShowGridLines { get; set; }
 
-        [ProtoMember(21)]
+        [Key(20)]
         public string XAxisLabel { get; set; }
 
-        [ProtoMember(22)]
+        [Key(21)]
         public string YAxisLabel { get; set; }
 
-        [ProtoMember(23)]
+        [Key(22)]
         public double? XScaleMax { get; set; }
 
-        [ProtoMember(24)]
+        [Key(23)]
         public double? XScaleMin { get; set; }
 
-        [ProtoMember(25)]
+        [Key(24)]
         public double? YScaleMax { get; set; }
 
-        [ProtoMember(26)]
+        [Key(25)]
         public double? YScaleMin { get; set; }
 
-        [ProtoMember(27)]
-        public bool AutoScale { get; set; }
+        [Key(26)]
+        public bool AutoScale { get; set; } = true;
 
         // pie charts only
-        [ProtoMember(28)]
+        [Key(27)]
         public bool ExplodeSlices { get; set; }
 
-        [ProtoMember(29)]
+        [Key(28)]
         public bool Doughnut { get; set; }
     }
 }

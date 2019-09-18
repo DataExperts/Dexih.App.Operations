@@ -5,11 +5,11 @@ using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
 using System.Linq;
 using dexih.functions.Query;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihDatajob : DexihHubNamedEntity
     {
 
@@ -20,19 +20,19 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDatajobParameter>();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public EFailAction FailAction { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public long? AuditConnectionKey { get; set; }
 
         /// <summary>
         /// Indicates if the job should watch for any new files.
         /// </summary>
-        [ProtoMember(3)]
+        [Key(9)]
         public bool FileWatch { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public bool AutoStart { get; set; }
 
         /// <summary>
@@ -40,19 +40,19 @@ namespace dexih.repository
         /// </summary>
         // public bool ExternalTrigger { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public virtual ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public virtual ICollection<DexihTrigger> DexihTriggers { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihHub Hub { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihConnection AuditConnection { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public ICollection<DexihDatajobParameter> Parameters { get; set; }
 
         public DexihDatalinkStep GetDatalinkStep(long datalinkStepKey) => DexihDatalinkSteps.SingleOrDefault(step => step.Key == datalinkStepKey);

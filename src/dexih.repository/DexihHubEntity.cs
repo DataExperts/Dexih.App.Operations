@@ -1,18 +1,20 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
-    [ProtoInclude(100, typeof(DexihRemoteAgentHub))]
-    [ProtoInclude(200, typeof(DexihHubNamedEntity))]
+    [MessagePackObject]
+    [ProtoInherit(1000000)]
+    [MessagePack.Union(0, typeof(DexihRemoteAgentHub))]
+    [MessagePack.Union(1, typeof(DexihHubNamedEntity))]
     public class DexihHubEntity : DexihBaseEntity
     {
-        [ProtoMember(1)]
-        [JsonIgnore, CopyIgnore]
+        [Key(3)]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public long HubKey { get; set; }
         
     }

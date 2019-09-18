@@ -1,11 +1,11 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class EntityStatus
     {
         public EntityStatus()
@@ -17,13 +17,13 @@ namespace dexih.repository
 
 
 
-        [ProtoMember(1)]
+        [Key(0)]
         public EStatus LastStatus { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public string Message { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public bool IsBusy { get; set; }
     }
 }

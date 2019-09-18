@@ -4,11 +4,11 @@ using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-	[ProtoContract]
+	[MessagePackObject]
     public class DexihDatalinkTable: DexihHubNamedEntity
     {
 
@@ -22,39 +22,39 @@ namespace dexih.repository
 
 
 
-        [ProtoMember(1)]
+        [Key(7)]
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceTableKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceDatalinkKey { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public int? RowsStartAt { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public int? RowsEndAt { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public int? RowsIncrement { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public ESourceType SourceType { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihTable SourceTable { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalink SourceDatalink { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalink> DexihDatalinkSourceTables { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
 

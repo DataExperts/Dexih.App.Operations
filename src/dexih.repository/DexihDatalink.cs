@@ -8,11 +8,11 @@ using System.Linq;
 using dexih.functions.Query;
 using dexih.transforms;
 using dexih.transforms.Transforms;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihDatalink : DexihHubNamedEntity
     {
 
@@ -30,81 +30,81 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public long SourceDatalinkTableKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public long? AuditConnectionKey { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; } = TransformDelta.EUpdateStrategy.Reload;
 
-        [ProtoMember(4)]
+        [Key(10)]
         public TransformWriterTarget.ETransformWriterMethod LoadStrategy { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public EDatalinkType DatalinkType { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public int RowsPerCommit { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public int RowsPerProgress { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public bool RollbackOnFail { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public bool IsQuery { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         public int MaxRows { get; set; }
 
-        [ProtoMember(11)]
+        [Key(17)]
         public bool AddDefaultRow { get; set; }
 
-        [ProtoMember(12)]
+        [Key(18)]
         public string ProfileTableName { get; set; }
 
-        [ProtoMember(13)]
+        [Key(19)]
         public bool IsShared { get; set; }
 
-        [ProtoMember(14)]
+        [Key(20)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [ProtoMember(15)]
+        [Key(21)]
         public ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
 
-        [ProtoMember(16)]
+        [Key(22)]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
 
-        [ProtoMember(17)]
+        [Key(23)]
         public ICollection<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
 
-        [ProtoMember(18)]
+        [Key(24)]
         public ICollection<DexihDatalinkParameter> Parameters { get; set; }
 
 
         /// <summary>
         /// Reference to the source columns for the datalink.
         /// </summary>
-        [ProtoMember(19)]
+        [Key(25)]
         public DexihDatalinkTable SourceDatalinkTable { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihView> DexihViews { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihHub Hub { get; set; }
         
-	    [JsonIgnore, CopyReference]
+	    [JsonIgnore, IgnoreMember, CopyReference]
         public DexihConnection AuditConnection { get; set; }
 
         public void UpdateParameters(InputParameters inputParameters)

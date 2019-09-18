@@ -1,19 +1,19 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihCustomFunctionParameter : DexihParameterBase
     {
-        [ProtoMember(1)]
+        [Key(12)]
         [CopyParentCollectionKey(nameof(Key))]
         public long CustomFunctionKey { get; set; }
 
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
     }

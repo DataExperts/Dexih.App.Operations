@@ -1,26 +1,28 @@
 using System;
+using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
-    [ProtoInclude(100, typeof(DexihHub))]
-    [ProtoInclude(200, typeof(DexihHubUser))]
-    [ProtoInclude(300, typeof(DexihRemoteAgent))]
-    [ProtoInclude(10000, typeof(DexihHubEntity))]
+    [MessagePackObject]
+    [ProtoInherit(10000000)]
+    [MessagePack.Union(0, typeof(DexihHub))]
+    [MessagePack.Union(1, typeof(DexihHubUser))]
+    [MessagePack.Union(2, typeof(DexihRemoteAgent))]
+    [MessagePack.Union(3, typeof(DexihHubEntity))]
 
     public class DexihBaseEntity
     {
-        [ProtoMember(1)]
+        [Key(0)]
         [CopyIfTargetDefault]
         public DateTime CreateDate { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public DateTime UpdateDate { get; set; }
 
 
-        [ProtoMember(3)]
+        [Key(2)]
         [CopyIsValid]
         public bool IsValid { get; set; } = true;
     }

@@ -2,26 +2,26 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihHubUser : DexihBaseEntity
     {
 
 
-        [ProtoMember(1)]
-        [JsonIgnore, CopyIgnore]
+        [Key(3)]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public long HubKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(4)]
         public string UserId { get; set; }
 
-        [ProtoMember(3)]
+        [Key(5)]
         public EPermission Permission { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihHub Hub { get; set; }
     }
 }

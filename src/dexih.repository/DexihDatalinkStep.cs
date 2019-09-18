@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Dexih.Utils.CopyProperties;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihDatalinkStep : DexihHubNamedEntity
     {
         public DexihDatalinkStep()
@@ -17,30 +17,31 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDatalinkStepParameter>();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public long? DatalinkKey { get; set; }
 
 
-        [ProtoMember(3)]
+        [Key(9)]
         public ICollection<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [Key(11)]
+        public ICollection<DexihDatalinkStepParameter> Parameters { get; set; }
+
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkDependency> DexihDatalinkDependentSteps { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatajob Datajob { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalink Datalink { get; set; }
 
-        [ProtoMember(5)]
-        public ICollection<DexihDatalinkStepParameter> Parameters { get; set; }
     }
 }

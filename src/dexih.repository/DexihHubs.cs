@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public partial class DexihHub : DexihBaseEntity
     {
        
@@ -30,62 +30,62 @@ namespace dexih.repository
             DexihDashboards = new HashSet<DexihDashboard>();
         }
 
-        [ProtoMember(1)]
+        [Key(3)]
         [CopyCollectionKey((long)0, true)]
         public long HubKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(4)]
         public string Name { get; set; }
 
-        [ProtoMember(3)]
+        [Key(5)]
         public string Description { get; set; }
 
-        [ProtoMember(4)]
+        [Key(6)]
         public string EncryptionKey { get; set; }
 
-        [ProtoMember(5)]
+        [Key(7)]
         public ESharedAccess SharedAccess { get; set; }
 
-        [ProtoMember(6)]
+        [Key(8)]
         public ICollection<DexihConnection> DexihConnections { get; set; }
 
-        [ProtoMember(7)]
+        [Key(9)]
         public ICollection<DexihTable> DexihTables { get; set; }
 
-        [ProtoMember(8)]
+        [Key(10)]
         public ICollection<DexihDatajob> DexihDatajobs { get; set; }
 
-        [ProtoMember(9)]
+        [Key(11)]
         public ICollection<DexihDatalink> DexihDatalinks { get; set; }
 
-        [ProtoMember(10)]
+        [Key(12)]
         public ICollection<DexihHubUser> DexihHubUsers { get; set; }
 
-        [ProtoMember(11)]
+        [Key(13)]
         public ICollection<DexihFileFormat> DexihFileFormats { get; set; }
 
-        [ProtoMember(12)]
+        [Key(14)]
         public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
 
-        [ProtoMember(13)]
+        [Key(15)]
         public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
 
-        [ProtoMember(14)]
+        [Key(16)]
         public ICollection<DexihView> DexihViews { get; set; }
 
-        [ProtoMember(15)]
+        [Key(17)]
         public ICollection<DexihDashboard> DexihDashboards { get; set; }
 
-        [ProtoMember(16)]
+        [Key(18)]
         public ICollection<DexihApi> DexihApis { get; set; }
 
-        [ProtoMember(17)]
+        [Key(19)]
         public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
 
-        [ProtoMember(18)]
+        [Key(20)]
         public ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
 
-        [ProtoMember(19)]
+        [Key(21)]
         public ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
 
         /// <summary>

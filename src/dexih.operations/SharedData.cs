@@ -4,48 +4,48 @@ using dexih.functions.Query;
 using dexih.repository;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.operations
 {
 
-    [ProtoContract]
+    [MessagePackObject]
     public class SharedData
     {
-        [ProtoMember(1)]
+        [Key(0)]
         public long HubKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public string HubName { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public EDataObjectType ObjectType { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public long ObjectKey { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public string Name { get; set; }
 
-        [ProtoMember(6)]
+        [Key(5)]
         public string LogicalName { get; set; }
 
-        [ProtoMember(7)]
+        [Key(6)]
         public string Description { get; set; }
 
-        [ProtoMember(8)]
+        [Key(7)]
         public DateTime UpdateDate { get; set; }
 
-        [ProtoMember(9)]
+        [Key(8)]
         public InputColumn[] InputColumns { get; set; }
 
-        [ProtoMember(10)]
+        [Key(9)]
         public IEnumerable<InputParameterBase> Parameters { get; set; }
 
-        [ProtoMember(11)]
+        [Key(10)]
         public SelectQuery Query { get; set; }
 
-        [ProtoMember(12)]
+        [Key(11)]
         public DexihColumnBase[] OutputColumns { get; set; }
     }
 }

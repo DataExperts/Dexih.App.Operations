@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.DataType;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihCustomFunction : DexihHubNamedEntity
     {
 
@@ -18,28 +18,28 @@ namespace dexih.repository
             DexihCustomFunctionParameters = new HashSet<DexihCustomFunctionParameter>();
         }
 
-        [ProtoMember(1)]
+        [Key(7)]
         public string MethodCode { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         public string ResultCode { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public DataType.ETypeCode? ReturnType { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public EFunctionType? FunctionType { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public bool IsGeneric { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public DataType.ETypeCode GenericTypeDefault { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public ICollection<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
 
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemCustomFunction { get; set; }
 
     }

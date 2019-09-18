@@ -4,7 +4,7 @@ using dexih.repository;
 using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.operations
 {
@@ -14,52 +14,52 @@ namespace dexih.operations
         Replace = 1, New, Leave, Skip, Delete
     }
 
-    [ProtoContract]
+    [MessagePackObject]
     public class Import
     {
-        [ProtoMember(1)]
+        [Key(0)]
         public long HubKey { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public ImportObjects<DexihHubVariable> HubVariables { get; set; }
 
-        [ProtoMember(3)]
+        [Key(2)]
         public ImportObjects<DexihDatajob> Datajobs { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public ImportObjects<DexihDatalink> Datalinks { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public ImportObjects<DexihConnection> Connections { get; set; }
 
-        [ProtoMember(6)]
+        [Key(5)]
         public ImportObjects<DexihTable> Tables { get; set; }
 
-        [ProtoMember(7)]
+        [Key(6)]
         public ImportObjects<DexihColumnValidation> ColumnValidations { get; set; }
 
-        [ProtoMember(8)]
+        [Key(7)]
         public ImportObjects<DexihFileFormat> FileFormats { get; set; }
 
-        [ProtoMember(9)]
+        [Key(8)]
         public ImportObjects<DexihCustomFunction> CustomFunctions { get; set; }
 
-        [ProtoMember(10)]
+        [Key(9)]
         public ImportObjects<DexihRemoteAgentHub> RemoteAgentHubs { get; set; }
 
-        [ProtoMember(11)]
+        [Key(10)]
         public ImportObjects<DexihDatalinkTest> DatalinkTests { get; set; }
 
-        [ProtoMember(12)]
+        [Key(11)]
         public ImportObjects<DexihView> Views { get; set; }
 
-        [ProtoMember(13)]
+        [Key(12)]
         public ImportObjects<DexihApi> Apis { get; set; }
 
-        [ProtoMember(14)]
+        [Key(13)]
         public ImportObjects<DexihDashboard> Dashboards { get; set; }
 
-        [ProtoMember(15)]
+        [Key(14)]
         public List<string> Warnings { get; set; }
 
         public Import()
@@ -281,7 +281,7 @@ namespace dexih.operations
         }
     }
 
-    [ProtoContract]
+    [MessagePackObject]
     public class ImportObject<T>
     {
         public ImportObject()
@@ -294,10 +294,10 @@ namespace dexih.operations
             ImportAction = importAction;
         }
         
-        [ProtoMember(1)]
+        [Key(0)]
         public T Item { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public EImportAction ImportAction { get; set; }
     }
     

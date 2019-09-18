@@ -2,47 +2,47 @@ using System;
 using System.Collections.Generic;
 using Dexih.Utils.CopyProperties;
 using Newtonsoft.Json;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.repository
 {
-    [ProtoContract]
+    [MessagePackObject]
     public class DexihDatalinkTestStep: DexihHubNamedEntity
     {
         public DexihDatalinkTestStep() => DexihDatalinkTestTables = new HashSet<DexihDatalinkTestTable>();
 
-        [ProtoMember(1)]
+        [Key(7)]
         public long Position { get; set; }
 
-        [ProtoMember(2)]
+        [Key(8)]
         [CopyParentCollectionKey]
         public long DatalinkTestKey { get; set; }
 
-        [ProtoMember(3)]
+        [Key(9)]
         public long DatalinkKey { get; set; }
 
-        [ProtoMember(4)]
+        [Key(10)]
         public long TargetConnectionKey { get; set; }
 
-        [ProtoMember(5)]
+        [Key(11)]
         public string TargetTableName { get; set; }
 
-        [ProtoMember(6)]
+        [Key(12)]
         public string TargetSchema { get; set; }
 
-        [ProtoMember(7)]
+        [Key(13)]
         public long ExpectedConnectionKey { get; set; }
 
-        [ProtoMember(8)]
+        [Key(14)]
         public string ExpectedTableName { get; set; }
 
-        [ProtoMember(9)]
+        [Key(15)]
         public string ExpectedSchema { get; set; }
 
-        [ProtoMember(10)]
+        [Key(16)]
         public ICollection<DexihDatalinkTestTable> DexihDatalinkTestTables { get; set; }
         
-        [JsonIgnore, CopyIgnore]
+        [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihDatalinkTest DatalinkTest { get; set; }
 
     }

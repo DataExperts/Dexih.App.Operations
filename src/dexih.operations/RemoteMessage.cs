@@ -1,13 +1,13 @@
 ﻿using dexih.repository;
 using Dexih.Utils.MessageHelpers;
 using Newtonsoft.Json.Linq;
-using ProtoBuf;
+using MessagePack;
 using System;
 using System.Linq;
 
 namespace dexih.operations
 {
-    [ProtoContract]
+ //   [MessagePackObject]
     public sealed class ResponseMessage : RemoteMessage
     {
         public ResponseMessage()
@@ -27,8 +27,8 @@ namespace dexih.operations
         }
     }
 
-    [ProtoContract]
-    [ProtoInclude(100, nameof(ResponseMessage))]
+    [MessagePackObject]
+    [MessagePack.Union(0, typeof(ResponseMessage))]
     public class RemoteMessage : ReturnValue<JToken>
     {
         public RemoteMessage()
@@ -69,28 +69,28 @@ namespace dexih.operations
         /// <summary>
         /// Unique id for the message
         /// </summary>
-        [ProtoMember(1)]
+        [Key(0)]
         public string MessageId { get; set; }
 
         /// <summary>
         /// Secure token for the remote agent
         /// </summary>
-        [ProtoMember(2)]
+        [Key(1)]
         public string SecurityToken { get; set; }
 
         /// <summary>
         /// Method being called
         /// </summary>
-        [ProtoMember(3)]
+        [Key(2)]
         public string Method { get; set; }
 
-        [ProtoMember(4)]
+        [Key(3)]
         public long HubKey { get; set; }
 
-        [ProtoMember(5)]
+        [Key(4)]
         public long? TimeOut { get; set; }
 
-        [ProtoMember(6)]
+        [Key(5)]
         public DexihHubVariable[] HubVariables { get; set; }
 
     }

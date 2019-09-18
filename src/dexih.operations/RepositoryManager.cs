@@ -17,18 +17,18 @@ using dexih.transforms.Transforms;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using ProtoBuf;
+using MessagePack;
 
 namespace dexih.operations
 {
 
-    [ProtoContract]
+    [MessagePackObject]
 	public class ImportAction
 	{
-        [ProtoMember(1)]
+        [Key(0)]
 		public ESharedObjectType ObjectType { get; set; }
 
-        [ProtoMember(2)]
+        [Key(1)]
         public EImportAction Action { get; set; }
 	}
 
