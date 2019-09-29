@@ -70,8 +70,9 @@ namespace dexih.repository
 
         [Key(11)]
         public DateTime? CertificateExpiry { get; set; }
+        
 
-		public bool CanLogin()
+        public bool CanLogin()
 		{
 			return EmailConfirmed && IsInvited && IsEnabled;
 		}

@@ -22,15 +22,7 @@ using MessagePack;
 namespace dexih.operations
 {
 
-    [MessagePackObject]
-	public class ImportAction
-	{
-        [Key(0)]
-		public ESharedObjectType ObjectType { get; set; }
 
-        [Key(1)]
-        public EImportAction Action { get; set; }
-	}
 
     /// <summary>
     /// Provides an interface to retrieve and save to the database repository.
@@ -125,6 +117,21 @@ namespace dexih.operations
 
 			await AddUserRole(user, cancellationToken);
 			return user;
+		}
+
+		public async Task<UserModel> GetUserModel(string email, CancellationToken cancellationToken)
+		{
+			var user = await _userManager.FindByEmailAsync(email);
+
+			if (user == null)
+			{
+				return null;
+			}
+
+			var userModel = new UserModel();
+			user.CopyProperties(userModel, true);
+			userModel.Logins = await GetLoginsAsync(user, cancellationToken);
+			return userModel;
 		}
 
 		public async Task<ApplicationUser> GetUserFromLogin(string provider, string providerKey, CancellationToken cancellationToken)
@@ -357,18 +364,21 @@ namespace dexih.operations
 			if (user.IsAdmin)
 			{
 				// admin user has access to all hubs
-				return await DbContext.DexihHubs.Where(c => c.IsValid).ToArrayAsync();
+				return await DbContext.DexihHubs.Where(c => c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 			}
 			else
 			{
 				if (string.IsNullOrEmpty(user.Id))
 				{
 					// no user can only see public hubs
-					return await DbContext.DexihHubs.Where(c => c.SharedAccess == ESharedAccess.Public && c.IsValid).ToArrayAsync();
+					return await DbContext.DexihHubs.Where(c => c.SharedAccess == ESharedAccess.Public && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 				}
 
 				// all hubs the user has reader access to.
-				var readerHubKeys = await DbContext.DexihHubUser.Where(c => c.UserId == user.Id && (c.Permission == EPermission.FullReader || c.Permission == EPermission.User || c.Permission == EPermission.Owner || c.Permission == EPermission.PublishReader) && c.IsValid).Select(c=>c.HubKey).ToArrayAsync();
+				var readerHubKeys = await DbContext.DexihHubUser.Where
+					(c => c.UserId == user.Id && 
+					      (c.Permission == EPermission.FullReader || c.Permission == EPermission.User || c.Permission == EPermission.Owner || c.Permission == EPermission.PublishReader) 
+					      && c.IsValid).Select(c=>c.HubKey).ToArrayAsync(cancellationToken: cancellationToken);
 					
 				// all hubs the user has reader access to, or are public
 				return await DbContext.DexihHubs.Where(c => 
@@ -461,7 +471,7 @@ namespace dexih.operations
 			var noSearch = string.IsNullOrEmpty(search);
 
 			// load shared objects for each available hub
-			foreach (var hub in availableHubs)
+			foreach (var hub in availableHubs.Where(c => hubKeys.Contains(c.HubKey)))
 			{
 				var sharedCache = await _cacheService.GetOrCreateAsync(CacheKeys.HubShared((hub.HubKey)),
 					TimeSpan.FromHours(1),
@@ -748,16 +758,7 @@ namespace dexih.operations
                 throw new RepositoryManagerException($"Error getting hub users.  {ex.Message}", ex);
             }
         }
-
-        public class HubUser
-        {
-            public string FirstName { get; set; }
-            public string LastName { get; set; }
-            public string Email { get; set; }
-            public string Id { get; set; }
-            public EPermission Permission { get; set; }
-        }
-
+        
         public async Task<DexihHub> GetUserHub(long hubKey, ApplicationUser user, CancellationToken cancellationToken)
 		{
 			if (user.IsAdmin)

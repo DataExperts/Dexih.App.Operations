@@ -493,8 +493,12 @@ namespace dexih.operations
             }
 
             // copy the test data across.
-            var writer = new TransformWriterTarget(testConnection, testTable);
-            await writer.WriteRecordsAsync(sourceConnection.GetTransformReader(sourceTable), TransformDelta.EUpdateStrategy.Reload, cancellationToken);
+
+            using (var writer = new TransformWriterTarget(testConnection, testTable))
+            {
+                await writer.WriteRecordsAsync(sourceConnection.GetTransformReader(sourceTable), TransformDelta.EUpdateStrategy.Reload, cancellationToken);    
+            }
+            
 
             // update the dexihtable with the test connection, so the datalink runs against this value.
             dexihTable.ConnectionKey = datalinkTestTable.TestConnectionKey;

@@ -39,8 +39,7 @@ namespace dexih.repository
         [Key(10)]
         public EDataObjectType SourceType { get; set; }
 
-        [Key(11)]
-        public bool AutoRefresh { get; set; }
+        [Key(11)] public bool AutoRefresh { get; set; } = true;
 
         [Key(12)]
         [NotMapped]

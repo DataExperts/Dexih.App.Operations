@@ -3,23 +3,38 @@ using Dexih.Utils.MessageHelpers;
 using Newtonsoft.Json.Linq;
 using MessagePack;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace dexih.operations
 {
- //   [MessagePackObject]
-    public sealed class ResponseMessage : RemoteMessage
+    [DataContract]
+    public sealed class ResponseMessage: ReturnValue<object>
     {
         public ResponseMessage()
         {
 
         }
-        public ResponseMessage(string securityToken, string messageId, ReturnValue<JToken> returnMessage)
+        
+        public override object Value { get; set; }
+        
+        /// <summary>
+        /// Unique id for the message
+        /// </summary>
+        [DataMember(Order = 4)]
+        public string MessageId { get; set; }
+
+        /// <summary>
+        /// Secure token for the remote agent
+        /// </summary>
+        [DataMember(Order = 5)]
+        public string SecurityToken { get; set; }
+        
+        public ResponseMessage(string securityToken, string messageId, ReturnValue<object> returnMessage)
         {
             MessageId = messageId;
             SecurityToken = securityToken;
-            Method = "Response";
-
             Success = returnMessage.Success;
             Message = returnMessage.Message;
             Value = returnMessage.Value;
@@ -27,8 +42,7 @@ namespace dexih.operations
         }
     }
 
-    [MessagePackObject]
-    [MessagePack.Union(0, typeof(ResponseMessage))]
+    [DataContract]
     public class RemoteMessage : ReturnValue<JToken>
     {
         public RemoteMessage()
@@ -55,44 +69,48 @@ namespace dexih.operations
             Exception = returnValue.Exception;
         }
 
-        public RemoteMessage(string securityToken, string messageId, string method, JToken value)
+        public RemoteMessage(string securityToken, string messageId, JToken value)
         {
             SecurityToken = securityToken;
             MessageId = messageId;
-            Method = method;
             Success = true;
             Message = "";
             Exception = null;
             Value = value;
         }
-
+ 
         /// <summary>
         /// Unique id for the message
         /// </summary>
-        [Key(0)]
+        [DataMember(Order = 4)]
         public string MessageId { get; set; }
 
         /// <summary>
         /// Secure token for the remote agent
         /// </summary>
-        [Key(1)]
+        [DataMember(Order = 5)]
         public string SecurityToken { get; set; }
 
         /// <summary>
-        /// Method being called
+        /// Command 
         /// </summary>
-        [Key(2)]
+        [DataMember(Order = 6)]
         public string Method { get; set; }
 
-        [Key(3)]
+        
+        [DataMember(Order = 7)]
         public long HubKey { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 8)]
         public long? TimeOut { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 9)]
         public DexihHubVariable[] HubVariables { get; set; }
+        
+        [DataMember(Order = 10)]
+        public string ClientConnectionId { get; set; }
 
     }
 
+  
 }

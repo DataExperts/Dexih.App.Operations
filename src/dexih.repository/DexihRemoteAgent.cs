@@ -45,11 +45,7 @@ namespace dexih.repository
 
         [Key(12)]
         public DateTime? LastLoginDateTime { get; set; }
-
-        [Key(13)]
-        [NotMapped]
-        public DexihActiveAgent[] ActiveAgents { get; set; }
-
+        
         [Key(14)]
         public virtual ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
     }

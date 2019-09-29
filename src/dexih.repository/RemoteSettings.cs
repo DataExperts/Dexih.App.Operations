@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using MessagePack;
+using MessagePack.Formatters;
 
 namespace dexih.repository
 {
@@ -43,7 +44,8 @@ namespace dexih.repository
         [Key(6)]
         public PermissionsSection Permissions { get; set; } = new PermissionsSection();
 
-        [Key(7)]
+        // [Key(7)]
+        [IgnoreMember]
         public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         /// <summary>
@@ -647,29 +649,26 @@ namespace dexih.repository
 
         [Key(6)]
         public long RemoteAgentKey { get; set; }
-
+        
         [Key(7)]
-        public ApplicationUser User { get; set; }
-
-        [Key(8)]
         public string UserHash { get; set; }
 
-        [Key(9)]
+        [Key(8)]
         public string Version { get; set; }
 
-        [Key(10)]
+        [Key(9)]
         public string LatestVersion { get; set; }
 
-        [Key(11)]
+        [Key(10)]
         public string LatestDownloadUrl { get; set; }
 
-        [Key(12)]
+        [Key(11)]
         public bool GenerateUserToken { get; set; }
 
-        [Key(13)]
+        [Key(12)]
         public bool SaveSettings { get; set; }
 
-        [Key(14)]
+        [Key(13)]
         public bool DoUpgrade { get; set; } = false;
 
 //        public List<FunctionReference> Functions { get; set; }
@@ -677,73 +676,73 @@ namespace dexih.repository
 
 
     [MessagePackObject]
-    public class NamingStandards : List<NamingStandard>
+    public class NamingStandards : Dictionary<string, string>
     {
         public void LoadDefault()
         {
-                AddIfMissing(new NamingStandard() { Name =  "General.Table.Name", Value =  "{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Stage.Table.Name", Value =  "stg{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Validate.Table.Name", Value =  "val{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Transform.Table.Name", Value =  "trn{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Deliver.Table.Name", Value =  "{0}" });
-				AddIfMissing(new NamingStandard() { Name =  "Publish.Table.Name", Value =  "{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Share.Table.Name", Value =  "{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "General.Table.Description", Value =  "Data from the table {0}" });
-				AddIfMissing(new NamingStandard() { Name =  "Stage.Table.Description", Value =  "The staging table for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Validate.Table.Description", Value =  "The validation table for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Transform.Table.Description", Value =  "The transform table for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Deliver.Table.Description", Value =  "The delivered table for {0}" });
-				AddIfMissing(new NamingStandard() { Name =  "Publish.Table.Description", Value =  "The published data for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Share.Table.Description", Value =  "Data from the table {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Table.RejectName", Value =  "Reject{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Table.ProfileName", Value =  "Profile{0}" });
-                AddIfMissing(new NamingStandard() { Name =  "General.Datalink.Name", Value =  "Data load for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Stage.Datalink.Name", Value =  "Staging load for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Validate.Datalink.Name", Value =  "Validation load for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Transform.Datalink.Name", Value =  "Transform load for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Deliver.Datalink.Name", Value =  "Deliver load for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Publish.Datalink.Name", Value =  "Publish load for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "Share.Datalink.Name", Value =  "Data for {0}" });
-                AddIfMissing(new NamingStandard() { Name =  "CreateDate.Column.Name", Value =  "CreateDate" });
-                AddIfMissing(new NamingStandard() { Name =  "CreateDate.Column.Logical", Value =  "CreateDate" });
-                AddIfMissing(new NamingStandard() { Name =  "CreateDate.Column.Description", Value =  "The date and time the record first created." });
-                AddIfMissing(new NamingStandard() { Name =  "UpdateDate.Column.Name", Value =  "UpdateDate" });
-                AddIfMissing(new NamingStandard() { Name =  "UpdateDate.Column.Logical", Value =  "UpdateDate" });
-                AddIfMissing(new NamingStandard() { Name =  "UpdateDate.Column.Description", Value =  "The date and time the record last updated." });
-                AddIfMissing(new NamingStandard() { Name =  "CreateAuditKey.Column.Name", Value =  "CreateAuditKey" });
-                AddIfMissing(new NamingStandard() { Name =  "CreateAuditKey.Column.Logical", Value =  "CreateAuditKey" });
-                AddIfMissing(new NamingStandard() { Name =  "CreateAuditKey.Column.Description", Value =  "Link to the audit key that created the record." });
-                AddIfMissing(new NamingStandard() { Name =  "UpdateAuditKey.Column.Name", Value =  "UpdateAuditKey" });
-                AddIfMissing(new NamingStandard() { Name =  "UpdateAuditKey.Column.Logical", Value =  "UpdateAuditKey" });
-                AddIfMissing(new NamingStandard() { Name =  "UpdateAuditKey.Column.Description", Value =  "Link to the audit key that updated the record." });
-                AddIfMissing(new NamingStandard() { Name =  "AutoIncrement.Column.Name", Value =  "{0}Sk" });
-                AddIfMissing(new NamingStandard() { Name =  "AutoIncrement.Column.Logical", Value =  "{0}Sk" });
-                AddIfMissing(new NamingStandard() { Name =  "AutoIncrement.Column.Description", Value =  "The surrogate key created for the table {0}." });
-                AddIfMissing(new NamingStandard() { Name =  "ValidFromDate.Column.Name", Value =  "ValidFromDate" });
-                AddIfMissing(new NamingStandard() { Name =  "ValidFromDate.Column.Logical", Value =  "ValidFromDate" });
-                AddIfMissing(new NamingStandard() { Name =  "ValidFromDate.Column.Description", Value =  "The date and time the record becomes valid." });
-                AddIfMissing(new NamingStandard() { Name =  "ValidToDate.Column.Name", Value =  "ValidToDate" });
-                AddIfMissing(new NamingStandard() { Name =  "ValidToDate.Column.Logical", Value =  "ValidToDate" });
-                AddIfMissing(new NamingStandard() { Name =  "ValidToDate.Column.Description", Value =  "The date and time the record becomes invalid." });
-                AddIfMissing(new NamingStandard() { Name =  "IsCurrentField.Column.Name", Value =  "IsCurrent" });
-                AddIfMissing(new NamingStandard() { Name =  "IsCurrentField.Column.Logical", Value =  "IsCurrent" });
-				AddIfMissing(new NamingStandard() { Name =  "IsCurrentField.Column.Description", Value =  "True/False - Is the current record within the valid range?" });
-                AddIfMissing(new NamingStandard() { Name =  "Version.Column.Name", Value =  "Version" });
-                AddIfMissing(new NamingStandard() { Name =  "Version.Column.Logical", Value =  "Version" });
-                AddIfMissing(new NamingStandard() { Name =  "Version.Column.Description", Value =  "Version number of preserved records." });
-                AddIfMissing(new NamingStandard() { Name =  "SourceSurrogateKey.Column.Name", Value =  "SourceSk" });
-                AddIfMissing(new NamingStandard() { Name =  "SourceSurrogateKey.Column.Logical", Value =  "SourceSk" });
-                AddIfMissing(new NamingStandard() { Name =  "SourceSurrogateKey.Column.Description", Value =  "The surrogate key from the source table." });
-                AddIfMissing(new NamingStandard() { Name =  "ValidationStatus.Column.Name", Value =  "ValidationStatus" });
-                AddIfMissing(new NamingStandard() { Name =  "ValidationStatus.Column.Logical", Value =  "ValidationStatus" });
-                AddIfMissing(new NamingStandard() { Name =  "ValidationStatus.Column.Description", Value =  "Indicates if the record has passed validation tests." });
+                AddIfMissing("General.Table.Name",  "{0}" );
+                AddIfMissing("Stage.Table.Name",  "stg{0}" );
+                AddIfMissing("Validate.Table.Name",  "val{0}" );
+                AddIfMissing("Transform.Table.Name",  "trn{0}" );
+                AddIfMissing("Deliver.Table.Name",  "{0}" );
+				AddIfMissing("Publish.Table.Name",  "{0}" );
+                AddIfMissing("Share.Table.Name",  "{0}" );
+                AddIfMissing("General.Table.Description",  "Data from the table {0}" );
+				AddIfMissing("Stage.Table.Description",  "The staging table for {0}" );
+                AddIfMissing("Validate.Table.Description",  "The validation table for {0}" );
+                AddIfMissing("Transform.Table.Description",  "The transform table for {0}" );
+                AddIfMissing("Deliver.Table.Description",  "The delivered table for {0}" );
+				AddIfMissing("Publish.Table.Description",  "The published data for {0}" );
+                AddIfMissing("Share.Table.Description",  "Data from the table {0}" );
+                AddIfMissing("Table.RejectName",  "Reject{0}" );
+                AddIfMissing("Table.ProfileName",  "Profile{0}" );
+                AddIfMissing("General.Datalink.Name",  "Data load for {0}" );
+                AddIfMissing("Stage.Datalink.Name",  "Staging load for {0}" );
+                AddIfMissing("Validate.Datalink.Name",  "Validation load for {0}" );
+                AddIfMissing("Transform.Datalink.Name",  "Transform load for {0}" );
+                AddIfMissing("Deliver.Datalink.Name",  "Deliver load for {0}" );
+                AddIfMissing("Publish.Datalink.Name",  "Publish load for {0}" );
+                AddIfMissing("Share.Datalink.Name",  "Data for {0}" );
+                AddIfMissing("CreateDate.Column.Name",  "CreateDate" );
+                AddIfMissing("CreateDate.Column.Logical",  "CreateDate" );
+                AddIfMissing("CreateDate.Column.Description",  "The date and time the record first created." );
+                AddIfMissing("UpdateDate.Column.Name",  "UpdateDate" );
+                AddIfMissing("UpdateDate.Column.Logical",  "UpdateDate" );
+                AddIfMissing("UpdateDate.Column.Description",  "The date and time the record last updated." );
+                AddIfMissing("CreateAuditKey.Column.Name",  "CreateAuditKey" );
+                AddIfMissing("CreateAuditKey.Column.Logical",  "CreateAuditKey" );
+                AddIfMissing("CreateAuditKey.Column.Description",  "Link to the audit key that created the record." );
+                AddIfMissing("UpdateAuditKey.Column.Name",  "UpdateAuditKey" );
+                AddIfMissing("UpdateAuditKey.Column.Logical",  "UpdateAuditKey" );
+                AddIfMissing("UpdateAuditKey.Column.Description",  "Link to the audit key that updated the record." );
+                AddIfMissing("AutoIncrement.Column.Name",  "{0}Sk" );
+                AddIfMissing("AutoIncrement.Column.Logical",  "{0}Sk" );
+                AddIfMissing("AutoIncrement.Column.Description",  "The surrogate key created for the table {0}." );
+                AddIfMissing("ValidFromDate.Column.Name",  "ValidFromDate" );
+                AddIfMissing("ValidFromDate.Column.Logical",  "ValidFromDate" );
+                AddIfMissing("ValidFromDate.Column.Description",  "The date and time the record becomes valid." );
+                AddIfMissing("ValidToDate.Column.Name",  "ValidToDate" );
+                AddIfMissing("ValidToDate.Column.Logical",  "ValidToDate" );
+                AddIfMissing("ValidToDate.Column.Description",  "The date and time the record becomes invalid." );
+                AddIfMissing("IsCurrentField.Column.Name",  "IsCurrent" );
+                AddIfMissing("IsCurrentField.Column.Logical",  "IsCurrent" );
+				AddIfMissing("IsCurrentField.Column.Description",  "True/False - Is the current record within the valid range?" );
+                AddIfMissing("Version.Column.Name",  "Version" );
+                AddIfMissing("Version.Column.Logical",  "Version" );
+                AddIfMissing("Version.Column.Description",  "Version number of preserved records." );
+                AddIfMissing("SourceSurrogateKey.Column.Name",  "SourceSk" );
+                AddIfMissing("SourceSurrogateKey.Column.Logical",  "SourceSk" );
+                AddIfMissing("SourceSurrogateKey.Column.Description",  "The surrogate key from the source table." );
+                AddIfMissing("ValidationStatus.Column.Name",  "ValidationStatus" );
+                AddIfMissing("ValidationStatus.Column.Logical",  "ValidationStatus" );
+                AddIfMissing("ValidationStatus.Column.Description",  "Indicates if the record has passed validation tests." );
         }
 
-        private void AddIfMissing(NamingStandard namingStandard)
+        private void AddIfMissing(string name, string value)
         {
-            if (this.All(c => c.Name != namingStandard.Name))
+            if (ContainsKey(name))
             {
-                Add(namingStandard);
+                Add(name, value);
             }
         }
 
@@ -757,25 +756,17 @@ namespace dexih.repository
                 _defaultLoaded = true;
             }
             
-            var namingStandard = this.SingleOrDefault(c => c.Name == name);
+            var namingStandard = this[name];
             if (namingStandard != null)
             {
-                return namingStandard.Value.Replace("{0}", param1);
+                return namingStandard.Replace("{0}", param1);
             }
 
             throw new Exception($"The naming standard for the name \"{name}\" with parameter \"{param1}\" could not be found.");
         }
     }
 
-    [MessagePackObject]
-    public class NamingStandard
-    {
-        [Key(0)]
-        public string Name { get; set; }
 
-        [Key(1)]
-        public string Value { get; set; }
-    }
     
 
 }

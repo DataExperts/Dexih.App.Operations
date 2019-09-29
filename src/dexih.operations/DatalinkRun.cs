@@ -274,6 +274,7 @@ namespace dexih.operations
         public void Dispose()
         {
             ResetEvents();
+            WriterTarget?.Dispose();
         }
     }
 }

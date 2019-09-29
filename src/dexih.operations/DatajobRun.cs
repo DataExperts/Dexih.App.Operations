@@ -322,32 +322,16 @@ namespace dexih.operations
 		{
 			while (true)
 			{
-				var tasks = DatalinkSteps.Select(c => c.WaitForFinish()).Where(c=> c != null).ToArray();
-				if (tasks.Length == 0)
+				var tasks = DatalinkSteps.Select(c => c.WaitForFinish()).Where(c=> c != null).ToList();
+				if (tasks.Count == 0)
 				{
 					break;
 				}
 
-				await Task.WhenAny(tasks);
-
-				foreach (var task in tasks)
-				{
-					if (task.IsCompleted)
-					{
-						DatalinkStatus(task.Result.datalinkRun, task.Result.writerResult);
-					}
-				}
+				var task = await Task.WhenAny(tasks);
+				var (datalinkRun, writerResult) = await task;
+				DatalinkStatus(datalinkRun, writerResult);
 			}
-
-//			//wait until all other datalinks have finished
-//			while (WriterResult.RunStatus != ERunStatus.Finished &&
-//			       WriterResult.RunStatus != ERunStatus.FinishedErrors &&
-//			       WriterResult.RunStatus != ERunStatus.Cancelled &&
-//			       WriterResult.RunStatus != ERunStatus.Abended
-//			)
-//			{
-//				await _completedDatalinks.ReceiveAsync();
-//			}
 		}
 
 		/// <summary>
