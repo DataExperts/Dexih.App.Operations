@@ -1,42 +1,39 @@
 ﻿using Dexih.Utils.CopyProperties;
-using Newtonsoft.Json;
+
 using MessagePack;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
+using System.Text.Json.Serialization;
 using dexih.functions;
 
 namespace dexih.repository
 {
     [MessagePackObject]
-    [ProtoInherit(100000)]
-    [MessagePack.Union(0, typeof(DexihApi))]
-    [MessagePack.Union(1, typeof(DexihColumnBase))]
-    [MessagePack.Union(2, typeof(DexihColumnValidation))]
-    [MessagePack.Union(3, typeof(DexihConnection))]
-    [MessagePack.Union(4, typeof(DexihCustomFunction))]
-    [MessagePack.Union(5, typeof(DexihDashboard))]
-    [MessagePack.Union(6, typeof(DexihDashboardItem))]
-    [MessagePack.Union(7, typeof(DexihDatajob))]
-    [MessagePack.Union(8, typeof(DexihDatalink))]
-    [MessagePack.Union(9, typeof(DexihDatalinkDependency))]
-    [MessagePack.Union(10, typeof(DexihDatalinkProfile))]
-    [MessagePack.Union(11, typeof(DexihDatalinkStep))]
-    [MessagePack.Union(12, typeof(DexihDatalinkTable))]
-    [MessagePack.Union(13, typeof(DexihDatalinkTarget))]
-    [MessagePack.Union(14, typeof(DexihDatalinkTest))]
-    [MessagePack.Union(15, typeof(DexihDatalinkTestStep))]
-    [MessagePack.Union(16, typeof(DexihDatalinkTestTable))]
-    [MessagePack.Union(17, typeof(DexihDatalinkTransform))]
-    [MessagePack.Union(18, typeof(DexihDatalinkTransformItem))]
-    [MessagePack.Union(19, typeof(DexihFileFormat))]
-    [MessagePack.Union(20, typeof(DexihHubVariable))]
-    [MessagePack.Union(21, typeof(InputParameterBase))]
-    [MessagePack.Union(22, typeof(DexihParameterBase))]
-    [MessagePack.Union(24, typeof(DexihTable))]
-    [MessagePack.Union(25, typeof(DexihTrigger))]
-    [MessagePack.Union(26, typeof(DexihView))]
+    [Union(0, typeof(DexihApi))]
+    [Union(1, typeof(DexihColumnBase))]
+    [Union(2, typeof(DexihColumnValidation))]
+    [Union(3, typeof(DexihConnection))]
+    [Union(4, typeof(DexihCustomFunction))]
+    [Union(5, typeof(DexihDashboard))]
+    [Union(6, typeof(DexihDashboardItem))]
+    [Union(7, typeof(DexihDatajob))]
+    [Union(8, typeof(DexihDatalink))]
+    [Union(9, typeof(DexihDatalinkDependency))]
+    [Union(10, typeof(DexihDatalinkProfile))]
+    [Union(11, typeof(DexihDatalinkStep))]
+    [Union(12, typeof(DexihDatalinkTable))]
+    [Union(13, typeof(DexihDatalinkTarget))]
+    [Union(14, typeof(DexihDatalinkTest))]
+    [Union(15, typeof(DexihDatalinkTestStep))]
+    [Union(16, typeof(DexihDatalinkTestTable))]
+    [Union(17, typeof(DexihDatalinkTransform))]
+    [Union(18, typeof(DexihDatalinkTransformItem))]
+    [Union(19, typeof(DexihFileFormat))]
+    [Union(20, typeof(DexihHubVariable))]
+    [Union(21, typeof(InputParameterBase))]
+    [Union(22, typeof(DexihParameterBase))]
+    [Union(24, typeof(DexihTable))]
+    [Union(25, typeof(DexihTrigger))]
+    [Union(26, typeof(DexihView))]
     public class DexihHubNamedEntity : DexihHubEntity
     {
         [Key(4)]

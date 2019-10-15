@@ -6,11 +6,10 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    [ProtoInherit(10000000)]
-    [MessagePack.Union(0, typeof(DexihHub))]
-    [MessagePack.Union(1, typeof(DexihHubUser))]
-    [MessagePack.Union(2, typeof(DexihRemoteAgent))]
-    [MessagePack.Union(3, typeof(DexihHubEntity))]
+    [Union(0, typeof(DexihHub))]
+    [Union(1, typeof(DexihHubUser))]
+    [Union(2, typeof(DexihRemoteAgent))]
+    [Union(3, typeof(DexihHubEntity))]
 
     public class DexihBaseEntity
     {

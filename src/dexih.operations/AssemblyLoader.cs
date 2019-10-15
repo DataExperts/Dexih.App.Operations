@@ -37,13 +37,6 @@ namespace dexih.operations
 #else
     public class AssemblyLoader : AssemblyLoadContext
     {
-        private string _folderPath;
-
-        public AssemblyLoader(string folderPath)
-        {
-            _folderPath = folderPath;
-        }
-
         protected override Assembly Load(AssemblyName assemblyName)
         {
             //var deps = DependencyContext.Default;

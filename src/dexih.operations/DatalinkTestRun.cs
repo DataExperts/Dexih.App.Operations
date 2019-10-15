@@ -437,7 +437,7 @@ namespace dexih.operations
         /// <summary>
         /// Creates test table and copies data to it.
         /// </summary>
-        /// <param name="datalinkTestTableble"></param>
+        /// <param name="datalinkTestTable"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         public async Task PrepareTestTable(DexihDatalinkTestTable datalinkTestTable, CancellationToken cancellationToken)
@@ -512,7 +512,6 @@ namespace dexih.operations
 
         public void Dispose()
         {
-            return;
         }
 
         public async Task StartAsync(ManagedTaskProgress progress, CancellationToken cancellationToken = default)

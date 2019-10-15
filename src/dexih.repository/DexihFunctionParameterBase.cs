@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
@@ -8,9 +6,8 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    [ProtoInherit(2000)]
-    [MessagePack.Union(0, typeof(DexihFunctionArrayParameter))]
-    [MessagePack.Union(1, typeof(DexihFunctionParameter))]
+    [Union(0, typeof(DexihFunctionArrayParameter))]
+    [Union(1, typeof(DexihFunctionParameter))]
     public class DexihFunctionParameterBase: DexihParameterBase
     {
         [Key(12)]

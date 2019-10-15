@@ -1,10 +1,7 @@
 ﻿using dexih.repository;
 using Dexih.Utils.MessageHelpers;
-using Newtonsoft.Json.Linq;
-using MessagePack;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
 
 namespace dexih.operations
@@ -43,7 +40,7 @@ namespace dexih.operations
     }
 
     [DataContract]
-    public class RemoteMessage : ReturnValue<JToken>
+    public class RemoteMessage : ReturnValue<Dictionary<string, object>>
     {
         public RemoteMessage()
         {
@@ -69,7 +66,7 @@ namespace dexih.operations
             Exception = returnValue.Exception;
         }
 
-        public RemoteMessage(string securityToken, string messageId, JToken value)
+        public RemoteMessage(string securityToken, string messageId, Dictionary<string, object> value)
         {
             SecurityToken = securityToken;
             MessageId = messageId;
@@ -109,6 +106,9 @@ namespace dexih.operations
         
         [DataMember(Order = 10)]
         public string ClientConnectionId { get; set; }
+        
+        [DataMember(Order = 11)]
+        public string ResponseUrl { get; set; }
 
     }
 

@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
@@ -24,7 +23,7 @@ namespace dexih.repository
 
         // don't reset negative keys here, as they need to be maintained when copying datalinks across.
         [Key(24)]
-        [CopyCollectionKey((long)0, false)]
+        [CopyCollectionKey((long)0)]
         public new long Key { get; set; }
 
         [Key(25)]
@@ -34,7 +33,7 @@ namespace dexih.repository
 	    [JsonIgnore, CopyIgnore, IgnoreMember]
 	    public DexihDatalinkColumn ParentColumn { get; set; }
 	    
-	    [JsonIgnore, IgnoreMember, CopyParentCollectionKey(nameof(DexihDatalinkColumn.Key), nameof(DexihDatalinkColumn))]
+	    [JsonIgnore, IgnoreMember, CopyParentCollectionKey(nameof(Key), nameof(DexihDatalinkColumn))]
 	    public long? ParentDatalinkColumnKey { get; set; }
 
         [Key(26)]

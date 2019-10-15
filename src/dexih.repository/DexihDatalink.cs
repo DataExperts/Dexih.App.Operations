@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+
 using System.ComponentModel.DataAnnotations.Schema;
-using Newtonsoft.Json.Converters;
+
 using Dexih.Utils.CopyProperties;
 using System.Linq;
+using System.Text.Json.Serialization;
 using dexih.functions.Query;
 using dexih.transforms;
-using dexih.transforms.Transforms;
 using MessagePack;
 
 namespace dexih.repository
@@ -100,9 +99,6 @@ namespace dexih.repository
         
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihView> DexihViews { get; set; }
-        
-        [JsonIgnore, CopyIgnore, IgnoreMember]
-        public DexihHub Hub { get; set; }
         
 	    [JsonIgnore, IgnoreMember, CopyReference]
         public DexihConnection AuditConnection { get; set; }
@@ -340,6 +336,7 @@ namespace dexih.repository
         /// </summary>
         /// <param name="column"></param>
         /// <param name="columns"></param>
+        /// <param name="parentColumnKey"></param>
         private void AddColumns(DexihDatalinkColumn column, IDictionary<long, DexihDatalinkColumn> columns, long? parentColumnKey = null)
         {
             if (column != null && !columns.ContainsKey(column.Key))

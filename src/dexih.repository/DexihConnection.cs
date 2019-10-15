@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
+
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
@@ -67,13 +68,13 @@ namespace dexih.repository
         public bool EmbedTableKey { get; set; }
 
         //these store the raw (unencrypted values) and are not saved to the database.
-        [Key(21)]
-        [NotMapped]
-        public string PasswordRaw { get; set; }
+//        [Key(21)]
+//        [NotMapped]
+//        public string PasswordRaw { get; set; }
 
-        [Key(22)]
-        [NotMapped]
-        public string ConnectionStringRaw { get; set; }
+//        [Key(22)]
+//        [NotMapped]
+//        public string ConnectionStringRaw { get; set; }
 
         [JsonIgnore, IgnoreMember]
         public ICollection<DexihTable> DexihTables { get; set; }
@@ -84,61 +85,46 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
-        public DexihHub Hub { get; set; }
+
 
         public string GetPassword(string key, int iterations)
         {
-            if(string.IsNullOrEmpty(PasswordRaw))
-            {
-                if(string.IsNullOrEmpty(Password))
-                {
-                    return "";
-                }
-
-                if (UsePasswordVariable)
-                {
-                    return Password;
-                }
+//            if(string.IsNullOrEmpty(PasswordRaw))
+//            {
+//                if(string.IsNullOrEmpty(Password))
+//                {
+//                    return "";
+//                }
+//
+//                if (UsePasswordVariable)
+//                {
+//                    return Password;
+//                }
                 
                 return EncryptString.Decrypt(Password, key, iterations);
-            }
-            return PasswordRaw;
+//            }
+//            return PasswordRaw;
         }
 
         public string GetConnectionString(string key, int iterations)
         {
-            if(string.IsNullOrEmpty(ConnectionStringRaw))
-            {
-                if(string.IsNullOrEmpty(ConnectionString))
-                {
-                    return "";
-                }
-
-                if (UseConnectionStringVariable)
-                {
-                    return ConnectionString;
-                }
+//            if(string.IsNullOrEmpty(ConnectionStringRaw))
+//            {
+//                if(string.IsNullOrEmpty(ConnectionString))
+//                {
+//                    return "";
+//                }
+//
+//                if (UseConnectionStringVariable)
+//                {
+//                    return ConnectionString;
+//                }
                 return EncryptString.Decrypt(ConnectionString, key, iterations);
-            }
-            return ConnectionStringRaw;
+//            }
+//            return ConnectionStringRaw;
         }
 
-        public bool Encrypt(string key, int iterations)
-        {
-            if(!string.IsNullOrEmpty(PasswordRaw))
-            {
-                Password = EncryptString.Encrypt(PasswordRaw, key, iterations);
-                PasswordRaw = null;
-            } 
-            if(!string.IsNullOrEmpty(PasswordRaw))
-            {
-                ConnectionString = EncryptString.Encrypt(ConnectionStringRaw, key, iterations);
-                ConnectionStringRaw = null;
-            }
 
-            return true;
-        }
 
         public Connection GetConnection(TransformSettings transformSettings)
         {
@@ -154,8 +140,19 @@ namespace dexih.repository
                 var connection = connectionReference.GetConnection();
                 this.CopyProperties(connection, true);
 
-                connection.Password = GetPassword(transformSettings.RemoteSettings.AppSettings.EncryptionKey, transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
-                connection.ConnectionString = GetConnectionString(transformSettings.RemoteSettings.AppSettings.EncryptionKey, transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
+
+                if (!UsePasswordVariable)
+                {
+                    connection.Password = GetPassword(transformSettings.RemoteSettings.AppSettings.EncryptionKey,
+                        transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
+                }
+
+                if (!UseConnectionStringVariable)
+                {
+                    connection.ConnectionString = GetConnectionString(
+                        transformSettings.RemoteSettings.AppSettings.EncryptionKey,
+                        transformSettings.RemoteSettings.SystemSettings.EncryptionIterations);
+                }
 
                 if (transformSettings.HasVariables())
                 {
@@ -176,8 +173,5 @@ namespace dexih.repository
                 throw new RepositoryException($"Get connection failed.  {ex.Message}", ex);
             }
         }
-
-
-
     }
 }

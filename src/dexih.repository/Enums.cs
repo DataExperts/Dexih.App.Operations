@@ -1,5 +1,5 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
+
 using System.ComponentModel;
 
 namespace dexih.repository
@@ -119,23 +119,38 @@ namespace dexih.repository
     /// <summary>
     /// Level of access required to view shared hub data.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
     public enum ESharedAccess
     {
+        [Description("Shared data can be accessed by the public.")]
         Public = 1, // shared objects can be accessed by public
+        
+        [Description("Shared data can be accessed any registered user.")]
         Registered, // shared objects can be accessed by regisetred users only 
+        
+        [Description("Shared data can be accessed only by users with \"PublishReader\" permission.")]
         Reader // shared objects can be access only be users with PublishReader permission
     }
 
     // [JsonConverter(typeof(StringEnumConverter))]
     public enum EPermission
     {
-        Owner = 1,
+        [Description("No access.")]
+        None,
+
+        [Description("Owner (full permissions)")]
+        Owner,
+        
+        [Description("User (add/modify permission)")]
         User,
+        
+        [Description("Reader (read only access)")]
         FullReader,
+        
+        [Description("Publish Reader (only access shared)")]
         PublishReader,
+        
+        [Description("Suspended (banned from hub)")]
         Suspended,
-        None
     }
 
     // [JsonConverter(typeof(StringEnumConverter))]
@@ -160,5 +175,45 @@ namespace dexih.repository
     {
         None = 1, Ready, Imported, Updated, Added, Error
     }
+    
+    // [JsonConverter(typeof(StringEnumConverter))]
+    public enum ELoginProvider
+    {
+        Dexih = 1, Google, Microsoft    
+    }
+    
+    public enum EUserRole
+    {
+        Administrator = 1, Manager, User, Viewer, None
+    }
 
+    // [JsonConverter(typeof(StringEnumConverter))]
+    public enum EChartType {
+        BarVertical = 1,
+        BarHorizontal,
+        BarVertical2D,
+        BarHorizontal2D,
+        BarVerticalStacked,
+        BarHorizontalStacked,
+        BarVerticalNormalized,
+        BarHorizontalNormalized,
+        Pie,
+        PieAdvanced,
+        PieGrid,
+        Line,
+        Area,
+        Polar,
+        AreaStacked,
+        AreaNormalized,
+        Scatter,
+        Error,
+        Bubble,
+        ForceDirected,
+        HeatMap,
+        TreeMap,
+        Cards,
+        Gauge,
+        LinearGauge,
+        Map
+    }
 }

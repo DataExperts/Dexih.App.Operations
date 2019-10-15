@@ -1,10 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
-using Newtonsoft.Json;
+
 using MessagePack;
 
 namespace dexih.repository
@@ -21,11 +20,11 @@ namespace dexih.repository
         public ESourceType SourceType { get; set; }
 
         [Key(8)]
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceTableKey { get; set; }
 
         [Key(9)]
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceDatalinkKey { get; set; }
 
         [Key(10)]

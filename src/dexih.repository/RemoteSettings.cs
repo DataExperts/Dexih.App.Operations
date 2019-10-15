@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using dexih.functions;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
+
+
+
 using MessagePack;
-using MessagePack.Formatters;
 
 namespace dexih.repository
 {
@@ -44,8 +44,8 @@ namespace dexih.repository
         [Key(6)]
         public PermissionsSection Permissions { get; set; } = new PermissionsSection();
 
-        // [Key(7)]
-        [IgnoreMember]
+        
+        [Key(7)]
         public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace dexih.repository
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
-                    JToken jToken;
+                    JsonElement jToken;
                     if (AppSettings.AllowPreReleases)
                     {
                         // this api gets all releases.
@@ -137,9 +137,9 @@ namespace dexih.repository
                             await httpClient.GetAsync(
                                 "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases");
                         var responseText = await response.Content.ReadAsStringAsync();
-                        var releases = JArray.Parse(responseText);
+                        var releases = JsonDocument.Parse(responseText);
                         // the first release will be the latest.
-                        jToken = releases[0];
+                        jToken = releases.RootElement[0];
                     }
                     else
                     {
@@ -148,29 +148,29 @@ namespace dexih.repository
                             await httpClient.GetAsync(
                                 "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest");
                         var responseText = await response.Content.ReadAsStringAsync();
-                        jToken = JToken.Parse(responseText);
+                        jToken = JsonDocument.Parse(responseText).RootElement;
                     }
 
-                    latestVersion = (string) jToken["tag_name"];
+                    latestVersion = jToken.GetProperty("tag_name").GetString();
 
-                    foreach (var asset in jToken["assets"])
+                    foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
                     {
-                        var name = ((string) asset["name"]).ToLower();
+                        var name = asset.GetProperty("name").ToString().ToLower();
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
                         {
-                            downloadUrl = (string) asset["browser_download_url"];
+                            downloadUrl =  asset.GetProperty("browser_download_url").GetString();
                             break;
                         }
 
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
                         {
-                            downloadUrl = (string) asset["browser_download_url"];
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString();
                             break;
                         }
 
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
                         {
-                            downloadUrl = (string) asset["browser_download_url"];
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString();
                             break;
                         }
                     }
@@ -433,7 +433,7 @@ namespace dexih.repository
         /// If AllowAllPaths = false, a list of the file paths the remote agent can access.
         /// </summary>
         [Key(2)]
-        public string[] AllowedPaths { get; set; } = {};
+        public string[] AllowedPaths { get; set; } = null;
 
         /// <summary>
         /// Allow agent to use any hub on the central web server.
@@ -445,7 +445,7 @@ namespace dexih.repository
         /// If AllowAllHubs = false, a list of the hubkeys that agent can access.
         /// </summary>
         [Key(4)]
-        public long[] AllowedHubs { get; set; } = {};
+        public long[] AllowedHubs { get; set; } = null;
 
         public FilePermissions GetFilePermissions()
         {
@@ -740,13 +740,13 @@ namespace dexih.repository
 
         private void AddIfMissing(string name, string value)
         {
-            if (ContainsKey(name))
+            if (!ContainsKey(name))
             {
                 Add(name, value);
             }
         }
 
-        private bool _defaultLoaded = false;
+        private bool _defaultLoaded;
         
         public string ApplyNamingStandard(string name, string param1)
         {

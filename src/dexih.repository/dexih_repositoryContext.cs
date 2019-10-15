@@ -10,12 +10,11 @@ using dexih.functions;
 using dexih.functions.Query;
 using dexih.transforms;
 using dexih.transforms.Mapping;
-using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Dexih.Utils.ManagedTasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
-using Newtonsoft.Json;
+
 
 namespace dexih.repository
 {
@@ -37,46 +36,55 @@ namespace dexih.repository
 		{
 		}
 
-        /// <summary>
-        /// Adds the hubKey value to all saved entities.
-        /// </summary>
-        /// <param name="hubKey"></param>
-        /// <param name="acceptAllChangesOnSuccess"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<int> SaveHub(long hubKey, bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihHubEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
-
-            // before saving force all entities to contain the correct hub hbu.
-            foreach (var entity in entities)
-            {
-                if (entity.Entity is DexihHubEntity hubEntity)
-                {
-                    hubEntity.HubKey = hubKey;
-                    var originalValues = entity.GetDatabaseValues();
-
-                    if (entity.State == EntityState.Modified)
-                    {
-                        // check hubkey hasn't changed since original.  This could impact an entity in another hub and causes an immediate stop.
-                        if (!Object.Equals(originalValues[nameof(DexihHubEntity.HubKey)], entity.CurrentValues[nameof(DexihHubEntity.HubKey)]))
-                        {
-                            if (hubEntity is DexihHubNamedEntity hubNamedEntity)
-                            {
-                                throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}, key: {hubNamedEntity.Key}, name: {hubNamedEntity.Name}.");
-                            }
-                            else
-                            {
-                                throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}.");    
-                            }
-                            
-                        }
-                    }
-                }
-            }
-
-            return SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        }
+//        /// <summary>
+//        /// Adds the hubKey value to all saved entities.
+//        /// </summary>
+//        /// <param name="hubKey"></param>
+//        /// <param name="acceptAllChangesOnSuccess"></param>
+//        /// <param name="cancellationToken"></param>
+//        /// <returns></returns>
+//        public async Task<int> SaveHub(long hubKey, bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
+//        {
+//            var entities = ChangeTracker.Entries().Where(x => x.Entity is DexihHubEntity && (x.State == EntityState.Added || x.State == EntityState.Modified));
+//
+//            // before saving force all entities to contain the correct hub hbu.
+//            foreach (var entity in entities)
+//            {
+//                if (entity.Entity is DexihHubEntity hubEntity)
+//                {
+//                    hubEntity.HubKey = hubKey;
+//                    var originalValues = await entity.GetDatabaseValuesAsync(cancellationToken);
+//
+//                    if (entity.State == EntityState.Modified)
+//                    {
+//                        if (originalValues == null)
+//                        {
+//                            throw new RepositoryException($"The entity {hubEntity.GetType()} could not be modified as a version does not exist in the repository.");
+//                        }
+//                        // check hubkey hasn't changed since original.  This could impact an entity in another hub and causes an immediate stop.
+//                        if (!Object.Equals(originalValues[nameof(DexihHubEntity.HubKey)], entity.CurrentValues[nameof(DexihHubEntity.HubKey)]))
+//                        {
+//                            if (hubEntity is DexihHubNamedEntity hubNamedEntity)
+//                            {
+//                                throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}, key: {hubNamedEntity.Key}, name: {hubNamedEntity.Name}.");
+//                            }
+//                            else
+//                            {
+//                                throw new SecurityException($"The hub_key on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}.");    
+//                            }
+//                            
+//                        }
+//                    }
+//
+//                    if (entity.State == EntityState.Added && originalValues != null)
+//                    {
+//                        throw new RepositoryException($"The entity {hubEntity.GetType()} could not be added as a version already exists in the repository.");
+//                    }
+//                }
+//            }
+//
+//            return await SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+//        }
 
         public override int SaveChanges()
 		{
@@ -152,8 +160,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query")
                     .HasConversion(
-                        v => v == null ? null : JsonConvert.SerializeObject(v),
-                        v => v == null ? null : JsonConvert.DeserializeObject<SelectQuery>(v));
+                        v => v == null ? null : JsonExtensions.Serialize(v),
+                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v));
 
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
 
@@ -161,6 +169,9 @@ namespace dexih.repository
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihApis)
+                    .HasForeignKey(d => d.HubKey);
             });
             
             modelBuilder.Entity<DexihApiParameter>(entity =>
@@ -217,7 +228,7 @@ namespace dexih.repository
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
                 
                 entity.Property(e => e.CleanValue).HasColumnName("clean_value").HasMaxLength(250);
 
@@ -325,7 +336,7 @@ namespace dexih.repository
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.GenericTypeDefault).HasColumnName("generic_type_default").HasMaxLength(20).HasConversion(
                     v => v.ToString(),
-                    v => (DataType.ETypeCode)Enum.Parse(typeof(DataType.ETypeCode), v));
+                    v => (ETypeCode)Enum.Parse(typeof(ETypeCode), v));
 
                 entity.Property(e => e.FunctionType).HasColumnName("function_type").HasMaxLength(30)
                     .HasConversion(
@@ -335,11 +346,15 @@ namespace dexih.repository
                 entity.Property(e => e.ReturnType).HasColumnName("return_type").HasMaxLength(30)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihCustomFunctions)
+                    .HasForeignKey(d => d.HubKey);
             });
             
             modelBuilder.Entity<DexihCustomFunctionParameter>(entity =>
@@ -357,7 +372,7 @@ namespace dexih.repository
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
                     .HasConversion(
@@ -487,6 +502,10 @@ namespace dexih.repository
 				entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihDashboards)
+                    .HasForeignKey(d => d.HubKey);
             });
 
             modelBuilder.Entity<DexihDatajob>(entity =>
@@ -567,7 +586,7 @@ namespace dexih.repository
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
 
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
                     .HasConversion(
@@ -808,7 +827,7 @@ namespace dexih.repository
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
@@ -894,6 +913,10 @@ namespace dexih.repository
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihDatalinkTests)
+                    .HasForeignKey(d => d.HubKey);
             });
             
             modelBuilder.Entity<DexihDatalinkTestStep>(entity =>
@@ -1028,13 +1051,13 @@ namespace dexih.repository
                 entity.Property(e => e.FunctionCaching).HasColumnName("function_caching").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (MapFunction.EFunctionCaching) Enum.Parse(typeof(MapFunction.EFunctionCaching), v));
+                        v => (EFunctionCaching) Enum.Parse(typeof(EFunctionCaching), v));
 
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.GenericTypeCode).HasColumnName("generic_type_code").HasMaxLength(20)
                 .HasConversion(
                     v => v == null ? null : v.ToString(),
-                    v => string.IsNullOrEmpty(v) ? (DataType.ETypeCode?) null : Enum.Parse<DataType.ETypeCode>(v)
+                    v => string.IsNullOrEmpty(v) ? (ETypeCode?) null : Enum.Parse<ETypeCode>(v)
                 );
 
                 entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
@@ -1270,7 +1293,7 @@ namespace dexih.repository
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
 
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
 
@@ -1319,7 +1342,7 @@ namespace dexih.repository
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
 
                 entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
@@ -1490,7 +1513,7 @@ namespace dexih.repository
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
@@ -1540,6 +1563,7 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_table_child_columns");
                 
+
             });
 
             modelBuilder.Entity<DexihTable>(entity =>
@@ -1587,7 +1611,7 @@ namespace dexih.repository
                 entity.Property(e => e.FormatType).HasColumnName("format_type").HasMaxLength(10)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (DataType.ETypeCode) Enum.Parse(typeof(DataType.ETypeCode), v));
+                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
 
                 entity.Property(e => e.IsVersioned).HasColumnName("is_versioned");
                 entity.Property(e => e.SourceConnectionName).HasColumnName("source_connection_name").HasMaxLength(250);
@@ -1608,6 +1632,10 @@ namespace dexih.repository
                     .HasForeignKey(d => d.FileFormatKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_tables_dexih_file_format");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihTables)
+                    .HasForeignKey(d => d.HubKey);
 
             });
 
@@ -1629,7 +1657,7 @@ namespace dexih.repository
                 entity.Property(e => e.DaysOfWeek).HasColumnName("days_of_week").HasMaxLength(200)
                     .HasConversion(
                         v => String.Join(",", v.Select(c=>c.ToString())),
-                        v => string.IsNullOrEmpty(v) ? new List<ManagedTaskSchedule.EDayOfWeek>() : v.Split(',', StringSplitOptions.None).Select(c => (ManagedTaskSchedule.EDayOfWeek)Enum.Parse(typeof(ManagedTaskSchedule.EDayOfWeek), c)).ToList());
+                        v => string.IsNullOrEmpty(v) ? new List<EDayOfWeek>() : v.Split(',', StringSplitOptions.None).Select(c => (EDayOfWeek)Enum.Parse(typeof(EDayOfWeek), c)).ToList());
                 entity.Property(e => e.MaxRecurs).HasColumnName("max_recurrs");
                 entity.Property(e => e.CronExpression).HasColumnName("cron_expression").HasMaxLength(500);
 
@@ -1668,18 +1696,18 @@ namespace dexih.repository
 
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query")
                     .HasConversion(
-                        v => v == null ? null : JsonConvert.SerializeObject(v),
-                        v => v == null ? null : JsonConvert.DeserializeObject<SelectQuery>(v));
+                        v => v == null ? null : JsonExtensions.Serialize(v),
+                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v));
                 
                 entity.Property(e => e.ChartConfig).HasColumnName("chart_config")
                     .HasConversion(
-                        v => v == null ? null : JsonConvert.SerializeObject(v),
-                        v => v == null ? null : JsonConvert.DeserializeObject<ChartConfig>(v));
+                        v => v == null ? null : JsonExtensions.Serialize(v),
+                        v => v == null ? null : JsonExtensions.Deserialize<ChartConfig>(v));
                 
                 entity.Property(e => e.InputValues).HasColumnName("input_values")
                     .HasConversion(
-                        v => v == null ? null : JsonConvert.SerializeObject(v),
-                        v => v == null ? null : JsonConvert.DeserializeObject<InputColumn[]>(v));
+                        v => v == null ? null : JsonExtensions.Serialize(v),
+                        v => v == null ? null : JsonExtensions.Deserialize<InputColumn[]>(v));
 
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
 
@@ -1700,6 +1728,10 @@ namespace dexih.repository
                     .HasForeignKey(d => d.SourceTableKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_table_view_dexih_tables");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihViews)
+                    .HasForeignKey(d => d.HubKey);
 
             });
 
@@ -1738,7 +1770,6 @@ namespace dexih.repository
         public DbSet<DexihConnection> DexihConnections { get; set; }
 	    public DbSet<DexihCustomFunction> DexihCustomFunctions { get; set; }
         public DbSet<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
-        
         public DbSet<DexihDashboard> DexihDashboards { get; set; }
         public DbSet<DexihDashboardItem> DexihDashboardItems { get; set; }
         public DbSet<DexihDashboardParameter> DexihDashboardParameters { get; set; }

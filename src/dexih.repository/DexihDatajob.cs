@@ -1,16 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+﻿using System.Collections.Generic;
+
+
 using Dexih.Utils.CopyProperties;
 using System.Linq;
+using System.Text.Json.Serialization;
 using dexih.functions.Query;
 using MessagePack;
 
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihDatajob : DexihHubNamedEntity
+    public class DexihDatajob : DexihHubNamedEntity
     {
 
         public DexihDatajob()

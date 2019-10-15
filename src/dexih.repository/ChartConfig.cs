@@ -1,6 +1,3 @@
-using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using MessagePack;
 
 namespace dexih.repository
@@ -8,35 +5,7 @@ namespace dexih.repository
     [MessagePackObject]
     public class ChartConfig
     {
-        // [JsonConverter(typeof(StringEnumConverter))]
-        public enum EChartType {
-            BarVertical = 1,
-            BarHorizontal,
-            BarVertical2D,
-            BarHorizontal2D,
-            BarVerticalStacked,
-            BarHorizontalStacked,
-            BarVerticalNormalized,
-            BarHorizontalNormalized,
-            Pie,
-            PieAdvanced,
-            PieGrid,
-            Line,
-            Area,
-            Polar,
-            AreaStacked,
-            AreaNormalized,
-            Scatter,
-            Error,
-            Bubble,
-            ForceDirected,
-            HeatMap,
-            TreeMap,
-            Cards,
-            Gauge,
-            LinearGauge,
-            Map
-        }
+      
         
         [Key(0)]
         public string LabelColumn { get; set; }

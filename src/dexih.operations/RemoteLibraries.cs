@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using dexih.functions;
 using dexih.transforms;
 using dexih.transforms.Transforms;

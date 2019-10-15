@@ -1,4 +1,3 @@
-using System;
 using Dexih.Utils.DataType;
 using MessagePack;
 
@@ -20,7 +19,7 @@ namespace dexih.repository
         public string LogicalName { get; set; }
 
         [Key(4)]
-        public DataType.ETypeCode DataType { get; set; }
+        public ETypeCode DataType { get; set; }
 
         [Key(5)]
         public int Rank { get; set; }

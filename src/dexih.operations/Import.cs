@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using dexih.repository;
-using Microsoft.EntityFrameworkCore.Internal;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
 using MessagePack;
 
 namespace dexih.operations
@@ -67,7 +66,7 @@ namespace dexih.operations
             Initialize();
         }
 
-        public Import(long hubKey): base()
+        public Import(long hubKey)
         {
             HubKey = hubKey;
             Initialize();

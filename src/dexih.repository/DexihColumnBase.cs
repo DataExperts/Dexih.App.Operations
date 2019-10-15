@@ -1,6 +1,6 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using dexih.functions;
+using Dexih.Utils.DataType;
 using MessagePack;
 using static dexih.functions.TableColumn;
 using static Dexih.Utils.DataType.DataType;
@@ -11,10 +11,9 @@ namespace dexih.repository
     /// Base class for table columns.  Inherited by DexihTableColumn and DexihDatalinkColumn
     /// </summary>
     [MessagePackObject]
-    [ProtoInherit(1000)]
-    [MessagePack.Union(0, typeof(DexihDatalinkColumn))]
-    [MessagePack.Union(1, typeof(DexihDatalinkStepColumn))]
-    [MessagePack.Union(2, typeof(DexihTableColumn))]
+    [Union(0, typeof(DexihDatalinkColumn))]
+    [Union(1, typeof(DexihDatalinkStepColumn))]
+    [Union(2, typeof(DexihTableColumn))]
     public class DexihColumnBase: DexihHubNamedEntity
     {
         [Key(7)]
@@ -26,8 +25,8 @@ namespace dexih.repository
         [Key(9)]
         public string ColumnGroup { get; set; }
 
-        [Key(10)]
-        public ETypeCode DataType { get; set; }
+        [Key(10)] 
+        public ETypeCode DataType { get; set; } = ETypeCode.String;
 
         [Key(11)]
         public int? MaxLength { get; set; }
@@ -44,8 +43,8 @@ namespace dexih.repository
         [Key(15)]
         public bool AllowDbNull { get; set; }
 
-        [Key(16)]
-        public EDeltaType DeltaType { get; set; }
+        [Key(16)] 
+        public EDeltaType DeltaType { get; set; } = EDeltaType.TrackingField;
 
         [Key(17)]
         public string DefaultValue { get; set; }
@@ -71,8 +70,7 @@ namespace dexih.repository
         public bool IsArray() => Rank > 0;
 
 
-        [Key(23)]
-        public ESecurityFlag SecurityFlag { get; set; }
+        [Key(23)] public ESecurityFlag SecurityFlag { get; set; } = ESecurityFlag.None;
 
 
         /// <summary>

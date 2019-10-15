@@ -20,7 +20,7 @@ namespace dexih.operations
 
         public event ProgressUpdate OnProgressUpdate;
         public event StatusUpdate OnStatusUpdate;
-        public event DatalinkFinish OnFinish;
+        // public event DatalinkFinish OnFinish;
 
         #endregion
 
@@ -160,7 +160,7 @@ namespace dexih.operations
         {
             OnProgressUpdate = null;
             OnStatusUpdate = null;
-            OnFinish = null;
+            // OnFinish = null;
         }
 
         /// <summary>
@@ -216,8 +216,8 @@ namespace dexih.operations
 
                 await WriterTarget.WriteRecordsAsync(Reader.sourceTransform, Datalink.UpdateStrategy,
                     Datalink.LoadStrategy, token);
-                
-                Reader.sourceTransform.Dispose();
+
+                await Reader.sourceTransform.DisposeAsync();
             }
             finally
             {

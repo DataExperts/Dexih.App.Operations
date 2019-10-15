@@ -1,9 +1,9 @@
-﻿using System;
-using dexih.functions;
+﻿using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using Newtonsoft.Json;
+
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using MessagePack;
 
 namespace dexih.repository
@@ -23,11 +23,11 @@ namespace dexih.repository
 
 
         [Key(7)]
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceTableKey { get; set; }
 
         [Key(8)]
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceDatalinkKey { get; set; }
 
         [Key(9)]
@@ -88,6 +88,7 @@ namespace dexih.repository
         /// Gets an array containing all the parent-child nodes to a particular column.
         /// </summary>
         /// <param name="columnKey"></param>
+        /// <param name="childColumns"></param>
         /// <returns></returns>
         public List<DexihDatalinkColumn> GetNodePath(long columnKey, ICollection<DexihDatalinkColumn> childColumns = null)
         {

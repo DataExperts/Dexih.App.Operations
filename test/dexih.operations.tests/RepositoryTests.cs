@@ -7,13 +7,6 @@ using dexih.functions;
 using dexih.repository;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.DataType;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace dexih.operations.tests
@@ -29,12 +22,7 @@ namespace dexih.operations.tests
        
         private async Task<DexihHub> CreateHub()
         {
-            var user = new ApplicationUser()
-            {
-                Email = "admin@dataexpertsgroup.com",
-                Id = "123"
-            };
-            
+            var user =  await _repositoryManager.FindByEmailAsync("admin@dataexpertsgroup.com");
             // use a guid to make the hub name unique
             var guid = Guid.NewGuid().ToString();
             var hub = new DexihHub()
@@ -45,7 +33,6 @@ namespace dexih.operations.tests
 
             return await _repositoryManager.SaveHub(hub, user, CancellationToken.None);
         }
-
         private async Task<ApplicationUser> CreateUser(ApplicationUser.EUserRole userRole)
         {
             var email = Guid.NewGuid() + "@dataexpertsgroup.com";
@@ -199,7 +186,7 @@ namespace dexih.operations.tests
             Assert.Equal(connection, retrievedConnection);
 
             
-            var retrievedTable = hub.DexihTables.Single(c => c.Key == savedTable.Key);
+            var retrievedTable = await _repositoryManager.GetTable(hub.HubKey, savedTable.Key, true, CancellationToken.None);
             retrievedTable = retrievedTable.CloneProperties<DexihTable>(); //clone the table to avoid conflicts with MemoryDatabase.
             var columns = retrievedTable.DexihTableColumns.ToArray();
 

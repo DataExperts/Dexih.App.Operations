@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using static dexih.transforms.Transform;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
+using System.Text.Json.Serialization;
 using dexih.functions;
 using dexih.functions.Query;
 using dexih.operations;
@@ -14,7 +13,6 @@ using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.Extensions.Logging;
-using static dexih.transforms.Transforms.TransformAttribute;
 using MessagePack;
 
 namespace dexih.repository

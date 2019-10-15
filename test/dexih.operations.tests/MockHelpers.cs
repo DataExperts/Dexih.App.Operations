@@ -46,7 +46,7 @@ namespace dexih.operations.tests
                 {
                     if (formatter == null)
                     {
-                        logStore.Append(state.ToString());
+                        logStore.Append(state);
                     }
                     else
                     {
@@ -56,7 +56,7 @@ namespace dexih.operations.tests
                 });
             logger.Setup(x => x.BeginScope(It.IsAny<object>())).Callback((object state) =>
                 {
-                    logStore.Append(state.ToString());
+                    logStore.Append(state);
                     logStore.Append(" ");
                 });
             logger.Setup(x => x.IsEnabled(LogLevel.Debug)).Returns(true);
@@ -102,7 +102,7 @@ namespace dexih.operations.tests
         {
             // create an in memory database for testing
             var options = new DbContextOptionsBuilder<DexihRepositoryContext>()
-                .UseInMemoryDatabase("dexih_repository")
+                .UseInMemoryDatabase("dexih_repository_" + Guid.NewGuid())
                 .Options;
             
             var repositoryContext = new DexihRepositoryContext(options);
@@ -120,8 +120,8 @@ namespace dexih.operations.tests
             var roleManager = TestRoleManager(roleStore);
 
             var seedData = new SeedData();
-            seedData.UpdateReferenceData(repositoryContext, roleManager, userManager).Wait();
-
+            seedData.UpdateReferenceData(roleManager, userManager).Wait();
+            
             return new RepositoryManager(repositoryContext, userManager, cacheService, new LoggerFactory());
                         
         }

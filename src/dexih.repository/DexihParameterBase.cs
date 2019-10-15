@@ -1,16 +1,13 @@
-﻿using System;
-using dexih.functions;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+﻿using dexih.functions;
+using Dexih.Utils.DataType;
 using MessagePack;
 using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
     [MessagePackObject]
-    [ProtoInherit(4000)]
-    [MessagePack.Union(0, typeof(DexihCustomFunctionParameter))]
-    [MessagePack.Union(1, typeof(DexihFunctionParameterBase))]
+    [Union(0, typeof(DexihCustomFunctionParameter))]
+    [Union(1, typeof(DexihFunctionParameterBase))]
     public class DexihParameterBase : DexihHubNamedEntity
     {
 

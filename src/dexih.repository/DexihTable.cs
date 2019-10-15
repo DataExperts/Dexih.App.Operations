@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
 using dexih.transforms;
+using Dexih.Utils.DataType;
 using static Dexih.Utils.DataType.DataType;
 using MessagePack;
 
@@ -60,7 +61,7 @@ namespace dexih.repository
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
         [Key(19)]
-        public long[] SortColumnKeys { get; set; } = new long[0];
+        public long[] SortColumnKeys { get; set; }
 
         [Key(20)]
         public bool AutoManageFiles { get; set; }
@@ -186,10 +187,7 @@ namespace dexih.repository
 	        
 	        // create a temporary copy and exclude the fileFormat (which is different between DexihTable & Table)
 	        this.CopyProperties(table, false);
-
-	        // shift to array to avoid multiple enumerations.
-	        var hubVariablesArray = transformSettings.HubVariables?.ToArray();
-
+	        
 	        switch (table)
 	        {
 				case FlatFile flatFile:

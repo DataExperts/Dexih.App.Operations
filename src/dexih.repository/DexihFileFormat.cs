@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 using dexih.functions.File;
 using MessagePack;
@@ -78,9 +77,6 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihTable> DexihTables { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
-        public DexihHub Hub { get; set; }
-
         /// <summary>
         /// Converts to a FileFormat class.
         /// </summary>

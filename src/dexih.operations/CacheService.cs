@@ -1,15 +1,17 @@
 using System;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
+
 
 namespace dexih.operations
 {
     public interface ICacheService
     {
+        IMemoryCache MemoryCache { get; }
+        IDistributedCache DistributedCache { get; }
+        
         Task<TItem> GetOrCreateAsync<TItem>(
             string key,
             TimeSpan expiration,
@@ -40,19 +42,19 @@ namespace dexih.operations
     {
         public CacheService(IDistributedCache distributedCache)
         {
-            _memoryCache = new MemoryCache(new MemoryCacheOptions());
-            _distributedCache = distributedCache;
+            MemoryCache = new MemoryCache(new MemoryCacheOptions());
+            DistributedCache = distributedCache;
         }
 
-        private readonly IMemoryCache _memoryCache;
-        private readonly IDistributedCache _distributedCache;
+        public IMemoryCache MemoryCache { get; }
+        public IDistributedCache DistributedCache { get; }
+
         
         /// <summary>
         /// Two layered cache.  First checks memory cache, then checks distributed cache for the required value.
         /// </summary>
-        /// <param name="cache"></param>
-        /// <param name="memoryCache"></param>
         /// <param name="key"></param>
+        /// <param name="expiration"></param>
         /// <param name="factory"></param>
         /// <param name="cancellationToken"></param>
         /// <typeparam name="TItem"></typeparam>
@@ -67,16 +69,16 @@ namespace dexih.operations
             var updated = 0L;
 
             // check distributed cache for an update
-            if (_distributedCache != null)
+            if (DistributedCache != null)
             {
-                var bytes = await _distributedCache.GetAsync(key, cancellationToken);
+                var bytes = await DistributedCache.GetAsync(key, cancellationToken);
                 if (bytes != null)
                 {
                     updated = BitConverter.ToInt64(bytes);
                 }
             }
             
-            var cacheItem = await _memoryCache.GetOrCreateAsync(key, async entry =>
+            var cacheItem = await MemoryCache.GetOrCreateAsync(key, async entry =>
             {
                 entry.SetSlidingExpiration(expiration);
                 var value = await factory.Invoke();
@@ -88,7 +90,7 @@ namespace dexih.operations
             {
                 var value = await factory.Invoke();
                 var options = new MemoryCacheEntryOptions() {SlidingExpiration = expiration};
-                _memoryCache.Set(key, new CacheServiceItem<TItem>(value), options);
+                MemoryCache.Set(key, new CacheServiceItem<TItem>(value), options);
             }
             
             return cacheItem.Item;
@@ -96,14 +98,14 @@ namespace dexih.operations
 
         public async Task<T> Get<T>(string key, CancellationToken cancellationToken)
         {
-            if (_memoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
+            if (MemoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
             {
                 var updated = 0L;
                 
                 // check distributed cache for an update
-                if (_distributedCache != null)
+                if (DistributedCache != null)
                 {
-                    var bytes = await _distributedCache.GetAsync(key, cancellationToken);
+                    var bytes = await DistributedCache.GetAsync(key, cancellationToken);
                     if (bytes != null)
                     {
                         updated = BitConverter.ToInt64(bytes);
@@ -113,7 +115,7 @@ namespace dexih.operations
                 // if the distributed version was updated more recently than the current, return null, and clear cache
                 if (updated > item.UpdatedDate)
                 {
-                    _memoryCache.Remove(key);
+                    MemoryCache.Remove(key);
                     return default;
                 }
 
@@ -125,14 +127,14 @@ namespace dexih.operations
 
         public Task Reset(string key, CancellationToken cancellationToken = default)
         {
-            _memoryCache.Remove(key);
+            MemoryCache.Remove(key);
             return ResetDistributed(key, cancellationToken);
         }
 
         public async Task Update<T>(string key, CancellationToken cancellationToken = default)
         {
             await ResetDistributed(key, cancellationToken);
-            if (_memoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
+            if (MemoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
             {
                 item.UpdatedDate = DateTime.Now.Ticks;
             }
@@ -140,11 +142,11 @@ namespace dexih.operations
 
         public Task ResetDistributed(string key, CancellationToken cancellationToken = default)
         {
-            if (_distributedCache != null)
+            if (DistributedCache != null)
             {
                 var bytes = BitConverter.GetBytes(DateTime.Now.Ticks);
                 var distributedOptions = new DistributedCacheEntryOptions();
-                return _distributedCache.SetAsync(key, bytes, distributedOptions, cancellationToken);
+                return DistributedCache.SetAsync(key, bytes, distributedOptions, cancellationToken);
             }
             return Task.CompletedTask;
         }

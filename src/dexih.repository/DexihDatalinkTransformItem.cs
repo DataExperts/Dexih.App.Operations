@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+
 using System.ComponentModel.DataAnnotations.Schema;
-using Newtonsoft.Json.Converters;
+
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using static Dexih.Utils.DataType.DataType;
@@ -15,7 +15,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 using dexih.functions.Parameter;
+using dexih.transforms;
 using dexih.transforms.Mapping;
 using Microsoft.Extensions.Logging;
 using static dexih.functions.Query.SelectColumn;
@@ -80,7 +82,7 @@ namespace dexih.repository
         public ETypeCode? GenericTypeCode { get; set; }
 
         [Key(22)]
-        public MapFunction.EFunctionCaching FunctionCaching { get; set; }
+        public EFunctionCaching FunctionCaching { get; set; }
 
         [Key(23)]
         public long? CustomFunctionKey { get; set; }
@@ -323,8 +325,7 @@ namespace dexih.repository
 
 							ms.Seek(0, SeekOrigin.Begin);
 
-							var folderPath = Path.GetDirectoryName(GetType().GetTypeInfo().Assembly.Location);
-							var loader = new AssemblyLoader(folderPath);
+							var loader = new AssemblyLoader();
 							var assembly = loader.LoadFromStream(ms);
 
 							function = new TransformFunction();
@@ -676,7 +677,7 @@ $FunctionCode
 
         private string AddRankValue(object value, int rank)
         {
-	        return rank == 0 ? value.ToString() + ";" : "new [] {" + value.ToString() + "};";
+	        return rank == 0 ? value + ";" : "new [] {" + value + "};";
         }
     }
 }

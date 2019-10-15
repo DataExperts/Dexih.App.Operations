@@ -6,9 +6,7 @@ namespace dexih.repository
 {
     public class SeedData
     {
-        private static readonly DateTime CurrentDate = DateTime.Now;
-
-        public async Task UpdateReferenceData(DexihRepositoryContext repoDbContext, RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager)
+        public async Task UpdateReferenceData(RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager)
         {
             try
             {
@@ -61,7 +59,7 @@ namespace dexih.repository
                     var adminUser = await userManager.FindByNameAsync("admin@dataexpertsgroup.com");
                     if (adminUser == null)
                     {
-                        var result = await userManager.CreateAsync(user, "dexIH-1");
+                        await userManager.CreateAsync(user, "dexIH-1");
                         //configurationLogger.LogDebug("admin@dataexpertsgroup.com user created.");
                         adminUser = await userManager.FindByNameAsync("admin@dataexpertsgroup.com");
                     }

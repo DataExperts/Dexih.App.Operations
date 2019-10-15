@@ -2,15 +2,11 @@
 using dexih.transforms;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static dexih.repository.DexihDatajob;
 using static dexih.transforms.TransformWriterResult;
-using System.Threading.Tasks.Dataflow;
 using dexih.functions.Query;
-using Dexih.Utils.CopyProperties;
 using Dexih.Utils.ManagedTasks;
 using Microsoft.Extensions.Logging;
 
@@ -31,8 +27,6 @@ namespace dexih.operations
 
 		public delegate void Finish(DatajobRun datajobRun);
 		public event Finish OnFinish;
-
-		private readonly List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
 
 		// private readonly BufferBlock<TransformWriterResult> _completedDatalinks = new BufferBlock<TransformWriterResult>();
 		
@@ -200,7 +194,7 @@ namespace dexih.operations
 					{
 						HubVariables = _transformSettings.HubVariables,
 						RemoteSettings = _transformSettings.RemoteSettings,
-						InputParameters = step.Parameters.ToArray()
+						InputParameters = step.Parameters.ToArray<InputParameterBase>()
 					};
 					
 					var inputColumns = step.DexihDatalinkStepColumns.Select(c => c.ToInputColumn()).ToArray();

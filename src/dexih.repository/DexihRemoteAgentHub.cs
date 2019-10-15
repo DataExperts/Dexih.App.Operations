@@ -1,5 +1,4 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
 

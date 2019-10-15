@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
+
 using MessagePack;
 
 namespace dexih.repository
@@ -23,11 +23,11 @@ namespace dexih.repository
         public EViewType ViewType { get; set; }
 
         [Key(8)]
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceTableKey { get; set; }
 
         [Key(9)]
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceDatalinkKey { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreMember]

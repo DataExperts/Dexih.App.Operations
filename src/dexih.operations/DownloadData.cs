@@ -8,7 +8,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static dexih.transforms.Transform;
 
 namespace dexih.operations
 {
@@ -135,7 +134,7 @@ namespace dexih.operations
                             break;
                         case EDownloadFormat.Json:
                             name = name + ".json";
-                            fileStream = new StreamJson(name, transform);
+                            fileStream = new StreamJson(transform);
                             if (!ZipFiles)
                             {
                                 return (name, fileStream);

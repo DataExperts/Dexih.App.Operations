@@ -1,6 +1,6 @@
-using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
-using Newtonsoft.Json;
+
 using MessagePack;
 
 namespace dexih.repository
@@ -8,10 +8,6 @@ namespace dexih.repository
     [MessagePackObject]
     public class DexihDatajobParameter: InputParameterBase
     {
-        public DexihDatajobParameter()
-        {
-        }
-
         [Key(8)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }

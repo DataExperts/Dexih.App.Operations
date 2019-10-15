@@ -7,10 +7,8 @@ using System.Diagnostics;
 using System.Linq;
 using dexih.functions.Parameter;
 using Dexih.Utils.CopyProperties;
-using dexih.functions.Query;
 using dexih.transforms.Exceptions;
 using dexih.transforms.Mapping;
-using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.Extensions.Logging;
 
@@ -123,7 +121,7 @@ namespace dexih.operations
             if(datalinkColumnKey == null || hubDatalink == null) 
                 return null;
 
-            DexihDatalinkColumn column = null;
+            DexihDatalinkColumn column;
 
             column = hubDatalink.SourceDatalinkTable.DexihDatalinkColumns.SingleOrDefault(c => c.Key == (long)datalinkColumnKey);
             if(column != null)
@@ -170,6 +168,7 @@ namespace dexih.operations
         /// <param name="functionClassName"></param>
         /// <param name="functionMethodName"></param>
         /// <param name="columnName"></param>
+        /// <param name="detailedResults"></param>
         /// <param name="globalSettings"></param>
         /// <returns></returns>
         /// <exception cref="TransformManagerException"></exception>
@@ -191,11 +190,11 @@ namespace dexih.operations
                 var parameters = new Parameters()
                 {
                     Inputs = new Parameter[] {new ParameterColumn("value", new TableColumn(columnName))},
-                    ResultReturnParameters = new List<Parameter>() {new ParameterOutputColumn("value", DataType.ETypeCode.String)},
-                    ResultOutputs = new List<Parameter>() {new ParameterOutputColumn("distribution", DataType.ETypeCode.Unknown)},
+                    ResultReturnParameters = new List<Parameter>() {new ParameterOutputColumn("value", ETypeCode.String)},
+                    ResultOutputs = new List<Parameter>() {new ParameterOutputColumn("distribution", ETypeCode.Unknown)},
                 };
                 var profileFunction = new TransformFunction(profileObject, functionMethodName, null, parameters, globalSettings);
-                var mapFunction = new MapFunction(profileFunction, parameters, MapFunction.EFunctionCaching.NoCache);
+                var mapFunction = new MapFunction(profileFunction, parameters, EFunctionCaching.NoCache);
                 return mapFunction;
             }
             catch (Exception ex)
@@ -309,11 +308,6 @@ namespace dexih.operations
             }
         }
 
-        private void MergeInputColumn(TableColumn column, InputColumn[] inputColumns)
-        {
-            
-        }
-
         public (Transform sourceTransform, Table sourceTable) CreateRunPlan(DexihHub hub, DexihDatalink hubDatalink, InputColumn[] inputColumns, long? maxDatalinkTransformKey, object maxIncrementalValue, TransformWriterOptions transformWriterOptions) //Last datatransform key is used to preview the output of a specific transform in the series.
         {
             try
@@ -327,12 +321,7 @@ namespace dexih.operations
 				var primaryTransformResult = GetSourceTransform(hub, hubDatalink.SourceDatalinkTable, inputColumns, transformWriterOptions);
 				var primaryTransform = primaryTransformResult.sourceTransform;
 				var sourceTable = primaryTransformResult.sourceTable;
-                var sourceDatalinkTableKey = hubDatalink.SourceDatalinkTable?.Key ?? hubDatalink.SourceDatalinkTableKey;
-//				foreach(var column in primaryTransform.CacheTable.Columns)
-//				{
-//					column.ReferenceTable = sourceDatalinkTableKey.ToString();
-//				}
-
+                
                 //add a filter for the incremental column (if there is one)
                 var incrementalCol = sourceTable?.GetAutoIncrementColumn();
                 var updateStrategy = hubDatalink.UpdateStrategy;

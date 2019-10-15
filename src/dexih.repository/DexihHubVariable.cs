@@ -1,6 +1,7 @@
 ﻿using System;
-using Newtonsoft.Json;
+
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.Crypto;
 using MessagePack;

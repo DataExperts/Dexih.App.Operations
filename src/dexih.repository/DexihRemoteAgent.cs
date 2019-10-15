@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
 

@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using dexih.functions.Query;
 using dexih.repository;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
+
 using MessagePack;
 
 namespace dexih.operations

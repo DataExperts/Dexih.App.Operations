@@ -1,9 +1,8 @@
-﻿using System;
-using Dexih.Utils.CopyProperties;
+﻿using Dexih.Utils.CopyProperties;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
+
 using MessagePack;
 
 namespace dexih.repository
@@ -43,8 +42,8 @@ namespace dexih.repository
         [Key(6)]
         public string EncryptionKey { get; set; }
 
-        [Key(7)]
-        public ESharedAccess SharedAccess { get; set; }
+        [Key(7)] 
+        public ESharedAccess SharedAccess { get; set; } = ESharedAccess.Public;
 
         [Key(8)]
         public ICollection<DexihConnection> DexihConnections { get; set; }

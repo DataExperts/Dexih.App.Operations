@@ -9,11 +9,7 @@ namespace dexih.repository
     [MessagePackObject]
     public class ApplicationUser : IdentityUser
     {
-    
-	    public enum EUserRole
-	    {
-            Administrator = 1, Manager, User, Viewer, None
-	    }
+	    
 
 	    [NotMapped]
         [IgnoreMember]

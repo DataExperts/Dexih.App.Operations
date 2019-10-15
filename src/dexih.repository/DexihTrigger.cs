@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
-using Newtonsoft.Json.Converters;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.ManagedTasks;
 using MessagePack;
@@ -25,7 +25,7 @@ namespace dexih.repository
         public TimeSpan? IntervalTime { get; set; }
 
         [Key(10)]
-        public List<ManagedTaskSchedule.EDayOfWeek> DaysOfWeek { get; set; }
+        public List<EDayOfWeek> DaysOfWeek { get; set; }
 
         [Key(11)]
         public TimeSpan? StartTime { get; set; }
@@ -75,7 +75,7 @@ namespace dexih.repository
                 EndTime = EndTime,
                 IntervalTime =  IntervalTime,
                 DaysOfWeek = DaysOfWeek.ToArray(),
-                IntervalType = ManagedTaskSchedule.EIntervalType.Interval,
+                IntervalType = EIntervalType.Interval,
                 MaxRecurs =  MaxRecurs,
                 SkipDates = null,
                 StartDate = StartDate,

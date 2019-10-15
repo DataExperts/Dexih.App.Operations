@@ -39,7 +39,7 @@ namespace dexih.operations
         [Key(6)]
         public RemoteLibraries DefaultRemoteLibraries { get; set; }
 
-        private ILogger _logger;
+        private readonly ILogger _logger;
 
 		public CacheManager()
 		{
@@ -102,7 +102,7 @@ namespace dexih.operations
 				{
                     throw new CacheManagerException($"The hub with the key {HubKey} could not be found in the repository.");
 				}
-
+				
                 var variables = dbContext.DexihHubVariables
                     .Where(c => c.IsValid && c.HubKey == HubKey);
 
@@ -255,7 +255,7 @@ namespace dexih.operations
 			}
         }
 
-        public bool LoadGlobal(string version, DateTime buildDate, DexihRepositoryContext dbContext)
+        public bool LoadGlobal(string version, DateTime buildDate)
         {
             BuildVersion = version;
             BuildDate = buildDate;
@@ -273,9 +273,10 @@ namespace dexih.operations
 
         public async Task LoadConnectionTables(DexihConnection connection, DexihRepositoryContext dbContext)
         {
-	        var tables = dbContext.DexihTables.Where(c => c.HubKey == HubKey && c.ConnectionKey == connection.Key && c.IsValid).AsNoTracking();
+	        var tables = dbContext.DexihTables
+		        .Where(c => c.HubKey == HubKey && c.ConnectionKey == connection.Key && c.IsValid).AsAsyncEnumerable();
 
-            foreach (var table in tables)
+            await foreach (var table in tables)
             {
                 await LoadTableColumns(table, dbContext);
                 Hub.DexihTables.Add(table);
@@ -284,7 +285,7 @@ namespace dexih.operations
 
         public async Task LoadTableColumns(DexihTable hubTable, DexihRepositoryContext dbContext)
         {
-            await dbContext.Entry(hubTable).Collection(a => a.DexihTableColumns).Query().Where(c => c.IsValid && hubTable.Key == c.TableKey).AsNoTracking().LoadAsync();
+            await dbContext.Entry(hubTable).Collection(a => a.DexihTableColumns).Query().Where(c => c.IsValid && hubTable.Key == c.TableKey).LoadAsync();
 
             var columnValidationKeys = hubTable.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
             await AddColumnValidations(columnValidationKeys, dbContext);
@@ -331,9 +332,17 @@ namespace dexih.operations
 		    switch (view.SourceType)
 		    {
 			    case EDataObjectType.Datalink:
+				    if (view.SourceDatalinkKey == null)
+				    {
+					    throw new Exception($"The view {view.Name} does not contain a linked datalink.");
+				    }
 				    await AddDatalinks(new [] {view.SourceDatalinkKey.Value}, dbContext );
 				    break;
 			    case EDataObjectType.Table:
+				    if (view.SourceTableKey == null)
+				    {
+					    throw new Exception($"The view {view.Name} does not contain a linked table.");
+				    }
 				    await AddTables(new[] {view.SourceTableKey.Value}, dbContext);
 				    break;
 		    }
@@ -344,9 +353,17 @@ namespace dexih.operations
 		    switch (view.SourceType)
 		    {
 			    case EDataObjectType.Datalink:
+				    if (view.SourceDatalinkKey == null)
+				    {
+					    throw new Exception($"The view {view.Name} does not contain a linked datalink.");
+				    }
 				    AddDatalinks(new [] {view.SourceDatalinkKey.Value}, hub );
 				    break;
 			    case EDataObjectType.Table:
+				    if (view.SourceTableKey == null)
+				    {
+					    throw new Exception($"The view {view.Name} does not contain a linked table.");
+				    }
 				    AddTables(new[] {view.SourceTableKey.Value}, hub);
 				    break;
 		    }
@@ -607,7 +624,7 @@ namespace dexih.operations
 
         public async Task AddDatalinks(IEnumerable<long> datalinkKeys, DexihRepositoryContext dbContext)
         {
-            var datalinks = await GetDatalinks(datalinkKeys, dbContext);
+            var datalinks = await GetDatalinksAsync(datalinkKeys, dbContext);
             
             foreach (var datalink in datalinks)
             {
@@ -659,7 +676,7 @@ namespace dexih.operations
 
 		            await LoadTableColumns(hubTable, dbContext);
 
-		            await AddConnections(new long[] { hubTable.ConnectionKey }, false, dbContext);
+		            await AddConnections(new[] { hubTable.ConnectionKey }, false, dbContext);
 
 	                
 		            if(hubTable.FileFormatKey != null)
@@ -687,7 +704,7 @@ namespace dexih.operations
 
 				    LoadTableColumns(hubTable, hub);
 				    
-				    AddConnections(new long[] { hubTable.ConnectionKey }, false, hub);
+				    AddConnections(new[] { hubTable.ConnectionKey }, false, hub);
 				    
 				    if(hubTable.FileFormatKey != null)
 				    {
@@ -704,11 +721,10 @@ namespace dexih.operations
 	    /// Ensure the tableKey is unique.
 	    /// </summary>
 	    /// <param name="hubTable"></param>
-	    /// <param name="hubHub"></param>
+	    /// <param name="hub"></param>
 	    public void AddTable(DexihTable hubTable, DexihHub hub)
 	    {
-		    AddConnections(new long[] { hubTable.ConnectionKey }, false, hub);
-		    var connection = Hub.DexihConnections.SingleOrDefault(c => c.Key == hubTable.ConnectionKey);
+		    AddConnections(new[] { hubTable.ConnectionKey }, false, hub);
 		    Hub.DexihTables.Add(hubTable);
 				    
 		    if(hubTable.FileFormatKey != null)
@@ -747,7 +763,7 @@ namespace dexih.operations
 	    /// Adds a datalink to the cache, along with any dependencies.
 	    /// </summary>
 	    /// <param name="hubDatalink"></param>
-	    /// <param name="hubHub"></param>
+	    /// <param name="hub"></param>
 	    public void AddDatalink(DexihDatalink hubDatalink, DexihHub hub)
 	    {
 		    if (hubDatalink.SourceDatalinkTable.SourceType == ESourceType.Table && hubDatalink.SourceDatalinkTable.SourceTableKey != null)
@@ -974,7 +990,7 @@ namespace dexih.operations
 	    
 		public async Task<DexihDatalink> GetDatalink(long datalinkKey, DexihRepositoryContext dbContext)
         {
-	        var datalinks = await GetDatalinks(new[] {datalinkKey}, dbContext);
+	        var datalinks = await GetDatalinksAsync(new[] {datalinkKey}, dbContext);
 
 	        if (datalinks.Any())
 	        {
@@ -984,7 +1000,7 @@ namespace dexih.operations
 	        throw new RepositoryManagerException($"A datalink with the key {datalinkKey} could not be found.");
         }
 		
-		public async Task<DexihDatalink[]> GetDatalinks(IEnumerable<long> datalinkKeys, DexihRepositoryContext dbContext)
+		public async Task<DexihDatalink[]> GetDatalinksAsync(IEnumerable<long> datalinkKeys, DexihRepositoryContext dbContext)
 		{
             try
             {
@@ -1118,6 +1134,86 @@ namespace dexih.operations
             }
 
         }
+		
+		public async Task<DexihTable[]> GetTablesAsync(IEnumerable<long> keys, DexihRepositoryContext dbContext)
+		{
+			try
+			{
+				var tables = await dbContext.DexihTables
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.Key))
+					.ToArrayAsync();
+
+				await dbContext.DexihTableColumns
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.TableKey.Value))
+					.LoadAsync();
+
+				return tables;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get tables with keys {string.Join(", ", keys)} failed.  {ex.Message}", ex);
+			}
+		}
+		
+		public async Task<DexihView[]> GetViewsAsync(IEnumerable<long> keys, DexihRepositoryContext dbContext)
+		{
+			try
+			{
+				var views = await dbContext.DexihViews
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.Key))
+					.ToArrayAsync();
+
+				await dbContext.DexihViewParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.ViewKey))
+					.LoadAsync();
+
+				return views;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get tables with keys {string.Join(", ", keys)} failed.  {ex.Message}", ex);
+			}
+		}
+		
+		public async Task<DexihDashboard[]> GetDashboardsAsync(IEnumerable<long> keys, DexihRepositoryContext dbContext)
+		{
+			try
+			{
+				var dashboards = await dbContext.DexihDashboards
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.Key))
+					.ToArrayAsync();
+
+				await dbContext.DexihDashboardParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.DashboardKey))
+					.LoadAsync();
+
+				return dashboards;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get tables with keys {string.Join(", ", keys)} failed.  {ex.Message}", ex);
+			}
+		}
+		
+		public async Task<DexihApi[]> GetApisAsync(IEnumerable<long> keys, DexihRepositoryContext dbContext)
+		{
+			try
+			{
+				var apis = await dbContext.DexihApis
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.Key))
+					.ToArrayAsync();
+
+				await dbContext.DexihApiParameters
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.ApiKey))
+					.LoadAsync();
+
+				return apis;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get tables with keys {string.Join(", ", keys)} failed.  {ex.Message}", ex);
+			}
+		}
 		
 	    public async Task<DexihDatalinkTest> GetDatalinkTest(long datalinkTestKey, DexihRepositoryContext dbContext)
 	    {

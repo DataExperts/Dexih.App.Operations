@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using dexih.functions;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
+
 using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
+using Dexih.Utils.DataType;
 using MessagePack;
 
 namespace dexih.repository
@@ -71,10 +72,7 @@ namespace dexih.repository
 
         [Key(22)]
         public string CleanValue { get; set; }
-
-        [JsonIgnore, CopyIgnore, IgnoreMember]
-        public DexihHub Hub { get; set; }
-
+        
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihTableColumn> DexihColumnValidationColumn {get; set;}
         

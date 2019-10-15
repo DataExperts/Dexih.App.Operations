@@ -9,12 +9,6 @@ namespace dexih.repository
 #if NET462
     public class AssemblyLoader
     {
-        private string folderPath;
-
-        public AssemblyLoader(string folderPath)
-        {
-            this.folderPath = folderPath;
-        }
 
         public Assembly LoadFromAssemblyName(AssemblyName assemblyName)
         {
@@ -37,13 +31,7 @@ namespace dexih.repository
 #else
     public class AssemblyLoader : AssemblyLoadContext
     {
-        private string _folderPath;
-
-        public AssemblyLoader(string folderPath)
-        {
-            _folderPath = folderPath;
-        }
-
+        
         protected override Assembly Load(AssemblyName assemblyName)
         {
             //var deps = DependencyContext.Default;

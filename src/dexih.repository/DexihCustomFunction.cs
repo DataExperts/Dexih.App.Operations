@@ -1,6 +1,5 @@
-﻿using System;
-using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.DataType;
@@ -25,7 +24,7 @@ namespace dexih.repository
         public string ResultCode { get; set; }
 
         [Key(9)]
-        public DataType.ETypeCode? ReturnType { get; set; }
+        public ETypeCode? ReturnType { get; set; }
 
         [Key(10)]
         public EFunctionType? FunctionType { get; set; }
@@ -34,7 +33,7 @@ namespace dexih.repository
         public bool IsGeneric { get; set; }
 
         [Key(12)]
-        public DataType.ETypeCode GenericTypeDefault { get; set; }
+        public ETypeCode GenericTypeDefault { get; set; }
 
         [Key(13)]
         public ICollection<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
