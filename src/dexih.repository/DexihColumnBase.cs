@@ -162,8 +162,8 @@ namespace dexih.repository
                 case EDeltaType.UpdateDate:
                 case EDeltaType.CreateAuditKey:
                 case EDeltaType.UpdateAuditKey:
-                case EDeltaType.AzurePartitionKey:
-                case EDeltaType.AzureRowKey:
+                case EDeltaType.PartitionKey:
+                case EDeltaType.RowKey:
                 case EDeltaType.TimeStamp:
                 case EDeltaType.ValidationStatus:
                     DeltaType = EDeltaType.NonTrackingField;

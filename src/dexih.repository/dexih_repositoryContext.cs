@@ -591,7 +591,7 @@ namespace dexih.repository
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TableColumn.EDeltaType) Enum.Parse(typeof(TableColumn.EDeltaType), v));
+                        v => (EDeltaType) Enum.Parse(typeof(EDeltaType), v));
                 
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
@@ -608,7 +608,7 @@ namespace dexih.repository
                 entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TableColumn.ESecurityFlag) Enum.Parse(typeof(TableColumn.ESecurityFlag), v));
+                        v => (ESecurityFlag) Enum.Parse(typeof(ESecurityFlag), v));
 
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
                 entity.Property(e => e.Rank).HasColumnName("rank");
@@ -831,7 +831,7 @@ namespace dexih.repository
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TableColumn.EDeltaType) Enum.Parse(typeof(TableColumn.EDeltaType), v));
+                        v => (EDeltaType) Enum.Parse(typeof(EDeltaType), v));
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
@@ -847,7 +847,7 @@ namespace dexih.repository
                 entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TableColumn.ESecurityFlag) Enum.Parse(typeof(TableColumn.ESecurityFlag), v));
+                        v => (ESecurityFlag) Enum.Parse(typeof(ESecurityFlag), v));
 
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
                 entity.Property(e => e.Rank).HasColumnName("rank");
@@ -1517,7 +1517,7 @@ namespace dexih.repository
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TableColumn.EDeltaType) Enum.Parse(typeof(TableColumn.EDeltaType), v));
+                        v => (EDeltaType) Enum.Parse(typeof(EDeltaType), v));
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
@@ -1538,7 +1538,7 @@ namespace dexih.repository
                 entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TableColumn.ESecurityFlag) Enum.Parse(typeof(TableColumn.ESecurityFlag), v));
+                        v => (ESecurityFlag) Enum.Parse(typeof(ESecurityFlag), v));
                 
                 entity.Property(e => e.TableKey).HasColumnName("table_key");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
