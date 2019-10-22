@@ -97,11 +97,20 @@ namespace dexih.repository
             return SaveChangesAsync(true, cancellationToken);
         }
         
-		public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
+		public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			AddTimestamps();
-			return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-		}
+            try
+            {
+                var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+                return result;
+            }
+            catch (DbUpdateException ex)
+            {
+                if (ex.InnerException != null) throw ex.InnerException;
+                throw ex;
+            }
+        }
 
 		public override int SaveChanges(bool acceptAllChangesOnSuccess)
 		{

@@ -33,7 +33,6 @@ namespace dexih.operations
         #region Events
         public delegate void HubChange(Import import, string[] users);
         public event HubChange OnHubChange;
-
         #endregion
 
 
@@ -2256,7 +2255,7 @@ namespace dexih.operations
 				}
 				
 				await DbContext.SaveChangesAsync(cancellationToken);
-
+				
 				return true;
 			}
 			catch (Exception ex)
