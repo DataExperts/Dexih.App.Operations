@@ -2,6 +2,8 @@
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
+using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace dexih.repository
 {
@@ -17,7 +19,35 @@ namespace dexih.repository
         public string Value { get; set; }
 
         [Key(14)]
-        public string[] ListOfValues { get; set; }
+        [NotMapped, CopyIgnore]
+        public string[] ListOfValues
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(ListOfValuesString))
+                {
+                    return null;
+                }
+                else
+                {
+                    return JsonSerializer.Deserialize<string[]>(ListOfValuesString);
+                }
+            }
+            set
+            {
+                if (value == null)
+                {
+                    ListOfValuesString = null;
+                }
+                else
+                {
+                    ListOfValuesString = JsonSerializer.Serialize(value);
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public string ListOfValuesString { get; set; }
 
         [Key(15)]
         [NotMapped]

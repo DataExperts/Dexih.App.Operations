@@ -5,6 +5,7 @@ using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using System.Text.Json.Serialization;
+using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.ManagedTasks;
 using MessagePack;
@@ -25,7 +26,36 @@ namespace dexih.repository
         public TimeSpan? IntervalTime { get; set; }
 
         [Key(10)]
-        public List<EDayOfWeek> DaysOfWeek { get; set; }
+        [NotMapped, CopyIgnore]
+        public EDayOfWeek[] DaysOfWeek
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(DaysOfWeekString))
+                {
+                    return null;
+                }
+                else
+                {
+                    return DaysOfWeekString.Split(',')
+                        .Select(c => (EDayOfWeek) Enum.Parse(typeof(EDayOfWeek), c)).ToArray();
+                }
+            }
+            set
+            {
+                if (value == null)
+                {
+                    DaysOfWeekString = null;
+                }
+                else
+                {
+                    DaysOfWeekString = String.Join(",", value.Select(c => c.ToString()));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public string DaysOfWeekString { get; set; }
 
         [Key(11)]
         public TimeSpan? StartTime { get; set; }
@@ -52,7 +82,7 @@ namespace dexih.repository
                     desc.AppendLine("Runs daily after:" + StartTime.Value.ToString());
                 if (EndTime != null)
                     desc.AppendLine("Ends daily after:" + EndTime.Value.ToString());
-                if (DaysOfWeek != null && DaysOfWeek.Count > 0 && DaysOfWeek.Count < 7)
+                if (DaysOfWeek != null && DaysOfWeek.Length > 0 && DaysOfWeek.Length < 7)
                     desc.AppendLine("Only on:" + String.Join(",", DaysOfWeek.Select(c => c.ToString()).ToArray()));
                 if (IntervalTime != null)
                     desc.AppendLine("Runs every: " + IntervalTime.Value.ToString());

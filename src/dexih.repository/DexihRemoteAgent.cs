@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
 
@@ -28,10 +31,37 @@ namespace dexih.repository
 
         [Key(7)]
         public bool AllowExternalConnect { get; set; }
-
+        
         [Key(8)]
-        public List<string> IpAddresses { get; set; }
+        [NotMapped, CopyIgnore]
+        public string[] IpAddresses
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(IpAddressesString))
+                {
+                    return null;
+                }
+                else
+                {
+                    return JsonSerializer.Deserialize<string[]>(IpAddressesString);
+                }
+            }
+            set
+            {
+                if (value == null)
+                {
+                    IpAddressesString = null;
+                }
+                else {
+                    IpAddressesString = JsonSerializer.Serialize(value);
+                }
+            }
+        }
 
+        [JsonIgnore]
+        public string IpAddressesString { get; set; }
+        
         [Key(9)]
         public string RemoteAgentId { get; set; }
 

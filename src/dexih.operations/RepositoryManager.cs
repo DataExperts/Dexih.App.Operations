@@ -16,6 +16,7 @@ using dexih.operations.Extensions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
+using Dexih.Utils.ManagedTasks;
 using Microsoft.AspNetCore.Identity;
 
 

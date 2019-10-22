@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -61,8 +62,38 @@ namespace dexih.repository
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
         [Key(19)]
-        public long[] SortColumnKeys { get; set; }
-
+        [NotMapped, CopyIgnore]
+        public long[] SortColumnKeys
+        {
+	        get
+	        {
+		        if (string.IsNullOrEmpty(SortColumnKeysString))
+		        {
+			        return null;
+		        }
+		        else
+		        {
+			        return SortColumnKeysString.Split(',')
+				        .Select(long.Parse).ToArray();
+		        }
+	        }
+	        set
+	        {
+		        if (value == null)
+		        {
+			        SortColumnKeysString = null;
+		        }
+		        else
+		        {
+			        SortColumnKeysString = String.Join(",", value.Select(c => c.ToString()));
+		        }
+	        }
+	        
+        }
+        
+        [JsonIgnore]
+        public string SortColumnKeysString { get; set; }
+        
         [Key(20)]
         public bool AutoManageFiles { get; set; }
 

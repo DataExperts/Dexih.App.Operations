@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using dexih.functions;
 
@@ -42,14 +46,50 @@ namespace dexih.repository
 
         [Key(14)]
         public string RegexMatch { get; set; }
-
+        
         [Key(15)]
-        [CopyIgnore]
-        public List<string> ListOfValues { get; set; }
-
+        [NotMapped, CopyIgnore]
+        public string[] ListOfValues
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(ListOfValuesString))
+                {
+                    return null;
+                }
+                else
+                {
+                    return JsonSerializer.Deserialize<string[]>(ListOfValuesString);
+                }
+            }
+            set => ListOfValuesString = JsonSerializer.Serialize(value);
+        }
+        
+        [JsonIgnore]
+        public string ListOfValuesString { get; set; }
+        
         [Key(16)]
-        [CopyIgnore]
-        public List<string> ListOfNotValues { get; set; }
+        [NotMapped, CopyIgnore]
+        public string[] ListOfNotValues
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(ListOfNotValuesString))
+                {
+                    return null;
+                }
+                else
+                {
+                    return JsonSerializer.Deserialize<string[]>(ListOfNotValuesString);
+                }
+            }
+            set => ListOfNotValuesString = JsonSerializer.Serialize(value);
+        }
+        
+        [JsonIgnore]
+        public string ListOfNotValuesString { get; set; }
+
+
 
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihTableColumn LookupColumn { get; set; }

@@ -232,15 +232,9 @@ namespace dexih.repository
                 
                 entity.Property(e => e.CleanValue).HasColumnName("clean_value").HasMaxLength(250);
 
-                entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
-                    .HasConversion(
-                        v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
-                
-                entity.Property(e => e.ListOfNotValues).HasColumnName("list_of_not_values").HasMaxLength(8000)
-                    .HasConversion(
-                        v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToList());
+                entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasMaxLength(8000);
+
+                entity.Property(e => e.ListOfNotValuesString).HasColumnName("list_of_not_values").HasMaxLength(8000);
                 
 
                 entity.Property(e => e.LookupColumnKey).HasColumnName("lookup_column_key");
@@ -1306,10 +1300,7 @@ namespace dexih.repository
                 entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(1024);
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.Rank).HasColumnName("rank");
-                entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
-                    .HasConversion(
-                        v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
+                entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasMaxLength(8000);
                 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1352,10 +1343,7 @@ namespace dexih.repository
                 
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.Rank).HasColumnName("rank");
-                entity.Property(e => e.ListOfValues).HasColumnName("list_of_values").HasMaxLength(8000)
-                    .HasConversion(
-                        v => v == null ? null : string.Join("||", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "||" }, StringSplitOptions.None).ToArray());
+                entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasMaxLength(8000);
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1380,10 +1368,7 @@ namespace dexih.repository
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
 
                 entity.Property(e => e.AllowExternalConnect).HasColumnName("allow_external_connect");
-                entity.Property(e => e.IpAddresses).HasColumnName("ip_addresses").HasMaxLength(8000)
-                    .HasConversion(
-                        v => v == null ? null : string.Join(",", v),
-                        v => string.IsNullOrEmpty(v) ? null : v.Split(new[] { "," }, StringSplitOptions.None).ToList());
+                entity.Property(e => e.IpAddressesString).HasColumnName("ip_addresses").HasMaxLength(8000);
 
                 entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
                 entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasMaxLength(50);
@@ -1601,10 +1586,7 @@ namespace dexih.repository
                 entity.Property(e => e.FileOutgoingPath).HasColumnName("file_outgoing_path").HasMaxLength(1000);
                 entity.Property(e => e.FileProcessedPath).HasColumnName("file_processed_path").HasMaxLength(1000);
                 entity.Property(e => e.FileRejectedPath).HasColumnName("file_rejected_path").HasMaxLength(1000);
-                entity.Property(e => e.SortColumnKeys).HasColumnName("sort_column_keys").HasMaxLength(500)
-                    .HasConversion(
-                        v => v == null ? null : string.Join(",", v),
-                        v => string.IsNullOrEmpty(v) ? new long[0] : v.Split(",", StringSplitOptions.None).Select(long.Parse).ToArray());
+                entity.Property(e => e.SortColumnKeysString).HasColumnName("sort_column_keys").HasMaxLength(500);
 
                 entity.Property(e => e.RestfulUri).HasColumnName("restful_uri").HasMaxLength(2000);
                 entity.Property(e => e.RowPath).HasColumnName("row_path").HasMaxLength(2000);
@@ -1654,10 +1636,7 @@ namespace dexih.repository
                 entity.Property(e => e.StartTime).HasColumnName("start_time");
                 entity.Property(e => e.EndTime).HasColumnName("end_time");
                 entity.Property(e => e.IntervalTime).HasColumnName("interval");
-                entity.Property(e => e.DaysOfWeek).HasColumnName("days_of_week").HasMaxLength(200)
-                    .HasConversion(
-                        v => String.Join(",", v.Select(c=>c.ToString())),
-                        v => string.IsNullOrEmpty(v) ? new List<EDayOfWeek>() : v.Split(',', StringSplitOptions.None).Select(c => (EDayOfWeek)Enum.Parse(typeof(EDayOfWeek), c)).ToList());
+                entity.Property(e => e.DaysOfWeekString).HasColumnName("days_of_week").HasMaxLength(200);
                 entity.Property(e => e.MaxRecurs).HasColumnName("max_recurrs");
                 entity.Property(e => e.CronExpression).HasColumnName("cron_expression").HasMaxLength(500);
 

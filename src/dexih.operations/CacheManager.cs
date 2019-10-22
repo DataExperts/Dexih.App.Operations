@@ -1084,7 +1084,7 @@ namespace dexih.operations
 
         }
 
-			public async Task<DexihDatajob> GetDatajob(long datajobKey, DexihRepositoryContext dbContext)
+		public async Task<DexihDatajob> GetDatajob(long datajobKey, DexihRepositoryContext dbContext)
         {
 	        var datajobs = await GetDatajobs(new[] {datajobKey}, dbContext);
 
