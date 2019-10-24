@@ -40,7 +40,7 @@ namespace dexih.repository
 
         [Key(14)]
         [CopyParentCollectionKey(nameof(Key))]
-        public long? DashboardKey { get; set; }
+        public long DashboardKey { get; set; }
 
         [Key(15)]
         public ICollection<DexihDashboardItemParameter> Parameters { get; set; }

@@ -3008,6 +3008,7 @@ namespace dexih.operations
                     DbContext.DexihDashboards.Add(dbDashboard);
                 }
 
+                dbDashboard.UpdateDate = DateTime.Now;
                 dbDashboard.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3295,12 +3296,12 @@ namespace dexih.operations
 	        return (keyMappings, importObjects);
         }
         
-        private void UpdateChildItems<T>(long hubKey, ICollection<T> childItems, ICollection<T> existingItems, EImportAction importAction, Dictionary<long, long> mappings, ref int keySequence) where T : DexihHubNamedEntity
+        private void UpdateTableColumns(long hubKey, ICollection<DexihTableColumn> childItems, ICollection<DexihTableColumn> existingItems, EImportAction importAction, Dictionary<long, long> mappings, ref int keySequence)
         {
 	        foreach (var childItem in childItems)
 	        {
 		        childItem.HubKey = hubKey;
-		        var existingItem = existingItems.SingleOrDefault(var => childItem.Name == var.Name);
+		        var existingItem = existingItems?.SingleOrDefault(var => childItem.Name == var.Name);
 
 		        if (existingItem != null)
 		        {
@@ -3340,6 +3341,11 @@ namespace dexih.operations
 			        {
 				        deleteItem.IsValid = false;
 			        }
+		        }
+
+		        if (childItem.ChildColumns != null)
+		        {
+			        UpdateTableColumns(hubKey, childItem.ChildColumns, existingItem?.ChildColumns, importAction, mappings, ref keySequence);
 		        }
 	        }
         }
@@ -3472,7 +3478,7 @@ namespace dexih.operations
 			foreach (var table in tables.importObjects)
 			{
 				var existingItems = dbTableColumns.Where(c => c.TableKey == table.Item.Key).ToArray();
-				UpdateChildItems(hubKey, table.Item.DexihTableColumns, existingItems, table.ImportAction, tableColumnMappings, ref keySequence);
+				UpdateTableColumns(hubKey, table.Item.DexihTableColumns, existingItems, table.ImportAction, tableColumnMappings, ref keySequence);
 
                 if (table.Item.FileFormatKey != null)
                 {
@@ -3487,21 +3493,58 @@ namespace dexih.operations
                     }
                 }
 
-				foreach (var column in table.Item.DexihTableColumns)
-				{
-					if (column.ColumnValidationKey != null)
-					{
-						if (columnValidations.keyMappings.TryGetValue(column.ColumnValidationKey.Value, out var columnValidationKey))
-						{
-							column.ColumnValidationKey = columnValidationKey;
-						}
-						else
-						{
-							plan.Warnings.Add($"The column {table.Item.Name}.{column.Name} contains a validation with the key {column.ColumnValidationKey.Value} which does not exist in the package.  This will need to be manually fixed after import.");
-							column.ColumnValidationKey = null;
-						}
-					}
-				}
+                void UpdateChildColumns(ICollection<DexihTableColumn> columns, DexihTableColumn parentColumn)
+                {
+	                foreach (var column in columns)
+	                {
+		                if (column.ColumnValidationKey != null)
+		                {
+			                if (columnValidations.keyMappings.TryGetValue(column.ColumnValidationKey.Value, out var columnValidationKey))
+			                {
+				                column.ColumnValidationKey = columnValidationKey;
+			                }
+			                else
+			                {
+				                plan.Warnings.Add($"The column {table.Item.Name}.{column.Name} contains a validation with the key {column.ColumnValidationKey.Value} which does not exist in the package.  This will need to be manually fixed after import.");
+				                column.ColumnValidationKey = null;
+			                }
+		                }
+
+		                if (parentColumn == null)
+		                {
+			                column.ParentColumnKey = null;
+			                column.ParentColumn = null;
+		                }
+		                else
+		                {
+			                column.ParentColumnKey = parentColumn.ParentColumnKey;
+			                column.ParentColumn = parentColumn;
+		                }
+
+		                if (column.ChildColumns != null)
+		                {
+			                UpdateChildColumns(column.ChildColumns, column);
+		                }
+	                }
+                }
+                
+                UpdateChildColumns(table.Item.DexihTableColumns, null);
+                
+//				foreach (var column in table.Item.DexihTableColumns)
+//				{
+//					if (column.ColumnValidationKey != null)
+//					{
+//						if (columnValidations.keyMappings.TryGetValue(column.ColumnValidationKey.Value, out var columnValidationKey))
+//						{
+//							column.ColumnValidationKey = columnValidationKey;
+//						}
+//						else
+//						{
+//							plan.Warnings.Add($"The column {table.Item.Name}.{column.Name} contains a validation with the key {column.ColumnValidationKey.Value} which does not exist in the package.  This will need to be manually fixed after import.");
+//							column.ColumnValidationKey = null;
+//						}
+//					}
+//				}
 			}
 			
 			// need to go through the column validations again, now that the table keys are set to reset any lookups
@@ -3572,6 +3615,7 @@ namespace dexih.operations
 						table.TestConnectionKey = UpdateConnectionKey(table.TestConnectionKey) ?? default;
 					}
 				}
+				
 			}
 
 			foreach (var api in apis.importObjects.Select(c => c.Item))
@@ -3644,6 +3688,12 @@ namespace dexih.operations
 				datalink.AuditConnectionKey = UpdateConnectionKey(datalink.AuditConnectionKey);
 				datalink.HubKey = hubKey;
 
+				foreach (var profile in datalink.DexihDatalinkProfiles)
+				{
+					profile.Key = 0;
+				}
+				
+
 				foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c=>c.Position))
 				{
 					long? DatalinkColumnMapping(DexihDatalinkColumn datalinkColumn)
@@ -3678,7 +3728,7 @@ namespace dexih.operations
 					datalinkTransform.JoinSortDatalinkColumn = null;
 
 					datalinkTransform.HubKey = hubKey;
-
+					
 					foreach (var item in datalinkTransform.DexihDatalinkTransformItems.OrderBy(c => c.Position))
 					{
 						item.Key = 0;
@@ -3773,6 +3823,19 @@ namespace dexih.operations
 			return plan;
 		}
 
+        void AddChildColumns(Dictionary<long, DexihTableColumn> columns, DexihTableColumn column)
+        {
+	        if (column.ChildColumns != null && column.ChildColumns.Count > 0)
+	        {
+		        foreach (var childColumn in column.ChildColumns)
+		        {
+			        columns.Add(childColumn.Key, childColumn);
+			        AddChildColumns(columns, childColumn);
+		        }
+	        }
+        }
+
+
 
         /// <summary>
         /// Imports are package into the current repository.
@@ -3824,6 +3887,13 @@ namespace dexih.operations
 	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
 	            .ToDictionary(c => c.Key, c => c);
 
+            // recurse the child columns and include any in the dictionary.
+            var topColumns = columns.Values.ToArray();
+            foreach (var column in topColumns)
+            {
+	            AddChildColumns(columns, column);
+            }
+	            
 			// reset all the keys
 			foreach (var hubVariable in hubVariables.Values)
 			{
@@ -3870,6 +3940,7 @@ namespace dexih.operations
                     {
                         column.ColumnValidation = columnValidations.GetValueOrDefault(column.ColumnValidationKey.Value);
                     }
+                    
                 }
             }
 
@@ -3911,6 +3982,8 @@ namespace dexih.operations
                 {
                     column.Key = 0;
                 }
+
+                ResetKeys(datalink.Parameters);
 
 				foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c=>c.Position))
 				{
@@ -4002,10 +4075,8 @@ namespace dexih.operations
 					datajob.AuditConnection = connections.GetValueOrDefault(datajob.AuditConnectionKey.Value);
 				}
 
-				foreach (var trigger in datajob.DexihTriggers)
-				{
-					trigger.Key = 0;
-				}
+				ResetKeys(datajob.DexihTriggers);
+				ResetKeys(datajob.Parameters);
 
 				var steps = datajob.DexihDatalinkSteps.ToDictionary(c => c.Key, c => c);
 
@@ -4067,6 +4138,9 @@ namespace dexih.operations
 	            {
 		            view.SourceTable = tables.GetValueOrDefault(view.SourceTableKey.Value);
 	            }
+	            
+	            ResetKeys(view.Parameters);
+
             }
 
             foreach (var dashboard in dashboards.Values)
@@ -4077,6 +4151,9 @@ namespace dexih.operations
 	            {
 		            item.View = views.GetValueOrDefault(item.ViewKey);
 	            }
+	            
+	            ResetKeys(dashboard.Parameters);
+
             }
 
             // set all existing datalink object to invalid.
@@ -4134,40 +4211,86 @@ namespace dexih.operations
 				column.UpdateDate = DateTime.Now;
 			}
 
-			await DbContext.AddRangeAsync(hubVariables.Values, cancellationToken);
-			await DbContext.AddRangeAsync(columnValidations.Values, cancellationToken);
-			await DbContext.AddRangeAsync(fileFormats.Values, cancellationToken);
-			await DbContext.AddRangeAsync(connections.Values, cancellationToken);
-			await DbContext.AddRangeAsync(tables.Values, cancellationToken);
-			await DbContext.AddRangeAsync(datalinks.Values, cancellationToken);
-			await DbContext.AddRangeAsync(datajobs.Values, cancellationToken);
-			await DbContext.AddRangeAsync(datalinkTests.Values, cancellationToken);
-			await DbContext.AddRangeAsync(apis.Values, cancellationToken);
-			await DbContext.AddRangeAsync(views.Values, cancellationToken);
-			await DbContext.AddRangeAsync(dashboards.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(hubVariables.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(columnValidations.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(fileFormats.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(connections.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(tables.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(datalinks.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(datajobs.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(datalinkTests.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(apis.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(views.Values, cancellationToken);
+//			await DbContext.AddRangeAsync(dashboards.Values, cancellationToken);
+//
+//			var entries = DbContext.ChangeTracker.Entries()
+//				.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+//			
+//			foreach (var entry in entries)
+//			{
+//				var item = entry.Entity;
+//				var properties = item.GetType().GetProperties();
+//				foreach (var property in properties)
+//				{
+//					foreach (var attrib in property.GetCustomAttributes(true))
+//					{
+//						if (attrib is CopyCollectionKeyAttribute)
+//						{
+//							var value = property.GetValue(item);
+//							if (value != null && value is long valueLong)
+//							{
+//								entry.State = valueLong <= 0 ? EntityState.Added : EntityState.Modified;	
+//							}
+//						}
+//					}
+//				}
+//			}
 
-			var entries = DbContext.ChangeTracker.Entries()
-				.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
-			foreach (var entry in entries)
-			{
-				var item = entry.Entity;
-				var properties = item.GetType().GetProperties();
-				foreach (var property in properties)
-				{
-					foreach (var attrib in property.GetCustomAttributes(true))
-					{
-						if (attrib is CopyCollectionKeyAttribute)
-						{
-							var value = (long) property.GetValue(item);
-							entry.State = value <= 0 ? EntityState.Added : EntityState.Modified;
-						}
-					}
-				}
-			}
-
+			AddItems(DbContext, hubVariables.Values);
+			AddItems(DbContext, columnValidations.Values);
+			AddItems(DbContext, fileFormats.Values);
+			AddItems(DbContext, connections.Values);
+			AddItems(DbContext, tables.Values);
+			AddItems(DbContext, datalinks.Values);
+			AddItems(DbContext, datajobs.Values);
+			AddItems(DbContext, datalinkTests.Values);
+			AddItems(DbContext, apis.Values);
+			AddItems(DbContext, views.Values);
+			AddItems(DbContext, dashboards.Values);
+			
 			await SaveHubChangesAsync(import.HubKey, cancellationToken);
 
 		}
+
+        void ResetKeys(IEnumerable<DexihHubNamedEntity> entities)
+        {
+	        foreach (var entity in entities)
+	        {
+		        entity.Key = 0;
+	        }
+        }
+
+        void AddItems(DbContext dbContext, IEnumerable<object> items)
+        {
+	        foreach (var item in items)
+	        {
+		        if (item is DexihHubNamedEntity entity)
+		        {
+			        if (entity.Key > 0)
+			        {
+				        dbContext.Update(item);
+			        }
+			        else
+			        {
+				        dbContext.Add(item);
+			        }
+		        }
+		        else
+		        {
+			        dbContext.Add(item);
+		        }
+	        }
+        }
 
     }
 	

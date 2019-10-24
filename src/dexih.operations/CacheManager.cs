@@ -1183,6 +1183,10 @@ namespace dexih.operations
 					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.Key))
 					.ToArrayAsync();
 
+				await dbContext.DexihDashboardItems
+					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.DashboardKey))
+					.LoadAsync();
+
 				await dbContext.DexihDashboardParameters
 					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.DashboardKey))
 					.LoadAsync();
