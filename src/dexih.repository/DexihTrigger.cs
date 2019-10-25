@@ -98,13 +98,14 @@ namespace dexih.repository
 
         public ManagedTaskSchedule CreateManagedTaskSchedule()
         {
+            var daysOfWeek = DaysOfWeek?.ToArray() ?? Enum.GetValues(typeof(EDayOfWeek)).Cast<EDayOfWeek>().ToArray();
             var managedTaskSchedule = new ManagedTaskSchedule()
             {
                 Details =  Description,
                 EndDate = null,
                 EndTime = EndTime,
                 IntervalTime =  IntervalTime,
-                DaysOfWeek = DaysOfWeek.ToArray(),
+                DaysOfWeek = daysOfWeek,
                 IntervalType = EIntervalType.Interval,
                 MaxRecurs =  MaxRecurs,
                 SkipDates = null,

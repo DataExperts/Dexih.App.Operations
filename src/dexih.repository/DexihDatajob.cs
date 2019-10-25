@@ -20,8 +20,7 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDatajobParameter>();
         }
 
-        [Key(7)]
-        public EFailAction FailAction { get; set; }
+        [Key(7)] public EFailAction FailAction { get; set; } = EFailAction.Abend;
 
         [Key(8)]
         public long? AuditConnectionKey { get; set; }
