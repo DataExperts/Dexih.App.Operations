@@ -31,16 +31,16 @@ namespace dexih.repository
 	    public long? SourceDatalinkKey { get; set; }
 
         [Key(9)]
-        public int? RowsStartAt { get; set; }
+        public int? RowsStartAt { get; set; } = 1;
 
         [Key(10)]
-        public int? RowsEndAt { get; set; }
+        public int? RowsEndAt { get; set; } = 1;
 
         [Key(11)]
-        public int? RowsIncrement { get; set; }
+        public int? RowsIncrement { get; set; } = 1;
 
-        [Key(12)]
-        public ESourceType SourceType { get; set; }
+        [Key(12)] 
+        public ESourceType SourceType { get; set; } = ESourceType.Table;
 
         [Key(13)]
         public ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }

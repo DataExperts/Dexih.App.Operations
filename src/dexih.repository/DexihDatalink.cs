@@ -39,16 +39,17 @@ namespace dexih.repository
         public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; } = TransformDelta.EUpdateStrategy.Reload;
 
         [Key(10)]
-        public TransformWriterTarget.ETransformWriterMethod LoadStrategy { get; set; }
+        public TransformWriterTarget.ETransformWriterMethod LoadStrategy { get; set; } =
+            TransformWriterTarget.ETransformWriterMethod.Bulk;
 
         [Key(11)]
         public EDatalinkType DatalinkType { get; set; }
 
-        [Key(12)]
-        public int RowsPerCommit { get; set; }
+        [Key(12)] 
+        public int RowsPerCommit { get; set; } = 1000;
 
         [Key(13)]
-        public int RowsPerProgress { get; set; }
+        public int RowsPerProgress { get; set; } = 1000;
 
         [Key(14)]
         public bool RollbackOnFail { get; set; }

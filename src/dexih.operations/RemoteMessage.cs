@@ -3,6 +3,7 @@ using Dexih.Utils.MessageHelpers;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using dexih.functions;
 
 namespace dexih.operations
 {
@@ -108,7 +109,7 @@ namespace dexih.operations
         public string ClientConnectionId { get; set; }
         
         [DataMember(Order = 11)]
-        public string ResponseUrl { get; set; }
+        public DownloadUrl DownloadUrl { get; set; }
 
     }
 
