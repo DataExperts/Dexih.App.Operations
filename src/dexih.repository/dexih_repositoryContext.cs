@@ -170,7 +170,7 @@ namespace dexih.repository
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query")
                     .HasConversion(
                         v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v));
+                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v, true));
 
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
 
@@ -1685,17 +1685,17 @@ namespace dexih.repository
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query")
                     .HasConversion(
                         v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v));
+                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v, true));
                 
                 entity.Property(e => e.ChartConfig).HasColumnName("chart_config")
                     .HasConversion(
                         v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<ChartConfig>(v));
+                        v => v == null ? null : JsonExtensions.Deserialize<ChartConfig>(v, true));
                 
                 entity.Property(e => e.InputValues).HasColumnName("input_values")
                     .HasConversion(
                         v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<InputColumn[]>(v));
+                        v => v == null ? null : JsonExtensions.Deserialize<InputColumn[]>(v, true));
 
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
 

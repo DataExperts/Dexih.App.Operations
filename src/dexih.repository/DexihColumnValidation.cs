@@ -59,10 +59,10 @@ namespace dexih.repository
                 }
                 else
                 {
-                    return JsonSerializer.Deserialize<string[]>(ListOfValuesString);
+                    return ListOfValuesString.Deserialize<string[]>(true);
                 }
             }
-            set => ListOfValuesString = JsonSerializer.Serialize(value);
+            set => ListOfValuesString = value.Serialize();
         }
         
         [JsonIgnore]
@@ -80,10 +80,10 @@ namespace dexih.repository
                 }
                 else
                 {
-                    return JsonSerializer.Deserialize<string[]>(ListOfNotValuesString);
+                    return ListOfNotValuesString.Deserialize<string[]>(true);
                 }
             }
-            set => ListOfNotValuesString = JsonSerializer.Serialize(value);
+            set => ListOfNotValuesString = value.Serialize();
         }
         
         [JsonIgnore]

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
 
@@ -44,7 +45,7 @@ namespace dexih.repository
                 }
                 else
                 {
-                    return JsonSerializer.Deserialize<string[]>(IpAddressesString);
+                    return IpAddressesString.Deserialize<string[]>(true);
                 }
             }
             set
@@ -53,8 +54,9 @@ namespace dexih.repository
                 {
                     IpAddressesString = null;
                 }
-                else {
-                    IpAddressesString = JsonSerializer.Serialize(value);
+                else
+                {
+                    IpAddressesString = value.Serialize();
                 }
             }
         }

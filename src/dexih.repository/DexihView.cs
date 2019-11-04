@@ -19,8 +19,8 @@ namespace dexih.repository
 
 
 
-        [Key(7)]
-        public EViewType ViewType { get; set; }
+        [Key(7)] 
+        public EViewType ViewType { get; set; } = EViewType.Table;
 
         [Key(8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]

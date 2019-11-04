@@ -3,7 +3,6 @@ using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
 using Newtonsoft.Json;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace dexih.repository
 {
@@ -30,7 +29,7 @@ namespace dexih.repository
                 }
                 else
                 {
-                    return JsonSerializer.Deserialize<string[]>(ListOfValuesString);
+                    return ListOfValuesString.Deserialize<string[]>(true);
                 }
             }
             set
@@ -41,7 +40,7 @@ namespace dexih.repository
                 }
                 else
                 {
-                    ListOfValuesString = JsonSerializer.Serialize(value);
+                    ListOfValuesString = value.Serialize();
                 }
             }
         }
