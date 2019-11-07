@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using dexih.functions;
-
-
-using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.DataType;
 using MessagePack;
@@ -116,5 +110,14 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihTableColumn> DexihColumnValidationColumn {get; set;}
         
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var column in DexihColumnValidationColumn)
+            {
+                column.ResetKeys();
+            }
+        }
     }
 }

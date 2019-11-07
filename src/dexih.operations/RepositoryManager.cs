@@ -9,23 +9,17 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using static dexih.functions.TableColumn;
 using Microsoft.Extensions.Logging;
-using static Dexih.Utils.DataType.DataType;
 using Dexih.Utils.CopyProperties;
 using System.Threading;
 using dexih.operations.Extensions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
-using Dexih.Utils.ManagedTasks;
 using Microsoft.AspNetCore.Identity;
-
 
 namespace dexih.operations
 {
-
-
-
-    /// <summary>
+	/// <summary>
     /// Provides an interface to retrieve and save to the database repository.
     /// </summary>
     public class RepositoryManager : IDisposable
@@ -73,10 +67,10 @@ namespace dexih.operations
 
 
 
-		public Task<ApplicationUser> GetUser(ClaimsPrincipal principal, CancellationToken cancellationToken)
+		public Task<ApplicationUser> GetUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
 		{
 			var id = _userManager.GetUserId(principal);
-			return GetUser(id, cancellationToken);
+			return GetUserAsync(id, cancellationToken);
 		}
 
 		public Task<ApplicationUser> FindByEmailAsync(string email)
@@ -84,7 +78,7 @@ namespace dexih.operations
 			return _userManager.FindByEmailAsync(email);
 		}
 
-		private async Task AddUserRole(ApplicationUser user, CancellationToken cancellationToken)
+		private async Task AddUserRoleAsync(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			var roles = await _userManager.GetRolesAsync(user);
 			if (roles.Contains(AdministratorRole)) user.UserRole = EUserRole.Administrator;
@@ -94,7 +88,7 @@ namespace dexih.operations
 			else user.UserRole = EUserRole.None;
 		}
 		
-		public async Task<ApplicationUser> GetUser(string id, CancellationToken cancellationToken)
+		public async Task<ApplicationUser> GetUserAsync(string id, CancellationToken cancellationToken)
 		{
 			var user = await _userManager.FindByIdAsync(id);
 			if (user == null)
@@ -102,12 +96,12 @@ namespace dexih.operations
 				throw new RepositoryManagerException($"The user could not be found.");
 			}
 
-			await AddUserRole(user, cancellationToken);
+			await AddUserRoleAsync(user, cancellationToken);
 
 			return user;
 		}
 
-		public async Task<ApplicationUser> GetUserFromEmail(string email, CancellationToken cancellationToken)
+		public async Task<ApplicationUser> GetUserFromEmailAsync(string email, CancellationToken cancellationToken)
 		{
 			var user = await _userManager.FindByEmailAsync(email);
 
@@ -116,11 +110,11 @@ namespace dexih.operations
 				return null;
 			}
 
-			await AddUserRole(user, cancellationToken);
+			await AddUserRoleAsync(user, cancellationToken);
 			return user;
 		}
 
-		public async Task<UserModel> GetUserModel(string email, CancellationToken cancellationToken)
+		public async Task<UserModel> GetUserModelAsync(string email, CancellationToken cancellationToken)
 		{
 			var user = await _userManager.FindByEmailAsync(email);
 
@@ -135,7 +129,7 @@ namespace dexih.operations
 			return userModel;
 		}
 
-		public async Task<ApplicationUser> GetUserFromLogin(string provider, string providerKey, CancellationToken cancellationToken)
+		public async Task<ApplicationUser> GetUserFromLoginAsync(string provider, string providerKey, CancellationToken cancellationToken)
 		{
 			var user = await _userManager.FindByLoginAsync(provider, providerKey);
 
@@ -143,7 +137,7 @@ namespace dexih.operations
 			{
 				return null;
 			}
-			await AddUserRole(user, cancellationToken);
+			await AddUserRoleAsync(user, cancellationToken);
 
 			return user;
 		}
@@ -200,8 +194,8 @@ namespace dexih.operations
 		public async Task RemoveLoginAsync(ApplicationUser user, string provider, string providerKey, CancellationToken cancellationToken) => ThrowIdentityResult("remove user login", await _userManager.RemoveLoginAsync(user, provider, providerKey));
 		public Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user, CancellationToken cancellationToken) => _userManager.GeneratePasswordResetTokenAsync(user);
 		public Task<bool> VerifyUserTokenAsync(ApplicationUser user, string remoteAgentId, string token, CancellationToken cancellationToken) => _userManager.VerifyUserTokenAsync(user, RemoteAgentProvider, remoteAgentId, token);
-		public Task<string> GenerateRemoteUserToken(ApplicationUser user, string remoteAgentId, CancellationToken cancellationToken) => _userManager.GenerateUserTokenAsync(user, RemoteAgentProvider, remoteAgentId);
-		public Task<IdentityResult> RemoveRemoteUserToken(ApplicationUser user, string remoteAgentId, CancellationToken cancellationToken) => _userManager.RemoveAuthenticationTokenAsync(user, RemoteAgentProvider, remoteAgentId);
+		public Task<string> GenerateRemoteUserTokenAsync(ApplicationUser user, string remoteAgentId, CancellationToken cancellationToken) => _userManager.GenerateUserTokenAsync(user, RemoteAgentProvider, remoteAgentId);
+		public Task<IdentityResult> RemoveRemoteUserTokenAsync(ApplicationUser user, string remoteAgentId, CancellationToken cancellationToken) => _userManager.RemoveAuthenticationTokenAsync(user, RemoteAgentProvider, remoteAgentId);
 		public async Task ResetPasswordAsync(ApplicationUser user, string code, string password, CancellationToken cancellationToken) => ThrowIdentityResult("reset password", await _userManager.ResetPasswordAsync(user, code, password));
 		public async Task ChangePasswordAsync(ApplicationUser user, string password, string newPassword, CancellationToken cancellationToken) => ThrowIdentityResult("change password", await _userManager.ChangePasswordAsync(user, password, newPassword));
 		public async Task DeleteUserAsync(ApplicationUser user, CancellationToken cancellationToken) => ThrowIdentityResult("delete user", await _userManager.DeleteAsync(user));
@@ -240,9 +234,9 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="userId"></param>
 		/// <param name="cancellationToken"></param>
-		public Task ResetUserCache(string userId, CancellationToken cancellationToken)
+		public Task ResetUserCacheAsync(string userId, CancellationToken cancellationToken)
 		{
-			return ResetCache(CacheKeys.UserHubs(userId), cancellationToken);
+			return ResetCacheAsync(CacheKeys.UserHubs(userId), cancellationToken);
 		}
 
 		/// <summary>
@@ -250,9 +244,9 @@ namespace dexih.operations
 		/// </summary>
 		/// <param name="hubKey"></param>
 		/// <param name="cancellationToken"></param>
-		public Task ResetHubCache(long hubKey, CancellationToken cancellationToken)
+		public Task ResetHubCacheAsync(long hubKey, CancellationToken cancellationToken)
 		{
-			return ResetCache(CacheKeys.Hub(hubKey), cancellationToken);
+			return ResetCacheAsync(CacheKeys.Hub(hubKey), cancellationToken);
 		}
 
 		/// <summary>
@@ -261,7 +255,7 @@ namespace dexih.operations
 		/// <param name="key"></param>
 		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
-		public Task ResetCache(string key, CancellationToken cancellationToken)
+		public Task ResetCacheAsync(string key, CancellationToken cancellationToken)
 		{
 			return _cacheService.Reset(key, cancellationToken);
 		}
@@ -280,12 +274,12 @@ namespace dexih.operations
 			var tasks = new List<Task>();
 			foreach (var hubUser in hubUsers)
 			{
-				tasks.Add(ResetUserCache(hubUser.Id, cancellationToken));
+				tasks.Add(ResetUserCacheAsync(hubUser.Id, cancellationToken));
 			}
 			
-			tasks.Add(ResetCache(CacheKeys.AdminHubs, cancellationToken));
-			tasks.Add(ResetCache(CacheKeys.HubUserIds(hubKey), cancellationToken));
-			tasks.Add(ResetCache(CacheKeys.HubUsers(hubKey), cancellationToken));
+			tasks.Add(ResetCacheAsync(CacheKeys.AdminHubs, cancellationToken));
+			tasks.Add(ResetCacheAsync(CacheKeys.HubUserIds(hubKey), cancellationToken));
+			tasks.Add(ResetCacheAsync(CacheKeys.HubUsers(hubKey), cancellationToken));
 
 			await Task.WhenAll(tasks.ToArray());
 		}
@@ -627,6 +621,19 @@ namespace dexih.operations
 
 	        foreach (var entity in entities)
 	        {
+		        // if the hub entity is 0, reset all the dependent child keys to zero to ensure
+		        // keys from existing objects are not overwritten.
+		        if (entity.Entity is DexihHubNamedEntity hubNamedEntity1)
+		        {
+			        if (hubNamedEntity1.Key <= 0)
+			        {
+				        hubNamedEntity1.ResetKeys();
+			        }
+		        }
+	        }
+
+	        foreach (var entity in entities)
+	        {
 		        // other entries.  If the key value <=0 modify the state to added, otherwise modify existing entity.
 		        var item = entity.Entity;
 		        var properties = item.GetType().GetProperties();
@@ -668,14 +675,14 @@ namespace dexih.operations
 			        if (entity.Entity is DexihHubEntity hubEntity)
 			        {
 				        hubEntity.HubKey = hubKey;
-				        
+
 				        // check hubkey hasn't changed since original.  This could impact an entity in another hub and causes an immediate stop.
 				        if (!Equals(originalValues[nameof(DexihHubEntity.HubKey)], hubEntity.HubKey))
 				        {
-					        if (hubEntity is DexihHubNamedEntity hubNamedEntity)
+					        if (hubEntity is DexihHubNamedEntity hubNamedEntity2)
 					        {
 						        throw new SecurityException(
-							        $"The hubKey on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}, key: {hubNamedEntity.Key}, name: {hubNamedEntity.Name}.");
+							        $"The hubKey on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}, key: {hubNamedEntity2.Key}, name: {hubNamedEntity2.Name}.");
 					        }
 					        else
 					        {
@@ -854,7 +861,7 @@ namespace dexih.operations
 			{
 				if (hub.HubKey > 0 && !user.IsAdmin)
 				{
-					var permission = await ValidateHub(user, hub.HubKey, cancellationToken);
+					var permission = await ValidateHubAsync(user, hub.HubKey, cancellationToken);
 
 					if(permission != EPermission.Owner)
 					{
@@ -894,7 +901,7 @@ namespace dexih.operations
 				
                 //save the hub to generate a hub key.
                 await DbContext.SaveChangesAsync(cancellationToken);
-				await ResetHubCache(hub.HubKey, cancellationToken);
+				await ResetHubCacheAsync(hub.HubKey, cancellationToken);
 				await ResetHubPermissions(hub.HubKey, cancellationToken);
 
 				// if new hub, then update with current user, and update the quota.
@@ -934,11 +941,11 @@ namespace dexih.operations
 
 					dbHub.IsValid = false;
 
-					await ResetHubCache(dbHub.HubKey, cancellationToken);
+					await ResetHubCacheAsync(dbHub.HubKey, cancellationToken);
 					await ResetHubPermissions(dbHub.HubKey, cancellationToken);
 				}
 				
-				await ResetUserCache(user.Id, cancellationToken);
+				await ResetUserCacheAsync(user.Id, cancellationToken);
 				await DbContext.SaveChangesAsync(cancellationToken);
 				
 
@@ -978,7 +985,7 @@ namespace dexih.operations
 		                userHub.IsValid = true;
 	                }
 
-	                await ResetUserCache(userId, cancellationToken);
+	                await ResetUserCacheAsync(userId, cancellationToken);
                     await DbContext.SaveChangesAsync(cancellationToken);
                 }
 	            
@@ -999,7 +1006,7 @@ namespace dexih.operations
 	            foreach (var userHub in usersHub)
 	            {
 		            userHub.IsValid = false;
-		            await ResetUserCache(userHub.UserId, cancellationToken);
+		            await ResetUserCacheAsync(userHub.UserId, cancellationToken);
 	            }
 	            await DbContext.SaveChangesAsync(cancellationToken);
 	            await ResetHubPermissions(hubKey, cancellationToken);
@@ -1013,14 +1020,14 @@ namespace dexih.operations
         #endregion
 
         #region Encrypt Functions
-        public async Task<string> DecryptString(long hubKey, string value, CancellationToken cancellationToken)
+        public async Task<string> DecryptStringAsync(long hubKey, string value, CancellationToken cancellationToken)
 		{
 			var key = await GetHubEncryptionKey(hubKey, cancellationToken);
 			var decryptResult = Dexih.Utils.Crypto.EncryptString.Decrypt(value, key, 1000);
 			return decryptResult;
 		}
 
-		public async Task<string> EncryptString(long hubKey, string value, CancellationToken cancellationToken)
+		public async Task<string> EncryptStringAsync(long hubKey, string value, CancellationToken cancellationToken)
 		{
 			var key = await GetHubEncryptionKey(hubKey, cancellationToken);
 			var encryptResult = Dexih.Utils.Crypto.EncryptString.Encrypt(value, key, 1000);
@@ -1039,7 +1046,7 @@ namespace dexih.operations
 		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
 		/// <exception cref="ApplicationUserException"></exception>
-		public Task<EPermission> ValidateHub(ApplicationUser user, long hubKey, CancellationToken cancellationToken)
+		public Task<EPermission> ValidateHubAsync(ApplicationUser user, long hubKey, CancellationToken cancellationToken)
 		{
 			var validate = _cacheService.GetOrCreateAsync(CacheKeys.UserHubPermission(user.Id, hubKey), TimeSpan.FromMinutes(1),  async () =>
 			{
@@ -1281,6 +1288,7 @@ namespace dexih.operations
 					if (table.Key <= 0)
 					{
 						dbTable = new DexihTable();
+						table.ResetKeys();
 						table.CopyProperties(dbTable, false);
 						DbContext.DexihTables.Add(dbTable);
 						savedTables.Add(dbTable);
@@ -2066,6 +2074,7 @@ namespace dexih.operations
 						datajob.Key = 0;
 						// var newDatajob = new DexihDatajob();
 						// datajob.CopyProperties(newDatajob, false);
+						datajob.ResetKeys();
 						DbContext.DexihDatajobs.Add(datajob);
 						savedDatajobs.Add(datajob);
 					}
@@ -2078,6 +2087,7 @@ namespace dexih.operations
 						{
 							datajob.Key = 0;
 							var newDatajob = new DexihDatajob();
+							datajob.ResetKeys();
 							datajob.CopyProperties(newDatajob, false);
 							DbContext.DexihDatajobs.Add(newDatajob);
 							savedDatajobs.Add(datajob);
@@ -2640,6 +2650,7 @@ namespace dexih.operations
 				else
 				{
 					dbColumnValidation = new DexihColumnValidation();
+					validation.ResetKeys();
 					validation.CopyProperties(dbColumnValidation, true);
 					DbContext.DexihColumnValidations.Add(dbColumnValidation);
 				}
@@ -2711,6 +2722,7 @@ namespace dexih.operations
 				}
 				else
 				{
+					function.ResetKeys();
 					dbFunction = function.CloneProperties<DexihCustomFunction>(false);
 					DbContext.DexihCustomFunctions.Add(dbFunction);
 				}
@@ -2788,6 +2800,7 @@ namespace dexih.operations
 				else
 				{
 					dbFileFormat = new DexihFileFormat();
+					fileformat.ResetKeys();
 					fileformat.CopyProperties(dbFileFormat, true);
 					DbContext.DexihFileFormats.Add(dbFileFormat);
 				}
@@ -2858,6 +2871,7 @@ namespace dexih.operations
                 else
                 {
                     dbHubHubVariable = new DexihHubVariable();
+                    hubHubVariable.ResetKeys();
                     hubHubVariable.CopyProperties(dbHubHubVariable, true);
                     DbContext.DexihHubVariables.Add(dbHubHubVariable);
                 }
@@ -2928,6 +2942,7 @@ namespace dexih.operations
                 else
                 {
                     dbView = new DexihView();
+                    view.ResetKeys();
                     view.CopyProperties(dbView, true);
                     DbContext.DexihViews.Add(dbView);
                 }
@@ -3004,6 +3019,7 @@ namespace dexih.operations
                 else
                 {
                     dbDashboard = new DexihDashboard();
+                    dashboard.ResetKeys();
                     dashboard.CopyProperties(dbDashboard, false);
                     DbContext.DexihDashboards.Add(dbDashboard);
                 }
@@ -3073,6 +3089,7 @@ namespace dexih.operations
                 else
                 {
                     dbApi = new DexihApi();
+                    api.ResetKeys();
                     api.CopyProperties(dbApi, true);
                     DbContext.DexihApis.Add(dbApi);
                 }
@@ -3143,6 +3160,7 @@ namespace dexih.operations
                 else
                 {
 	                dbDatalinkTest = new DexihDatalinkTest();
+	                datalinkTest.ResetKeys();
 	                datalinkTest.CopyProperties(dbDatalinkTest, false);
                     DbContext.DexihDatalinkTests.Add(dbDatalinkTest);
                 }

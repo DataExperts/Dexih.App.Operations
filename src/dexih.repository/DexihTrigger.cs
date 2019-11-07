@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using System.Text.Json.Serialization;
-using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.ManagedTasks;
 using MessagePack;
@@ -116,6 +113,11 @@ namespace dexih.repository
             };
 
             return managedTaskSchedule;
+        }
+        
+        public override void ResetKeys()
+        {
+            Key = 0;
         }
         
     }

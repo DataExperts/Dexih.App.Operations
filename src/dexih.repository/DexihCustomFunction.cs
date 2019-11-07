@@ -41,5 +41,14 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemCustomFunction { get; set; }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var parameter in DexihCustomFunctionParameters)
+            {
+                parameter.ResetKeys();
+            }
+        }
     }
 }

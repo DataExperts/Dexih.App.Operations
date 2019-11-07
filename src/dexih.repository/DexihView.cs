@@ -60,6 +60,15 @@ namespace dexih.repository
         [Key(16)]
         public ICollection<DexihViewParameter> Parameters { get; set; }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var parameter in Parameters)
+            {
+                parameter.ResetKeys();
+            }
+        }
     }
 
 }

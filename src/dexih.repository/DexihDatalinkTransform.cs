@@ -78,6 +78,21 @@ namespace dexih.repository
         [Key(23)]
         public long MaxOutputRows { get; set; } = 0;
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            JoinDatalinkTable?.ResetKeys();
+            JoinSortDatalinkColumn?.ResetKeys();
+            NodeDatalinkColumn?.ResetKeys();
+            
+            
+            foreach (var item in DexihDatalinkTransformItems)
+            {
+                item.ResetKeys();
+            }
+        }
+        
         /// <summary>
         /// Gets all the mapped output columns for this transform.
         /// </summary>

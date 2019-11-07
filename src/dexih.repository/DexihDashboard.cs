@@ -1,5 +1,6 @@
 using MessagePack;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace dexih.repository
 {
@@ -35,5 +36,20 @@ namespace dexih.repository
 
         [Key(14)]
         public ICollection<DexihDashboardParameter> Parameters { get; set; }
+        
+        public override void ResetKeys()
+        {
+            Key = 0;
+
+            foreach (var item in DexihDashboardItems)
+            {
+                item.ResetKeys();
+            }
+            
+            foreach (var parameter in Parameters)
+            {
+                parameter.ResetKeys();
+            }
+        }
     }
 }

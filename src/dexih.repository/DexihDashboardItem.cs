@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 
@@ -45,8 +46,18 @@ namespace dexih.repository
         [Key(15)]
         public ICollection<DexihDashboardItemParameter> Parameters { get; set; }
         
+       
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDashboard Dashboard { get; set; }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var parameter in Parameters)
+            {
+                parameter.ResetKeys();
+            }
+        }
     }
 }

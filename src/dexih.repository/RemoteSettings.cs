@@ -5,7 +5,6 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using dexih.functions;
 using Microsoft.Extensions.Logging;

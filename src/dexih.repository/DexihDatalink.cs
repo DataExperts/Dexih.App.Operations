@@ -14,10 +14,7 @@ namespace dexih.repository
     [MessagePackObject]
     public partial class DexihDatalink : DexihHubNamedEntity
     {
-
-
-
-
+        
         public DexihDatalink()
         {
             DexihDatalinkProfiles = new HashSet<DexihDatalinkProfile>();
@@ -104,6 +101,33 @@ namespace dexih.repository
 	    [JsonIgnore, IgnoreMember, CopyReference]
         public DexihConnection AuditConnection { get; set; }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var parameter in Parameters)
+            {
+                parameter.ResetKeys();
+            }
+
+            foreach (var transform in DexihDatalinkTransforms)
+            {
+                transform.ResetKeys();
+            }
+
+            foreach (var profile in DexihDatalinkProfiles)
+            {
+                profile.ResetKeys();
+            }
+
+            foreach (var target in DexihDatalinkTargets)
+            {
+                target.ResetKeys();
+            }
+
+            SourceDatalinkTable.ResetKeys();
+        }
+        
         public void UpdateParameters(InputParameters inputParameters)
         {
             if (inputParameters == null || inputParameters.Count == 0 || Parameters == null || Parameters.Count == 0)
@@ -236,7 +260,7 @@ namespace dexih.repository
 
             //flatten the datalink outputs into one table, removing any duplicate names.
             var columns = new Dictionary<string, DexihDatalinkColumn>();
-            foreach (var t in outputTables)
+            foreach (var t in outputTables.Where(c => c != null))
             {
                 foreach (var c in t.DexihDatalinkColumns)
                 {

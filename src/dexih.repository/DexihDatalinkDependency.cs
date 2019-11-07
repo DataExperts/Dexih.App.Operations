@@ -21,6 +21,10 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihDatalinkStep DependentDatalinkStep { get; set; }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
 
     }
 }

@@ -155,6 +155,20 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
+        public override void ResetKeys()
+        {
+	        Key = 0;
+	        SourceDatalinkColumn?.ResetKeys();
+	        TargetDatalinkColumn?.ResetKeys();
+	        JoinDatalinkColumn?.ResetKeys();
+	        FilterDatalinkColumn?.ResetKeys();
+            
+	        foreach (var parameter in DexihFunctionParameters)
+	        {
+		        parameter.ResetKeys();
+	        }
+        }
+        
 		private Parameter ConvertParameter(DexihFunctionParameterBase parameter, EParameterDirection direction)
 		{
 

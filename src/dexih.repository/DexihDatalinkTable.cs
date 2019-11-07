@@ -57,6 +57,15 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
+        public override void ResetKeys()
+        {
+	        Key = 0;
+            
+	        foreach (var column in DexihDatalinkColumns)
+	        {
+		        column.ResetKeys();
+	        }
+        }
 
         /// <summary>
         /// Converts the datalinkTable to a base "Table" class.

@@ -1,7 +1,5 @@
-﻿using dexih.functions;
-using Dexih.Utils.DataType;
+﻿using Dexih.Utils.DataType;
 using MessagePack;
-using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
@@ -34,5 +32,9 @@ namespace dexih.repository
                                   Direction == EParameterDirection.ReturnValue ||
                                   Direction == EParameterDirection.ResultReturnValue;
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
     }
 }

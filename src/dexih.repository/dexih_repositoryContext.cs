@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
-using System.Collections.Generic;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
@@ -11,7 +9,6 @@ using dexih.functions.Query;
 using dexih.transforms;
 using dexih.transforms.Mapping;
 using Dexih.Utils.DataType;
-using Dexih.Utils.ManagedTasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 

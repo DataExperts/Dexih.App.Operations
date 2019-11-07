@@ -24,6 +24,11 @@ namespace dexih.repository
         [Key(10)]
         public bool IsEnvironmentVariable { get; set; }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
+        
         public string GetValue(string key, int iterations)
         {
             string value;

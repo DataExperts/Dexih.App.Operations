@@ -13,5 +13,15 @@ namespace dexih.repository
 
         [Key(8)]
         public ICollection<DexihDatalinkTestStep> DexihDatalinkTestSteps { get; set; }
+        
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var step in DexihDatalinkTestSteps)
+            {
+                step.ResetKeys();
+            }
+        }
     }
 }

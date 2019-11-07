@@ -2,8 +2,6 @@
 using dexih.functions;
 using Dexih.Utils.DataType;
 using MessagePack;
-using static dexih.functions.TableColumn;
-using static Dexih.Utils.DataType.DataType;
 
 namespace dexih.repository
 {
@@ -132,6 +130,11 @@ namespace dexih.repository
             return false;
         }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
+        
         public InputColumn ToInputColumn()
         {
             return new InputColumn()

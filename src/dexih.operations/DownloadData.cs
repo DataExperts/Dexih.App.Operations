@@ -8,6 +8,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using dexih.functions;
 
 namespace dexih.operations
 {
@@ -54,71 +55,50 @@ namespace dexih.operations
                     Transform transform = null;
                     var name = "";
 
-                    if (downloadObject.ObjectType == EDataObjectType.Table)
+                    switch (downloadObject.ObjectType)
                     {
-                        var dbTable = Cache.Hub.DexihTables.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                        case EDataObjectType.Table:
+                            (transform, name) = await GetTableTransform(downloadObject.ObjectKey, downloadObject.InputColumns,
+                                downloadObject.Query, cancellationToken);
 
-                        if (dbTable != null)
-                        {
-                            var dbConnection = Cache.Hub.DexihConnections.SingleOrDefault( c => c.Key == dbTable.ConnectionKey);
-                            var connection = dbConnection.GetConnection(TransformSettings);
-                            var table = dbTable.GetTable(Cache.Hub, connection, downloadObject.InputColumns,
-                                TransformSettings);
-                            name = table.Name;
-
-                            if (downloadObject.InputColumns != null)
+                            break;
+                        case EDataObjectType.Datalink:
+                            (transform, name) = await GetDatalinkTransform(downloadObject.ObjectKey, downloadObject.DatalinkTransformKey,
+                                downloadObject.InputColumns, downloadObject.Query, cancellationToken);
+                            break;
+                        case EDataObjectType.View:
+                            var dbView = Cache.Hub.DexihViews.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                            if (dbView != null)
                             {
-                                foreach (var inputColumn in downloadObject.InputColumns)
+                                name = dbView.Name;
+                                switch (dbView.SourceType)
                                 {
-                                    var column = table.Columns.SingleOrDefault(c => c.Name == inputColumn.Name);
-                                    if (column != null)
-                                    {
-                                        column.DefaultValue = inputColumn.Value;
-                                    }
+                                    case EDataObjectType.Table:
+                                        (transform, _) = await GetTableTransform(dbView.SourceTableKey.Value, dbView.InputValues,
+                                            dbView.SelectQuery, cancellationToken);
+                                        break;
+                                        case EDataObjectType.Datalink:
+                                            (transform, _) = await GetDatalinkTransform(dbView.SourceDatalinkKey.Value, null, dbView.InputValues,
+                                                dbView.SelectQuery, cancellationToken);
+                                            break;
+                                        default:
+                                            throw new ArgumentOutOfRangeException();
+                                            
                                 }
                             }
-
-                            transform = connection.GetTransformReader(table, true);
-                            transform = new TransformQuery(transform, downloadObject.Query) {Name = "Stream Query"} ;
-                            var openResult = await transform.Open(0, null, cancellationToken);
-                            if (!openResult)
+                            else
                             {
-                                throw new DownloadDataException(
-                                    $"The connection {connection.Name} with table {table.Name} failed to open for reading.");
+                                throw new DownloadDataException($"The view with key {downloadObject.ObjectKey} could not be found in the cache.");
+                               
                             }
-
-                            transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields,
-                                Cache.CacheEncryptionKey);
-                        }
+                            
+                            
+                            
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
-                    else
-                    {
-                        var dbDatalink = Cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
 
-                        if (dbDatalink == null)
-                        {
-                            throw new DownloadDataException($"The datalink with key {downloadObject.ObjectKey} could not be found in the cache.");
-                        }
-
-                        var transformWriterOptions = new TransformWriterOptions()
-                        {
-                            PreviewMode = true
-                        };
-                        
-                        //Get the last Transform that will load the target table.
-                        var runPlan = transformManager.CreateRunPlan(Cache.Hub, dbDatalink, downloadObject.InputColumns, downloadObject.DatalinkTransformKey, null, transformWriterOptions);
-                        transform = runPlan.sourceTransform;
-                        var openReturn = await transform.Open(0, null, cancellationToken);
-                        if (!openReturn)
-                        {
-                            throw new DownloadDataException($"The datalink {dbDatalink.Name} failed to open for reading.");
-                        }
-
-                        transform.SetCacheMethod(ECacheMethod.DemandCache);
-                        transform.SetEncryptionMethod(EEncryptionMethod.MaskSecureFields, "");
-
-                        name = dbDatalink.Name;
-                    }
 
                     Stream fileStream = null;
 
@@ -175,6 +155,85 @@ namespace dexih.operations
             }
         }
 
+        private async Task<(Transform transform, string name)> GetTableTransform(long key, InputColumn[] inputColumns, SelectQuery selectQuery, CancellationToken cancellationToken)
+        {
+            var dbTable = Cache.Hub.DexihTables.SingleOrDefault(c => c.Key == key);
+
+            if (dbTable != null)
+            {
+                var dbConnection =
+                    Cache.Hub.DexihConnections.SingleOrDefault(c => c.Key == dbTable.ConnectionKey);
+                var connection = dbConnection.GetConnection(TransformSettings);
+                var table = dbTable.GetTable(Cache.Hub, connection, inputColumns,
+                    TransformSettings);
+
+                if (inputColumns != null)
+                {
+                    foreach (var inputColumn in inputColumns)
+                    {
+                        var column = table.Columns.SingleOrDefault(c => c.Name == inputColumn.Name);
+                        if (column != null)
+                        {
+                            column.DefaultValue = inputColumn.Value;
+                        }
+                    }
+                }
+
+                var transform = connection.GetTransformReader(table, true);
+                transform = new TransformQuery(transform, selectQuery) {Name = "Stream Query"};
+                var openResult = await transform.Open(0, null, cancellationToken);
+                if (!openResult)
+                {
+                    throw new DownloadDataException(
+                        $"The connection {connection.Name} with table {table.Name} failed to open for reading.");
+                }
+
+                transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields,
+                    Cache.CacheEncryptionKey);
+
+                return (transform, table.Name);
+            }
+            
+            throw new DownloadDataException(
+                $"The table with key {key} could not be found in the cache.");
+        }
+
+        private async Task<(Transform transform, string name)> GetDatalinkTransform(long key, long? datalinkTransformKey, InputColumn[] inputColumns, SelectQuery selectQuery, CancellationToken cancellationToken)
+        {
+            var dbDatalink =
+                Cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == key);
+
+            if (dbDatalink == null)
+            {
+                throw new DownloadDataException(
+                    $"The datalink with key {key} could not be found in the cache.");
+            }
+
+            var transformWriterOptions = new TransformWriterOptions()
+            {
+                PreviewMode = true
+            };
+
+            var transformManager = new TransformsManager(TransformSettings);
+            
+            //Get the last Transform that will load the target table.
+            var runPlan = transformManager.CreateRunPlan(Cache.Hub, dbDatalink,
+                inputColumns, datalinkTransformKey, null,
+                transformWriterOptions);
+            var transform = runPlan.sourceTransform;
+            var openReturn = await transform.Open(0, null, cancellationToken);
+            if (!openReturn)
+            {
+                throw new DownloadDataException(
+                    $"The datalink {dbDatalink.Name} failed to open for reading.");
+            }
+
+            transform.SetCacheMethod(ECacheMethod.DemandCache);
+            transform.SetEncryptionMethod(EEncryptionMethod.MaskSecureFields, "");
+
+            return (transform, dbDatalink.Name);
+        }
+        
         [MessagePackObject]
         public class DownloadObject
         {

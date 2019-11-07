@@ -3,7 +3,6 @@
 using MessagePack;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using dexih.functions;
 
 namespace dexih.repository
 {
@@ -34,7 +33,7 @@ namespace dexih.repository
     [Union(24, typeof(DexihTable))]
     [Union(25, typeof(DexihTrigger))]
     [Union(26, typeof(DexihView))]
-    public class DexihHubNamedEntity : DexihHubEntity
+    public abstract class DexihHubNamedEntity : DexihHubEntity
     {
         [Key(4)]
         [CopyCollectionKey((long)0, true)]
@@ -50,5 +49,8 @@ namespace dexih.repository
 
         [JsonIgnore, CopyIgnore, NotMapped, IgnoreMember]
         public virtual long ParentKey => 0;
+
+        public abstract void ResetKeys();
+
     }
 }

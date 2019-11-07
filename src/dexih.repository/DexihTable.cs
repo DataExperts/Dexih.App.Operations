@@ -9,7 +9,6 @@ using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
 using dexih.transforms;
 using Dexih.Utils.DataType;
-using static Dexih.Utils.DataType.DataType;
 using MessagePack;
 
 namespace dexih.repository
@@ -178,6 +177,16 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, NotMapped, IgnoreMember]
         public override long ParentKey => ConnectionKey;
 
+        public override void ResetKeys()
+        {
+	        Key = 0;
+            
+	        foreach (var column  in DexihTableColumns)
+	        {
+		        column .ResetKeys();
+	        }
+        }
+        
 	    public Table GetTable(DexihHub hub, Connection connection, TransformSettings transformSettings)
 	    {
 		    return GetTable(hub, connection, (InputColumn[]) null, transformSettings);

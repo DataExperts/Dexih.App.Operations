@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
-
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
@@ -86,6 +83,10 @@ namespace dexih.repository
         public ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
 
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
 
         public string GetPassword(string key, int iterations)
         {

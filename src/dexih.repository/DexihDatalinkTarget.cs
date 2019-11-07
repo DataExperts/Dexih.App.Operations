@@ -31,5 +31,10 @@ namespace dexih.repository
         
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalink Datalink { get; set; }
+        
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
     }
 }

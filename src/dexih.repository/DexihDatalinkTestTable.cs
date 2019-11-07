@@ -53,5 +53,10 @@ namespace dexih.repository
         
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihDatalinkTestStep DatalinkTestStep { get; set; }
+        
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
     }
 }

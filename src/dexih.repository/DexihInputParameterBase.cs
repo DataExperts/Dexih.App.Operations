@@ -1,4 +1,3 @@
-using dexih.functions;
 using MessagePack;
 
 namespace dexih.repository
@@ -18,5 +17,10 @@ namespace dexih.repository
     {
         [Key(7)]
         public string Value { get; set; }
+        
+        public override void ResetKeys()
+        {
+            Key = 0;
+        }
     }
 }

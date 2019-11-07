@@ -54,6 +54,26 @@ namespace dexih.repository
         [Key(13)]
         public ICollection<DexihDatajobParameter> Parameters { get; set; }
 
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var parameter in Parameters)
+            {
+                parameter.ResetKeys();
+            }
+
+            foreach (var step in DexihDatalinkSteps)
+            {
+                step.ResetKeys();
+            }
+
+            foreach (var trigger in DexihTriggers)
+            {
+                trigger.ResetKeys();
+            }
+        }
+        
         public DexihDatalinkStep GetDatalinkStep(long datalinkStepKey) => DexihDatalinkSteps.SingleOrDefault(step => step.Key == datalinkStepKey);
         public DexihTrigger GetTrigger(long triggerKey) => DexihTriggers.SingleOrDefault(trigger => trigger.Key == triggerKey);
         

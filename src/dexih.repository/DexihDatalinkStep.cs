@@ -41,6 +41,26 @@ namespace dexih.repository
         
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatalink Datalink { get; set; }
+        
+        public override void ResetKeys()
+        {
+            Key = 0;
+            
+            foreach (var parameter in Parameters)
+            {
+                parameter.ResetKeys();
+            }
+            
+            foreach(var dep in DexihDatalinkDependencies)
+            {
+                dep.ResetKeys();
+            }
+
+            foreach (var stepColumn in DexihDatalinkStepColumns)
+            {
+                stepColumn.ResetKeys();
+            }
+        }
 
     }
 }
