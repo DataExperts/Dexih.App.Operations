@@ -89,8 +89,7 @@ namespace dexih.repository
     {
         Source = 1,
         Managed,
-        Target,
-        Internal
+        Target
     }
 
     // [JsonConverter(typeof(StringEnumConverter))]
