@@ -57,7 +57,7 @@ namespace dexih.operations
 			if (datajob.AuditConnectionKey > 0)
 			{
 				var dbAuditConnection =
-					hub.DexihConnections.SingleOrDefault(c => c.Key == datajob.AuditConnectionKey);
+					hub.DexihConnections.SingleOrDefault(c => c.IsValid && c.Key == datajob.AuditConnectionKey);
 
 				if (dbAuditConnection == null)
 				{
@@ -177,7 +177,7 @@ namespace dexih.operations
 				//start all jobs async
 				foreach (var step in Datajob.DexihDatalinkSteps.Where(c => c.IsValid))
 				{
-					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.Key == step.DatalinkKey);
+					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.IsValid &&  c.Key == step.DatalinkKey);
 					
 
 					if (datalink == null)
@@ -366,7 +366,7 @@ namespace dexih.operations
 					//see if any of the pending jobs, should be started or abended
 					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterTarget.WriterResult == null || c.WriterTarget.WriterResult.RunStatus == ERunStatus.Initialised))
 					{
-						var dbStep = Datajob.DexihDatalinkSteps.Single(c => c.Key == datalinkStep.DatalinkStepKey);
+						var dbStep = Datajob.DexihDatalinkSteps.Single(c => c.IsValid && c.Key == datalinkStep.DatalinkStepKey);
 						if (dbStep.DexihDatalinkDependencies.Any(c => c.DependentDatalinkStepKey == datalinkRun.DatalinkStepKey))
 						{
 							//check if the jobs other dependencies have finished

@@ -96,7 +96,7 @@ namespace dexih.repository
         {
             foreach (var table in DexihTables)
             {
-                var column = table.DexihTableColumns.SingleOrDefault(c => c.Key == columnKey);
+                var column = table.DexihTableColumns.SingleOrDefault(c => c.IsValid && c.Key == columnKey);
                 if (column != null)
                 {
                     return (table, column);
@@ -113,7 +113,7 @@ namespace dexih.repository
         /// <returns></returns>
         public DexihTable GetTableFromKey(long tableKey)
         {
-            var table = DexihTables.SingleOrDefault(c=>c.Key == tableKey && IsValid);
+            var table = DexihTables.SingleOrDefault(c => c.IsValid && c.Key == tableKey && IsValid);
             return table;
         }
         

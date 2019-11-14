@@ -71,7 +71,7 @@ namespace dexih.operations
             if (Datalink.AuditConnectionKey > 0)
             {
                 var dbAuditConnection =
-                    _hub.DexihConnections.SingleOrDefault(c => c.Key == Datalink.AuditConnectionKey);
+                    _hub.DexihConnections.SingleOrDefault(c => c.IsValid &&  c.Key == Datalink.AuditConnectionKey);
 
                 if (dbAuditConnection == null)
                 {
@@ -89,7 +89,12 @@ namespace dexih.operations
             var datalinkTable = Datalink.GetOutputTable();
 
             // get the top level target
-            var primaryTarget = Datalink.DexihDatalinkTargets.SingleOrDefault(c => c.NodeDatalinkColumnKey == null);
+            if (Datalink.DexihDatalinkTargets.Count(c => c.IsValid &&  c.NodeDatalinkColumnKey == null) > 1)
+            {
+                throw new DatalinkRunException("There are multiple targets set for the top level.  Remove the extra targets, or set the nodeLevel.");
+            }
+
+            var primaryTarget = Datalink.DexihDatalinkTargets.SingleOrDefault(c => c.IsValid && c.NodeDatalinkColumnKey == null);
             if (primaryTarget == null)
             {
                 WriterTarget = new TransformWriterTarget();   
@@ -99,7 +104,7 @@ namespace dexih.operations
                 WriterTarget = NewTransformWriterTarget(primaryTarget, null, auditConnection);
             }
 
-            foreach (var target in Datalink.DexihDatalinkTargets.Where(c=>c.NodeDatalinkColumnKey != null))
+            foreach (var target in Datalink.DexihDatalinkTargets.Where(c=> c.IsValid && c.NodeDatalinkColumnKey != null))
             {
                 string[] nodePath = null;
                 if (target.NodeDatalinkColumnKey != null)
@@ -123,7 +128,7 @@ namespace dexih.operations
             }
 
             var dbTargetConnection =
-                _hub.DexihConnections.Single(c => c.Key == dbTargetTable.ConnectionKey);
+                _hub.DexihConnections.Single(c => c.IsValid && c.Key == dbTargetTable.ConnectionKey);
             var targetConnection = dbTargetConnection.GetConnection(_transformSettings);
             var targetTable = dbTargetTable.GetTable(_hub, targetConnection, _transformSettings);
             var rejectTable = dbTargetTable.GetRejectedTable(_hub, targetConnection, _transformSettings);

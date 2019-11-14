@@ -64,7 +64,7 @@ namespace dexih.operations
                     throw new ColumnValidationException($"Error: The lookup table for column {ColumnValidation.LookupColumnKey} could not be found.");
                 }
 
-                var dbConnection = Hub.DexihConnections.Single(c => c.Key == tableColumn.table.ConnectionKey);
+                var dbConnection = Hub.DexihConnections.Single(c => c.IsValid && c.Key == tableColumn.table.ConnectionKey);
                 var connection = dbConnection.GetConnection(_transformSettings);
                 _lookupTable = tableColumn.table.GetTable(Hub, connection, _transformSettings);
                 _lookupColumn = tableColumn.column.GetTableColumn(null);

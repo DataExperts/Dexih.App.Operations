@@ -180,7 +180,7 @@ namespace dexih.repository
                     inputTables = GetOutputColumns(transform);
                 }
 
-                var newMappingsTable = inputTables.SingleOrDefault(c => c.SourceTableKey == -987654321);
+                var newMappingsTable = inputTables.SingleOrDefault(c => c.IsValid && c.SourceTableKey == -987654321);
 
                 if (newMappingsTable == null)
                 {
@@ -221,7 +221,7 @@ namespace dexih.repository
                     {
                         foreach (var column in table.DexihDatalinkColumns)
                         {
-                            if (concatTable.DexihDatalinkColumns.SingleOrDefault(c => c.Name == column.Name) == null)
+                            if (concatTable.DexihDatalinkColumns.SingleOrDefault(c => c.IsValid && c.Name == column.Name) == null)
                             {
                                 concatTable.DexihDatalinkColumns.Add(column);
                             }
@@ -230,7 +230,7 @@ namespace dexih.repository
 
                     foreach (var column in joinTable.DexihDatalinkColumns)
                     {
-                        if (concatTable.DexihDatalinkColumns.SingleOrDefault(c => c.Name == column.Name) == null)
+                        if (concatTable.DexihDatalinkColumns.SingleOrDefault(c => c.IsValid && c.Name == column.Name) == null)
                         {
                             concatTable.DexihDatalinkColumns.Add(column);
                         }
@@ -569,7 +569,7 @@ namespace dexih.repository
 
             if (SourceDatalinkTable?.SourceDatalinkKey != null)
             {
-                var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.Key == SourceDatalinkTable.SourceDatalinkKey);
+                var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.IsValid && d.Key == SourceDatalinkTable.SourceDatalinkKey);
 
                 if (datalink != null)
                 {
@@ -599,7 +599,7 @@ namespace dexih.repository
 
                 if (transform.JoinDatalinkTable?.SourceDatalinkKey != null)
                 {
-                    var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.Key == transform.JoinDatalinkTable.SourceDatalinkKey);
+                    var datalink = hub.DexihDatalinks.SingleOrDefault(d => d.IsValid && d.Key == transform.JoinDatalinkTable.SourceDatalinkKey);
 
                     if (datalink != null)
                     {

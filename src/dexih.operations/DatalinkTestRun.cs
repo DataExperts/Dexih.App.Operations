@@ -62,7 +62,7 @@ namespace dexih.operations
             if (datalinkTest.AuditConnectionKey > 0)
             {
                 var dbAuditConnection =
-                    _hub.DexihConnections.SingleOrDefault(c => c.Key == datalinkTest.AuditConnectionKey);
+                    _hub.DexihConnections.SingleOrDefault(c => c.IsValid && c.Key == datalinkTest.AuditConnectionKey);
 
                 if (dbAuditConnection == null)
                 {
@@ -143,7 +143,7 @@ namespace dexih.operations
                 {
                     percent += 100 / _datalinkTest.DexihDatalinkTestSteps.Count;
 
-                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.Key == step.DatalinkKey);
+                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.IsValid && c.Key == step.DatalinkKey);
 
                     if (datalink == null)
                     {
@@ -159,12 +159,12 @@ namespace dexih.operations
                             var dbDatalinkTargetTable = _hub.GetTableFromKey(target.TableKey);
                             var dbDatalinkTargetConnection =
                                 _hub.DexihConnections.Single(
-                                    c => c.Key == dbDatalinkTargetTable.ConnectionKey);
+                                    c => c.IsValid && c.Key == dbDatalinkTargetTable.ConnectionKey);
                             
                             var targetConnection = dbDatalinkTargetConnection.GetConnection(_transformSettings);
                             var targetTable = dbDatalinkTargetTable.GetTable(_hub, targetConnection, _transformSettings);
 
-                            var dbExpectedConnection =_hub.DexihConnections.Single(c => c.Key == step.ExpectedConnectionKey);
+                            var dbExpectedConnection =_hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
                             var dbExpectedTable = dbDatalinkTargetTable.CloneProperties<DexihTable>();
                             dbExpectedTable.Name = step.ExpectedTableName;
                             dbExpectedTable.Schema = step.ExpectedSchema;
@@ -191,7 +191,7 @@ namespace dexih.operations
                     {
                         // if there is no target table, then copy the outputs of the datalink.
                         var dbExpectedConnection =
-                            _hub.DexihConnections.Single(c => c.Key == step.ExpectedConnectionKey);
+                            _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
                         var dbExpectedTable = datalink.GetOutputTable();
                         var expectedTable = dbExpectedTable.GetTable(null, null);
                         expectedTable.Name = step.ExpectedTableName;
@@ -221,12 +221,12 @@ namespace dexih.operations
                     foreach (var testTable in step.DexihDatalinkTestTables)
                     {
                         var dbDatalinkTable = _hub.GetTableFromKey(testTable.TableKey);
-                        var dbDatalinkConnection = _hub.DexihConnections.Single(c => c.Key == dbDatalinkTable.ConnectionKey);
+                        var dbDatalinkConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == dbDatalinkTable.ConnectionKey);
                         var datalinkConnection = dbDatalinkConnection.GetConnection(_transformSettings);
                         var datalinkTable = dbDatalinkTable.GetTable(_hub, datalinkConnection, _transformSettings);
 
                         var dbSourceConnection =
-                            _hub.DexihConnections.Single(c => c.Key == testTable.SourceConnectionKey);
+                            _hub.DexihConnections.Single(c => c.IsValid && c.Key == testTable.SourceConnectionKey);
                         var dbSourceTable = dbDatalinkTable.CloneProperties<DexihTable>();
                         dbSourceTable.Name = testTable.SourceTableName;
                         dbSourceTable.Schema = testTable.SourceSchema;
@@ -285,7 +285,7 @@ namespace dexih.operations
 
                 foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
                 {
-                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.Key == step.DatalinkKey);
+                    var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.IsValid && c.Key == step.DatalinkKey);
 
                     if (datalink == null)
                     {
@@ -304,7 +304,7 @@ namespace dexih.operations
 
                     datalink.AuditConnectionKey = _datalinkTest.AuditConnectionKey;
 
-                    var dexihTargetConnection = _hub.DexihConnections.Single(c => c.Key == step.TargetConnectionKey);
+                    var dexihTargetConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.TargetConnectionKey);
                     ICollection<DexihTable> targetTables;
 
                     // add a target table to store the data when the datalink doesn't have one.
@@ -369,7 +369,7 @@ namespace dexih.operations
                             TestStepKey = step.Key
                         };
                         
-                        var dexihExpectedConnection = _hub.DexihConnections.Single(c => c.Key == step.ExpectedConnectionKey);
+                        var dexihExpectedConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
                         var dexihExpectedTable = table.CloneProperties<DexihTable>();
                         dexihExpectedTable.ConnectionKey = dexihExpectedConnection.Key;
                         dexihExpectedTable.Name = step.ExpectedTableName;
@@ -451,7 +451,7 @@ namespace dexih.operations
             
             var dexihTable = _hub.GetTableFromKey(datalinkTestTable.TableKey);
 
-            var dexihTestConnection = _hub.DexihConnections.Single(c => c.Key == datalinkTestTable.SourceConnectionKey);
+            var dexihTestConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == datalinkTestTable.SourceConnectionKey);
             var testConnection = dexihTestConnection.GetConnection(_transformSettings);
             var testTable = dexihTable.GetTable(_hub, testConnection, _transformSettings);
 
@@ -478,7 +478,7 @@ namespace dexih.operations
                 return;
             }
 
-            var dexihSourceConnection = _hub.DexihConnections.Single(c => c.Key == datalinkTestTable.SourceConnectionKey);
+            var dexihSourceConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == datalinkTestTable.SourceConnectionKey);
             var sourceConnection = dexihSourceConnection.GetConnection(_transformSettings);
             var sourceTable = dexihTable.GetTable(_hub, sourceConnection, _transformSettings);
 

@@ -1055,7 +1055,7 @@ namespace dexih.operations
 					throw new ApplicationUserException("The users email address has not been confirmed.");
 				}
 
-				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey, cancellationToken: cancellationToken);
+				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.IsValid && c.HubKey == hubKey, cancellationToken: cancellationToken);
 
 				if (hub == null)
 				{
@@ -1109,7 +1109,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (connection.Key > 0)
 				{
-					dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(d => d.Key == connection.Key, cancellationToken: cancellationToken);
+					dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(d => d.IsValid && d.Key == connection.Key, cancellationToken: cancellationToken);
 					if (dbConnection != null)
 					{
 						connection.CopyProperties(dbConnection);
@@ -1259,7 +1259,7 @@ namespace dexih.operations
 
 					if (includeFileFormat && table.FileFormat != null)
 					{
-						var dbFileFormat = await DbContext.DexihFileFormats.SingleOrDefaultAsync(f => f.HubKey == hubKey && f.Key == table.FileFormat.Key, cancellationToken: cancellationToken);
+						var dbFileFormat = await DbContext.DexihFileFormats.SingleOrDefaultAsync(f => f.IsValid && f.HubKey == hubKey && f.Key == table.FileFormat.Key, cancellationToken: cancellationToken);
 						if (dbFileFormat == null)
 						{
 							table.EntityStatus.Message = $"The table could not be saved as the table contains the fileformat {table.FileFormat.Key} that no longer exists in the repository.";
@@ -1271,7 +1271,7 @@ namespace dexih.operations
 						table.FileFormat = dbFileFormat;
 					}
 
-					var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == table.ConnectionKey, cancellationToken: cancellationToken);
+					var dbConnection = await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.IsValid && c.HubKey == hubKey && c.Key == table.ConnectionKey, cancellationToken: cancellationToken);
                     if (dbConnection == null)
                     {
                         table.EntityStatus.Message = $"The table could not be saved as the table contains connection that no longer exists in the repository.";
@@ -1867,8 +1867,8 @@ namespace dexih.operations
 
 				var sourceTables = await DbContext.DexihTables.Where(c => c.HubKey == hubKey && sourceTableKeys.Contains(c.Key) && c.IsValid).ToDictionaryAsync(c => c.Key, cancellationToken: cancellationToken);
 				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && c.TableKey != null && sourceTables.Keys.Contains(c.TableKey.Value) && c.IsValid).Include(c => c.ChildColumns).LoadAsync();
-				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == targetTableKey, cancellationToken: cancellationToken);
-				var targetCon = targetConnectionKey == null ? null : await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == targetConnectionKey, cancellationToken: cancellationToken);
+				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.IsValid && c.HubKey == hubKey && c.Key == targetTableKey, cancellationToken: cancellationToken);
+				var targetCon = targetConnectionKey == null ? null : await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.IsValid && c.HubKey == hubKey && c.Key == targetConnectionKey, cancellationToken: cancellationToken);
 
 				foreach (var sourceTableKey in sourceTableKeys)
 				{

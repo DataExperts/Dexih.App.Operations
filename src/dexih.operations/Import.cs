@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using dexih.repository;
-
+using Dexih.Utils.CopyProperties;
 using MessagePack;
 
 namespace dexih.operations
@@ -211,6 +212,7 @@ namespace dexih.operations
                 }
             }
         }
+        
         
         public void UpdateRemoteAgentHubCacheItems(DexihHub hub)
         {

@@ -46,6 +46,8 @@ namespace dexih.operations
             DistributedCache = distributedCache;
         }
 
+        // private ReaderWriterLockSlim  _cacheLock = new ReaderWriterLockSlim();
+
         public IMemoryCache MemoryCache { get; }
         public IDistributedCache DistributedCache { get; }
 
@@ -65,43 +67,11 @@ namespace dexih.operations
             Func<Task<TItem>> factory, 
             CancellationToken cancellationToken = default)
         {
-
-            var updated = 0L;
-
-            // check distributed cache for an update
-            if (DistributedCache != null)
-            {
-                var bytes = await DistributedCache.GetAsync(key, cancellationToken);
-                if (bytes != null)
-                {
-                    updated = BitConverter.ToInt64(bytes);
-                }
-            }
-            
-            var cacheItem = await MemoryCache.GetOrCreateAsync(key, async entry =>
-            {
-                entry.SetSlidingExpiration(expiration);
-                var value = await factory.Invoke();
-                return new CacheServiceItem<TItem>(value);
-            });
-
-            // if the distributed version was updated more recently than the current, the refresh the cache.
-            if (updated > cacheItem.UpdatedDate)
-            {
-                var value = await factory.Invoke();
-                var options = new MemoryCacheEntryOptions() {SlidingExpiration = expiration};
-                MemoryCache.Set(key, new CacheServiceItem<TItem>(value), options);
-            }
-            
-            return cacheItem.Item;
-        }
-
-        public async Task<T> Get<T>(string key, CancellationToken cancellationToken)
-        {
-            if (MemoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
+            // _cacheLock.EnterUpgradeableReadLock();
+            try
             {
                 var updated = 0L;
-                
+
                 // check distributed cache for an update
                 if (DistributedCache != null)
                 {
@@ -111,32 +81,97 @@ namespace dexih.operations
                         updated = BitConverter.ToInt64(bytes);
                     }
                 }
-                
-                // if the distributed version was updated more recently than the current, return null, and clear cache
-                if (updated > item.UpdatedDate)
+
+                var cacheItem = await MemoryCache.GetOrCreateAsync(key, async entry =>
                 {
-                    MemoryCache.Remove(key);
-                    return default;
+                    entry.SetSlidingExpiration(expiration);
+                    var value = await factory.Invoke();
+                    return new CacheServiceItem<TItem>(value);
+                });
+
+                // if the distributed version was updated more recently than the current, the refresh the cache.
+                if (updated > cacheItem.UpdatedDate)
+                {
+                    var value = await factory.Invoke();
+                    var options = new MemoryCacheEntryOptions() {SlidingExpiration = expiration};
+                    MemoryCache.Set(key, new CacheServiceItem<TItem>(value), options);
                 }
 
-                return item.Item;
+                return cacheItem.Item;
             }
+            finally
+            {
+                // _cacheLock.ExitUpgradeableReadLock();
+            }
+        }
 
-            return default;
+        public async Task<T> Get<T>(string key, CancellationToken cancellationToken)
+        {
+            // _cacheLock.EnterReadLock();
+            try
+            {
+
+                if (MemoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
+                {
+                    var updated = 0L;
+
+                    // check distributed cache for an update
+                    if (DistributedCache != null)
+                    {
+                        var bytes = await DistributedCache.GetAsync(key, cancellationToken);
+                        if (bytes != null)
+                        {
+                            updated = BitConverter.ToInt64(bytes);
+                        }
+                    }
+
+                    // if the distributed version was updated more recently than the current, return null, and clear cache
+                    if (updated > item.UpdatedDate)
+                    {
+                        MemoryCache.Remove(key);
+                        return default;
+                    }
+
+                    return item.Item;
+                }
+
+                return default;
+            }
+            finally
+            {
+                // _cacheLock.ExitReadLock();
+            }
         }
 
         public Task Reset(string key, CancellationToken cancellationToken = default)
         {
-            MemoryCache.Remove(key);
-            return ResetDistributed(key, cancellationToken);
+            // _cacheLock.EnterWriteLock();
+            try
+            {
+
+                MemoryCache.Remove(key);
+                return ResetDistributed(key, cancellationToken);
+            }
+            finally
+            {
+                // _cacheLock.ExitWriteLock();
+            }
         }
 
         public async Task Update<T>(string key, CancellationToken cancellationToken = default)
         {
-            await ResetDistributed(key, cancellationToken);
-            if (MemoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
+            // _cacheLock.EnterWriteLock();
+            try
             {
-                item.UpdatedDate = DateTime.Now.Ticks;
+                await ResetDistributed(key, cancellationToken);
+                if (MemoryCache.TryGetValue<CacheServiceItem<T>>(key, out var item))
+                {
+                    item.UpdatedDate = DateTime.Now.Ticks;
+                }
+            }
+            finally
+            {
+                // _cacheLock.ExitWriteLock();
             }
         }
 

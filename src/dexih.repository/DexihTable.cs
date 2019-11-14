@@ -36,8 +36,8 @@ namespace dexih.repository
         [Key(10)]
         public string LogicalName { get; set; }
 
-        [Key(11)]
-        public Table.ETableType TableType { get; set; }
+        [Key(11)] 
+        public Table.ETableType TableType { get; set; } = Table.ETableType.Table;
 
         [Key(12)]
         public string SourceConnectionName { get; set; }
@@ -213,7 +213,7 @@ namespace dexih.repository
 		        {
 			        case EConnectionCategory.File:
 				        table = new FlatFile();
-				        var fileFormat = hub.DexihFileFormats.SingleOrDefault(f => f.Key == FileFormatKey);
+				        var fileFormat = hub.DexihFileFormats.SingleOrDefault(f => f.IsValid && f.Key == FileFormatKey);
 				        ((FlatFile)table).FileConfiguration =  fileFormat?.GetFileFormat();
 				        break;
 			        case EConnectionCategory.WebService:

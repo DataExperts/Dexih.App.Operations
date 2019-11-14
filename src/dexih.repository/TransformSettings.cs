@@ -70,7 +70,7 @@ namespace dexih.repository
                 {
                     var name = value.Substring(openStart + 1, pos - openStart - 1);
                     string variableValue = null;
-                    var variable = HubVariables?.SingleOrDefault(c => c.Name == name);
+                    var variable = HubVariables?.SingleOrDefault(c => c.IsValid && c.Name == name);
                     if (variable != null)
                     {
                         if (!allowSecureVariables && (variable.IsEncrypted || variable.IsEnvironmentVariable))

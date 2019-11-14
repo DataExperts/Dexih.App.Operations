@@ -74,8 +74,8 @@ namespace dexih.repository
             }
         }
         
-        public DexihDatalinkStep GetDatalinkStep(long datalinkStepKey) => DexihDatalinkSteps.SingleOrDefault(step => step.Key == datalinkStepKey);
-        public DexihTrigger GetTrigger(long triggerKey) => DexihTriggers.SingleOrDefault(trigger => trigger.Key == triggerKey);
+        public DexihDatalinkStep GetDatalinkStep(long datalinkStepKey) => DexihDatalinkSteps.SingleOrDefault(step => step.IsValid &&  step.Key == datalinkStepKey);
+        public DexihTrigger GetTrigger(long triggerKey) => DexihTriggers.SingleOrDefault(trigger => trigger.IsValid &&  trigger.Key == triggerKey);
         
         public void UpdateParameters(InputParameters inputParameters)
         {

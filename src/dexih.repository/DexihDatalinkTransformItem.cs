@@ -114,17 +114,17 @@ namespace dexih.repository
         [Key(32)]
         public string FunctionResultCode { get; set; }
 
-        [Key(33)]
-        public EErrorAction OnError { get; set; }
+        [Key(33)] 
+        public EErrorAction OnError { get; set; } = EErrorAction.Abend;
 
         [Key(34)]
-        public EErrorAction OnNull { get; set; }
+        public EErrorAction OnNull { get; set; } = EErrorAction.Abend;
 
         [Key(35)]
         public bool NotCondition { get; set; }
 
         [Key(36)]
-        public TransformFunction.EInvalidAction InvalidAction { get; set; }
+        public TransformFunction.EInvalidAction InvalidAction { get; set; } = TransformFunction.EInvalidAction.Abend;
 
         [Key(37)]
         [NotMapped, CopyIgnore]

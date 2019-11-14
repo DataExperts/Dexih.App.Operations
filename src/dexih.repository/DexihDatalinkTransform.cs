@@ -293,7 +293,6 @@ namespace dexih.repository
                     }
                 }
 
-                
                 // transform.PassThroughColumns = PassThroughColumns;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;
                 
@@ -310,7 +309,7 @@ namespace dexih.repository
 
                     foreach (var column in targetTable.DexihTableColumns.Where(c => c.ColumnValidationKey != null))
                     {
-                        var columnValidation = hub.DexihColumnValidations.Single(c => c.Key == column.ColumnValidationKey);
+                        var columnValidation = hub.DexihColumnValidations.Single(c => c.IsValid && c.Key == column.ColumnValidationKey);
                         var validation =
                             new ColumnValidationRun(transformSettings, columnValidation, hub)
                             {

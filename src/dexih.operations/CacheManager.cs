@@ -70,7 +70,7 @@ namespace dexih.operations
 
         public async Task<DexihHub> InitHub(DexihRepositoryContext dbContext)
         {
-            Hub = await dbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.IsValid);
+            Hub = await dbContext.DexihHubs.SingleOrDefaultAsync(c => c.IsValid && c.HubKey == HubKey && c.IsValid);
 
 	        if (Hub == null)
 	        {
@@ -447,7 +447,7 @@ namespace dexih.operations
 
                         if (item.CustomFunctionKey != null)
                         {
-                            var customFunction = Hub.DexihCustomFunctions.SingleOrDefault(c => c.Key == item.CustomFunctionKey);
+                            var customFunction = Hub.DexihCustomFunctions.SingleOrDefault(c => c.IsValid && c.Key == item.CustomFunctionKey);
                             if (customFunction == null)
                             {
                                 customFunction = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).SingleOrDefaultAsync(c => c.Key == item.CustomFunctionKey && c.IsValid);
@@ -515,10 +515,10 @@ namespace dexih.operations
 
 					if (item.CustomFunctionKey != null)
 					{
-						var customFunction = Hub.DexihCustomFunctions.SingleOrDefault(c => c.Key == item.CustomFunctionKey);
+						var customFunction = Hub.DexihCustomFunctions.SingleOrDefault(c => c.IsValid && c.Key == item.CustomFunctionKey);
 						if (customFunction == null)
 						{
-							customFunction = hub.DexihCustomFunctions.SingleOrDefault(c => c.Key == item.CustomFunctionKey && c.IsValid);
+							customFunction = hub.DexihCustomFunctions.SingleOrDefault(c => c.IsValid && c.Key == item.CustomFunctionKey && c.IsValid);
 							Hub.DexihCustomFunctions.Add(customFunction);
 						}
 					}
@@ -570,7 +570,7 @@ namespace dexih.operations
         {
             if(columnValidation.LookupColumnKey != null)
             {
-                var column = await dbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.Key == columnValidation.LookupColumnKey);
+                var column = await dbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.IsValid && c.Key == columnValidation.LookupColumnKey);
                 await AddTables(new[] { column.TableKey.Value }, dbContext);
             }
         }
