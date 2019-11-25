@@ -7,7 +7,7 @@ namespace dexih.repository
     [MessagePackObject]
     public class DexihCustomFunctionParameter : DexihParameterBase
     {
-        [Key(12)]
+        [Key(13)]
         [CopyParentCollectionKey(nameof(Key))]
         public long CustomFunctionKey { get; set; }
 

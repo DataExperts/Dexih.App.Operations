@@ -165,6 +165,10 @@ namespace dexih.repository
 	    [JsonIgnore, CopyIgnore, IgnoreMember]
 	    public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
 
+	    [JsonIgnore, CopyIgnore, IgnoreMember]
+	    public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
+
+	    
         [Key(34)]
         public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 

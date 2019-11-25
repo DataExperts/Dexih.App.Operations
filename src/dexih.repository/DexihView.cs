@@ -16,9 +16,7 @@ namespace dexih.repository
         {
             Parameters = new HashSet<DexihViewParameter>();
         }
-
-
-
+        
         [Key(7)] 
         public EViewType ViewType { get; set; } = EViewType.Table;
 

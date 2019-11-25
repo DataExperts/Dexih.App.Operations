@@ -1,4 +1,6 @@
+using Dexih.Utils.CopyProperties;
 using MessagePack;
+using Newtonsoft.Json;
 
 namespace dexih.repository
 {
@@ -17,6 +19,12 @@ namespace dexih.repository
     {
         [Key(7)]
         public string Value { get; set; }
+        
+        [Key(8)]
+        public long? ListOfValuesKey { get; set; }
+        
+        [JsonIgnore, CopyIgnore, IgnoreMember]
+        public DexihListOfValues ListOfValues { get; set; }
         
         public override void ResetKeys()
         {

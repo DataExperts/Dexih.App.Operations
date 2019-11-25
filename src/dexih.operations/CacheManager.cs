@@ -77,15 +77,6 @@ namespace dexih.operations
 		        throw new CacheManagerException($"The hub with the key {HubKey} no longer exists.");
 	        }
 	        
-//            Hub.DexihHubVariables.Clear();
-//            Hub.DexihColumnValidations.Clear();
-//            Hub.DexihConnections.Clear();
-//            Hub.DexihDatajobs.Clear();
-//            Hub.DexihFileFormats.Clear();
-//            Hub.DexihHubUsers.Clear();
-//            Hub.DexihDatalinks.Clear();
-//            Hub.DexihCustomFunctions.Clear();
-
             return Hub;
         }
         
@@ -245,7 +236,8 @@ namespace dexih.operations
 				Hub.DexihFileFormats = await dbContext.DexihFileFormats.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
 				Hub.DexihColumnValidations = await dbContext.DexihColumnValidations.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
-
+			    Hub.DexihListOfValues = await dbContext.DexihListOfValues.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
+			    
 				_logger?.LogTrace($"Load hub name {Hub.Name} took {stopWatch.ElapsedMilliseconds}ms.");
 
 				return Hub;
@@ -323,11 +315,72 @@ namespace dexih.operations
 		    }
 	    }
 
+	    public async Task LoadListOfValuesDependencies(DexihListOfValues listOfValues, DexihRepositoryContext dbContext)
+	    {
+		    switch (listOfValues.SourceType)
+		    {
+			    case ELOVObjectType.Datalink:
+				    if (listOfValues.SourceDatalinkKey == null)
+				    {
+					    throw new Exception($"The list of values {listOfValues.Name} does not contain a linked datalink.");
+				    }
+				    await AddDatalinks(new [] {listOfValues.SourceDatalinkKey.Value}, dbContext );
+				    break;
+			    case ELOVObjectType.Table:
+				    if (listOfValues.SourceTableKey == null)
+				    {
+					    throw new Exception($"The list of values {listOfValues.Name} does not contain a linked table.");
+				    }
+				    await AddTables(new[] {listOfValues.SourceTableKey.Value}, dbContext);
+				    break;
+		    }
+	    }
 	    
+	    public void LoadListOfValuesDependencies(DexihListOfValues listOfValues, DexihHub hub)
+	    {
+		    switch (listOfValues.SourceType)
+		    {
+			    case ELOVObjectType.Datalink:
+				    if (listOfValues.SourceDatalinkKey == null)
+				    {
+					    throw new Exception($"The list of values {listOfValues.Name} does not contain a linked datalink.");
+				    }
+				    AddDatalinks(new [] {listOfValues.SourceDatalinkKey.Value}, hub );
+				    break;
+			    case ELOVObjectType.Table:
+				    if (listOfValues.SourceTableKey == null)
+				    {
+					    throw new Exception($"The list of values {listOfValues.Name} does not contain a linked table.");
+				    }
+				    AddTables(new[] {listOfValues.SourceTableKey.Value}, hub);
+				    break;
+		    }
+	    }
+
+	    public void LoadParametersDependencies(IEnumerable<InputParameterBase> parameters, DexihHub hub)
+	    {
+		    foreach (var parameter in parameters.Where(c => c.ListOfValues != null))
+		    {
+			    LoadListOfValuesDependencies(parameter.ListOfValues, hub);
+		    }
+	    }
+
+	    public async Task LoadParametersDependencies(IEnumerable<InputParameterBase> parameters, DexihRepositoryContext dbContext)
+	    {
+		    foreach (var parameter in parameters)
+		    {
+			    await LoadListOfValuesDependencies(parameter.ListOfValues, dbContext);
+		    }
+	    }
 	    public async Task LoadViewDependencies(DexihView view, DexihRepositoryContext dbContext)
 	    {
-		    await dbContext.Entry(view).Collection(a => a.Parameters).Query().Where(c => c.IsValid && view.Key == c.ViewKey)
+		    await dbContext.Entry(view)
+			    .Collection(a => a.Parameters)
+			    .Query()
+			    .Where(c => c.IsValid && view.Key == c.ViewKey)
 			    .AsNoTracking().LoadAsync();
+
+		    await LoadParametersDependencies(view.Parameters, dbContext);
 
 		    switch (view.SourceType)
 		    {
@@ -350,6 +403,8 @@ namespace dexih.operations
 	    
 	    public void LoadViewDependencies(DexihView view, DexihHub hub)
 	    {
+		    LoadParametersDependencies(view.Parameters, hub);
+
 		    switch (view.SourceType)
 		    {
 			    case EDataObjectType.Datalink:
@@ -374,12 +429,16 @@ namespace dexih.operations
 		    await dbContext.Entry(dashboard).Collection(a => a.Parameters).Query().Where(c => c.IsValid && dashboard.Key == c.DashboardKey)
 			    .AsNoTracking().LoadAsync();
 
+		    await LoadParametersDependencies(dashboard.Parameters, dbContext);
+
 		    await dbContext.Entry(dashboard).Collection(a => a.DexihDashboardItems).Query().Include(c => c.Parameters).Where(c => c.IsValid && dashboard.Key == c.DashboardKey).AsNoTracking().LoadAsync();
 		    await AddViews(dashboard.DexihDashboardItems.Select(c => c.ViewKey), dbContext);
 	    }
 	    
 	    public void LoadDashboardDependencies(DexihDashboard dashboard, DexihHub hub)
 	    {
+		    LoadParametersDependencies(dashboard.Parameters, hub);
+
 		    AddViews(dashboard.DexihDashboardItems.Select(c => c.ViewKey), hub);
 	    }
 
@@ -413,6 +472,8 @@ namespace dexih.operations
             await dbContext.Entry(hubDatalink).Collection(a => a.Parameters).Query()
 	            .Where(a => a.IsValid && hubDatalink.Key == a.DatalinkKey).LoadAsync();
             
+            await LoadParametersDependencies(hubDatalink.Parameters, dbContext);
+
             await dbContext.Entry(hubDatalink).Collection(a => a.DexihDatalinkTransforms).Query().Where(a => a.IsValid && hubDatalink.Key == a.DatalinkKey)
                 .Include(c=>c.JoinDatalinkTable).OrderBy(c=>c.Position).LoadAsync();
 
@@ -495,6 +556,8 @@ namespace dexih.operations
 			{
 				AddConnections(new[] {hubDatalink.AuditConnectionKey.Value}, false, hub);
 			}
+			
+			LoadParametersDependencies(hubDatalink.Parameters, hub);
 	        
 			foreach (var datalinkTransform in hubDatalink.DexihDatalinkTransforms)
             {
@@ -545,6 +608,8 @@ namespace dexih.operations
             await dbContext.Entry(hubDatajob).Collection(a => a.Parameters).Query().Where(c => c.HubKey == hubDatajob.HubKey && c.IsValid)
 	            .Where(a => a.IsValid && hubDatajob.Key == a.DatajobKey).LoadAsync();
             
+            await LoadParametersDependencies(hubDatajob.Parameters, dbContext);
+
             if(includeDependencies)
             {
                 if (hubDatajob.AuditConnectionKey != null)
@@ -558,6 +623,8 @@ namespace dexih.operations
 	    
         public void LoadDatajobDependencies(DexihDatajob hubDatajob, DexihHub hub)
 	    {
+		    LoadParametersDependencies(hubDatajob.Parameters, hub);
+
 			if (hubDatajob.AuditConnectionKey != null)
 			{
 				AddConnections(new[] {hubDatajob.AuditConnectionKey.Value}, false, hub);
@@ -788,6 +855,7 @@ namespace dexih.operations
 		    var tableKeys = hubDatalink.DexihDatalinkTargets.Select(c => c.TableKey);
 		    AddTables(tableKeys, hub);
 		    
+		    LoadParametersDependencies(hubDatalink.Parameters, hub);
 		    
 		    foreach (var datalinkTransform in hubDatalink.DexihDatalinkTransforms)
 		    {
@@ -952,6 +1020,35 @@ namespace dexih.operations
 				    dashboard = await dbContext.DexihDashboards.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == dashboardKey && c.IsValid);
 				    Hub.DexihDashboards.Add(dashboard);
 				    await LoadDashboardDependencies(dashboard, dbContext);
+			    }
+		    }
+	    }
+	    
+	    public void AddListOfValues(IEnumerable<long> listOfValuesKeys, DexihHub hub)
+	    {
+		    foreach (var key in listOfValuesKeys)
+		    {
+			    var lov = Hub.DexihListOfValues.SingleOrDefault(c => c.Key == key);
+			    if(lov == null)
+			    {
+				    lov = hub.DexihListOfValues.SingleOrDefault(c => c.Key == key && c.IsValid);
+				    Hub.DexihListOfValues.Add(lov);
+				    
+				    LoadListOfValuesDependencies(lov, hub);
+			    }
+		    }
+	    }
+	    
+	    public async Task AddListOfValues(IEnumerable<long> listOfValuesKeys, DexihRepositoryContext dbContext)
+	    {
+		    foreach (var key in listOfValuesKeys)
+		    {
+			    var listOfValues = Hub.DexihListOfValues.SingleOrDefault(c => c.Key == key);
+			    if(listOfValues == null)
+			    {
+				    listOfValues = await dbContext.DexihListOfValues.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == key && c.IsValid);
+				    await LoadListOfValuesDependencies(listOfValues, dbContext);
+				    Hub.DexihListOfValues.Add(listOfValues);
 			    }
 		    }
 	    }

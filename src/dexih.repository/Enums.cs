@@ -34,7 +34,8 @@ namespace dexih.repository
         DatalinkTest,
         View,
         Api,
-        Dashboard
+        Dashboard,
+        ListOfValues
     }
 
     /// <summary>
@@ -48,6 +49,14 @@ namespace dexih.repository
         View,
         Dashboard,
         Api
+    }
+
+    public enum ELOVObjectType
+    {
+        Table = 1,
+        Datalink,
+        View,
+        Static
     }
 
     // [JsonConverter(typeof(StringEnumConverter))]

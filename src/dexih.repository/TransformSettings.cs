@@ -69,7 +69,7 @@ namespace dexih.repository
                 if (openStart >= 0 && character == '}')
                 {
                     var name = value.Substring(openStart + 1, pos - openStart - 1);
-                    string variableValue = null;
+                    object variableValue = null;
                     var variable = HubVariables?.SingleOrDefault(c => c.IsValid && c.Name == name);
                     if (variable != null)
                     {

@@ -336,7 +336,7 @@ namespace dexih.operations
                         targetTables = datalink.DexihDatalinkTargets.Select(c => _hub.GetTableFromKey(c.TableKey)).ToList();
                     }
 
-                    if (targetTables.Count() > 1)
+                    if (targetTables.Count > 1)
                     {
                         throw new DatalinkTestRunException("Currently datalink tests can only be used with datalinks containing no more than one target table.");
                     }

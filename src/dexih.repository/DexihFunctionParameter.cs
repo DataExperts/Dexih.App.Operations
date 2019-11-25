@@ -13,11 +13,11 @@ namespace dexih.repository
             ArrayParameters = new HashSet<DexihFunctionArrayParameter>();
         }
 
-        [Key(5)]
+        [Key(18)]
         [CopyParentCollectionKey]
 		public long DatalinkTransformItemKey { get; set; }
 
-        [Key(6)]
+        [Key(19)]
         public virtual ICollection<DexihFunctionArrayParameter> ArrayParameters { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreMember]

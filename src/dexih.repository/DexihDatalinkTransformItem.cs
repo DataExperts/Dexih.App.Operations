@@ -668,15 +668,15 @@ $FunctionCode
 			var parameterString = "";
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == EParameterDirection.Input))
 			{
-				parameterString += t.DataType + AddRank(t.Rank) + " " + t.Name + ",";
+				parameterString += t.DataType + (t.AllowNull ? "?" : "")  + AddRank(t.Rank) + " " + t.Name + ",";
 			}
 
 			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == EParameterDirection.Output))
 			{
-				parameterString += "out " + t.DataType + AddRank(t.Rank) + " " + t.Name + ",";
+				parameterString += "out " + t.DataType + (t.AllowNull ? "?" : "") + AddRank(t.Rank) + " " + t.Name + ",";
 			}
 
-            if (parameterString != "") //remove last comma
+			if (parameterString != "") //remove last comma
                 parameterString = parameterString.Substring(0, parameterString.Length - 1);
 
             code.Replace("$Parameters", parameterString);

@@ -8,7 +8,7 @@ namespace dexih.repository
     [MessagePackObject]
     public class DexihDatajobParameter: InputParameterBase
     {
-        [Key(8)]
+        [Key(9)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
 

@@ -98,6 +98,9 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public ICollection<DexihView> DexihViews { get; set; }
         
+        [JsonIgnore, CopyIgnore, IgnoreMember]
+        public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
+        
 	    [JsonIgnore, IgnoreMember, CopyReference]
         public DexihConnection AuditConnection { get; set; }
 

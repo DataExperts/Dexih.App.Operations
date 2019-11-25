@@ -27,6 +27,7 @@ namespace dexih.repository
             DexihViews = new HashSet<DexihView>();
             DexihApis = new HashSet<DexihApi>();
             DexihDashboards = new HashSet<DexihDashboard>();
+            DexihListOfValues = new HashSet<DexihListOfValues>();
         }
 
         [Key(3)]
@@ -86,6 +87,9 @@ namespace dexih.repository
 
         [Key(21)]
         public ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
+        
+        [Key(22)]
+        public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
 
         /// <summary>
         /// Searches all connections and table for a columnKey.

@@ -8,7 +8,7 @@ namespace dexih.repository
     [MessagePackObject]
     public class DexihDashboardParameter: InputParameterBase
     {
-        [Key(8)]
+        [Key(9)]
         [CopyParentCollectionKey]
         public long DashboardKey { get; set; }
 

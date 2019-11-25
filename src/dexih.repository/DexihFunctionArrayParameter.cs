@@ -12,7 +12,7 @@ namespace dexih.repository
         /// <summary>
         /// Points to the parent parameter, when it is an array.
         /// </summary>
-        [Key(5)]
+        [Key(18)]
         [CopyParentCollectionKey]
         public long FunctionParameterKey { get; set; }
 

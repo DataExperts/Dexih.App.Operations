@@ -660,7 +660,7 @@ namespace dexih.operations
 		        {
 			        if (entity.State == EntityState.Deleted)
 			        {
-				        throw new RepositoryException($"The entity {entity.GetType()} can not not be deteled, as it does not exist in the repository.");
+				        throw new RepositoryException($"The entity {entity.GetType()} can not not be deleted, as it does not exist in the repository.");
 			        }
 
 			        importAction = EImportAction.New;
@@ -1524,6 +1524,25 @@ namespace dexih.operations
 			}
 		}
 
+		public async Task<DexihListOfValues> GetListOfValues(long hubKey, long listOfValuesKey, CancellationToken cancellationToken)
+		{
+			try
+			{
+				var dbListOfValues = await DbContext.DexihListOfValues
+					.SingleOrDefaultAsync(c => c.Key == listOfValuesKey && c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
+
+				if (dbListOfValues == null)
+				{
+					throw new RepositoryManagerException($"The list of values with the key {listOfValuesKey} could not be found.");
+				}
+
+				return dbListOfValues;
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get list of values with key {listOfValuesKey} failed.  {ex.Message}", ex);
+			}
+		}
 		
 		#endregion
 
@@ -3179,6 +3198,77 @@ namespace dexih.operations
             }
         }
 
+		public async Task<DexihListOfValues[]> DeleteListOfValues(long hubKey, long[] listOfValuesKeys, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var dbListOfValues = await DbContext.DexihListOfValues
+                    .Where(c => c.HubKey == hubKey && listOfValuesKeys.Contains(c.Key) && c.IsValid)
+                    .ToArrayAsync(cancellationToken: cancellationToken);
+
+                foreach (var listOfValues in dbListOfValues)
+                {
+	                listOfValues.IsValid = false;
+                }
+
+                await SaveHubChangesAsync(hubKey, cancellationToken);
+
+                return dbListOfValues;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete listOfValues failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihListOfValues> SaveListOfValues(long hubKey, DexihListOfValues listOfValues, CancellationToken cancellationToken)
+        {
+            try
+            {
+                DexihListOfValues dbListOfValues;
+
+                //check there are no connections with the same name
+                var sameName = await DbContext.DexihListOfValues.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == listOfValues.Name && c.Key != listOfValues.Key && c.IsValid, cancellationToken: cancellationToken);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A listOfValues with the name {listOfValues.Name} already exists in the repository.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (listOfValues.Key > 0)
+                {
+	                dbListOfValues = await GetListOfValues(hubKey, listOfValues.Key, cancellationToken);
+                    if (dbListOfValues != null)
+                    {
+	                    listOfValues.CopyProperties(dbListOfValues, false);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The listOfValues could not be saved as it contains the listOfValues_key {listOfValues.Key} that no longer exists in the repository.");
+                    }
+                }
+                else
+                {
+                    dbListOfValues = new DexihListOfValues();
+                    listOfValues.ResetKeys();
+                    listOfValues.CopyProperties(dbListOfValues, true);
+                    DbContext.DexihListOfValues.Add(dbListOfValues);
+                }
+
+
+                dbListOfValues.IsValid = true;
+
+                await SaveHubChangesAsync(hubKey, cancellationToken);
+
+                return dbListOfValues;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save listOfValues {listOfValues.Name} failed.  {ex.Message}", ex);
+            }
+        }
+        
         /// <summary>
         /// Creates a new datalink test with a separate step for each of the specified datalinkKeys.
         /// </summary>
@@ -3197,7 +3287,7 @@ namespace dexih.operations
 			
 			var datalinkTest = new DexihDatalinkTest
 			{
-				Name = string.IsNullOrEmpty(name) ? ( datalinks.Count() == 1 ? $"{datalinks[0].Name} tests" : "datalink tests") : name,
+				Name = string.IsNullOrEmpty(name) ? ( datalinks.Length == 1 ? $"{datalinks[0].Name} tests" : "datalink tests") : name,
 				AuditConnectionKey = auditConnectionKey
 			};
 
@@ -3273,7 +3363,7 @@ namespace dexih.operations
 
 		        if (matchingItems.Any())
 		        {
-			        if (matchingItems.Count() > 1)
+			        if (matchingItems.Length > 1)
 			        {
 				        importAction = EImportAction.Replace;
 			        }

@@ -11,13 +11,13 @@ namespace dexih.repository
     [Union(1, typeof(DexihFunctionParameter))]
     public class DexihFunctionParameterBase: DexihParameterBase
     {
-        [Key(12)]
+        [Key(13)]
         public long? DatalinkColumnKey { get; set; }
 
-        [Key(13)]
+        [Key(14)]
         public string Value { get; set; }
 
-        [Key(14)]
+        [Key(15)]
         [NotMapped, CopyIgnore]
         public string[] ListOfValues
         {
@@ -48,11 +48,11 @@ namespace dexih.repository
         [JsonIgnore]
         public string ListOfValuesString { get; set; }
 
-        [Key(15)]
+        [Key(16)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [Key(16)]
+        [Key(17)]
         [CopyIgnore]
         public DexihDatalinkColumn DatalinkColumn { get; set; }
     }

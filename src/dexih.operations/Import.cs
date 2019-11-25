@@ -60,6 +60,9 @@ namespace dexih.operations
         public ImportObjects<DexihDashboard> Dashboards { get; set; }
 
         [Key(14)]
+        public ImportObjects<DexihListOfValues> ListOfValues { get; set; }
+
+        [Key(15)]
         public List<string> Warnings { get; set; }
 
         public Import()
@@ -88,6 +91,7 @@ namespace dexih.operations
             Views = new ImportObjects<DexihView>();
             Apis = new ImportObjects<DexihApi>();
             Dashboards = new ImportObjects<DexihDashboard>();
+            ListOfValues = new ImportObjects<DexihListOfValues>();
             Warnings = new List<string>();
         }
 
@@ -142,6 +146,10 @@ namespace dexih.operations
                     case DexihDashboard a:
                         Dashboards.Add(a, operation);
                         break;
+                    case DexihListOfValues a:
+                        ListOfValues.Add(a, operation);
+                        break;
+
                     default:
                         return false;
                 }
@@ -167,6 +175,7 @@ namespace dexih.operations
             UpdateCacheItems(hub.DexihViews, Views);
             UpdateCacheItems(hub.DexihApis, Apis);
             UpdateCacheItems(hub.DexihDashboards, Dashboards);
+            UpdateCacheItems(hub.DexihListOfValues, ListOfValues);
 
             UpdateRemoteAgentHubCacheItems(hub);
         }
@@ -270,7 +279,8 @@ namespace dexih.operations
                    DatalinkTests.Any() ||
                    Views.Any() ||
                    Apis.Any() ||
-                   Dashboards.Any();
+                   Dashboards.Any() ||
+                   ListOfValues.Any();
         }
     }
 
