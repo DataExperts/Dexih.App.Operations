@@ -1,6 +1,6 @@
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 using MessagePack;
-using Newtonsoft.Json;
 
 namespace dexih.repository
 {

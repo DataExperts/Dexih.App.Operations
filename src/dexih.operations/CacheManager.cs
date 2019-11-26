@@ -194,8 +194,7 @@ namespace dexih.operations
 				await dbContext.DexihDatalinkTestTables
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
-
-
+				
 				Hub.DexihDatajobs = await datajobs.ToHashSetAsync();
 
 				var dashboards = dbContext.DexihDashboards

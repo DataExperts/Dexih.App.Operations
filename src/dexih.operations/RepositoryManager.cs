@@ -690,7 +690,7 @@ namespace dexih.operations
 							        $"The hubKey on the original entity and the updated entity have changed.  The entity was type:{hubEntity.GetType()}.");
 					        }
 				        }
-
+				        
 				        if (hubEntity.IsValid == false)
 				        {
 					        importAction = EImportAction.Delete;
@@ -3486,6 +3486,7 @@ namespace dexih.operations
 			var views = await AddImportItems(hubKey, hub.DexihViews, DbContext.DexihViews, actions[ESharedObjectType.View]);
 			var dashboards = await AddImportItems(hubKey, hub.DexihDashboards, DbContext.DexihDashboards, actions[ESharedObjectType.Dashboard]);
 			var datalinkTests = await AddImportItems(hubKey, hub.DexihDatalinkTests, DbContext.DexihDatalinkTests, actions[ESharedObjectType.DatalinkTest]);
+			var listOfValues = await AddImportItems(hubKey, hub.DexihListOfValues, DbContext.DexihListOfValues, actions[ESharedObjectType.ListOfValues]);
 
 			// update the table connection keys to the target connection keys, as these are required updated before matching
 			foreach (var table in hub.DexihTables)
@@ -3506,6 +3507,7 @@ namespace dexih.operations
 			plan.Views = views.importObjects;
 			plan.Dashboards = dashboards.importObjects;
 			plan.DatalinkTests = datalinkTests.importObjects;
+			plan.ListOfValues = listOfValues.importObjects;
 
 			long? UpdateConnectionKey(long? key)
 			{
@@ -3579,6 +3581,23 @@ namespace dexih.operations
 				return null;
 			}
 
+			long? UpdateListOfValuesKey(long? key)
+			{
+				if (key != null)
+				{
+					if (listOfValues.keyMappings.TryGetValue(key.Value, out var newKey))
+					{
+						return newKey;	
+					}
+					else
+					{
+						plan.Warnings.Add($"The list of values key {key} does not exist in the package.  This will need to be manually fixed after import.");
+						return null;
+					}
+				}
+
+				return null;
+			}
 			
 			// add the table column mappings
 			var tableColumnMappings = new Dictionary<long, long>();
@@ -3697,6 +3716,11 @@ namespace dexih.operations
 						view.SourceTableKey = null;
 					}
 				}
+
+				foreach (var parameter in view.Parameters)
+				{
+					parameter.ListOfValuesKey = UpdateListOfValuesKey(parameter.ListOfValuesKey);
+				}
 			}
 
 			foreach (var dashboard in dashboards.importObjects.Select(c => c.Item))
@@ -3705,8 +3729,42 @@ namespace dexih.operations
 				{
 					item.ViewKey = UpdateViewKey(item.ViewKey) ?? default;
 				}
+				
+				foreach (var parameter in dashboard.Parameters)
+				{
+					parameter.ListOfValuesKey = UpdateListOfValuesKey(parameter.ListOfValuesKey);
+				}
 			}
 
+			foreach (var lovItem in listOfValues.importObjects.Select(c => c.Item))
+			{
+				if (lovItem.SourceType == ELOVObjectType.Datalink && lovItem.SourceDatalinkKey != null)
+				{
+					if (datalinks.keyMappings.TryGetValue(lovItem.SourceDatalinkKey.Value,
+						out var sourceDatalinkKey))
+					{
+						lovItem.SourceDatalinkKey = sourceDatalinkKey;	
+					}
+					else
+					{
+						plan.Warnings.Add($"The list of values {lovItem.Name} contains the source datalink with the key {lovItem.SourceDatalinkKey} which does not exist in the package.  This will need to be manually fixed after import.");
+						lovItem.SourceDatalinkKey = null;
+					}
+				}
+				
+				if (lovItem.SourceType == ELOVObjectType.Table && lovItem.SourceTableKey != null)
+				{
+					if (tables.keyMappings.TryGetValue(lovItem.SourceTableKey.Value, out var sourceTableKey))
+					{
+						lovItem.SourceTableKey = sourceTableKey;
+					}
+					else
+					{
+						plan.Warnings.Add($"The list of values {lovItem.Name} contains the source table with the key {lovItem.SourceTableKey} which does not exist in the package.  This will need to be manually fixed after import.");
+						lovItem.SourceTableKey = null;
+					}
+				}
+			}
 		
 			foreach (var datalinkTest in datalinkTests.importObjects.Select(c => c.Item))
 			{
@@ -3723,13 +3781,17 @@ namespace dexih.operations
 						table.TestConnectionKey = UpdateConnectionKey(table.TestConnectionKey) ?? default;
 					}
 				}
-				
 			}
 
 			foreach (var api in apis.importObjects.Select(c => c.Item))
 			{
 				api.SourceDatalinkKey = UpdateDatalinkKey(api.SourceDatalinkKey);
 				api.SourceTableKey = UpdateTableKey(api.SourceTableKey);
+				
+				foreach (var parameter in api.Parameters)
+				{
+					parameter.ListOfValuesKey = UpdateListOfValuesKey(parameter.ListOfValuesKey);
+				}
 			}
 			
 			//loop through the datalinks again, and reset the other keys.
@@ -3750,7 +3812,7 @@ namespace dexih.operations
 					}
 				}
 				
-				// resets columns in datalink table.  Used as a funtion as it is required for the sourcedatalink and joindatalink.
+				// resets columns in datalink table.  Used as a function as it is required for the sourceDatalink and joinDatalink.
 				void ResetDatalinkTable(DexihDatalinkTable datalinkTable)
 				{
 					if (datalinkTable != null)
@@ -3800,7 +3862,12 @@ namespace dexih.operations
 				{
 					profile.Key = 0;
 				}
-				
+
+				foreach (var parameter in datalink.Parameters)
+				{
+					parameter.ListOfValuesKey = UpdateListOfValuesKey(parameter.ListOfValuesKey);
+				}
+
 
 				foreach (var datalinkTransform in datalink.DexihDatalinkTransforms.OrderBy(c=>c.Position))
 				{
@@ -3834,8 +3901,6 @@ namespace dexih.operations
 
 					datalinkTransform.JoinSortDatalinkColumnKey = DatalinkColumnMapping(datalinkTransform.JoinSortDatalinkColumn);
 					datalinkTransform.JoinSortDatalinkColumn = null;
-
-					datalinkTransform.HubKey = hubKey;
 					
 					foreach (var item in datalinkTransform.DexihDatalinkTransformItems.OrderBy(c => c.Position))
 					{
@@ -3892,6 +3957,15 @@ namespace dexih.operations
 
 			foreach (var datajob in datajobs.importObjects.Select(c=> c.Item))
 			{
+				foreach (var parameter in datajob.Parameters)
+				{
+					parameter.Key = 0;
+					parameter.HubKey = hubKey;
+					parameter.DatajobKey = 0;
+					parameter.ListOfValuesKey = UpdateListOfValuesKey(parameter.ListOfValuesKey);
+				}
+
+				
 				foreach (var trigger in datajob.DexihTriggers)
 				{
 					trigger.Key = 0;
@@ -3900,25 +3974,32 @@ namespace dexih.operations
 
 				var stepKeyMapping = new Dictionary<long, DexihDatalinkStep>();
 
-				var newSteps = new HashSet<DexihDatalinkStep>();
+				// var newSteps = new HashSet<DexihDatalinkStep>();
 				
 				foreach (var step in datajob.DexihDatalinkSteps)
 				{
-					var newKey = keySequence--;
+					step.HubKey = hubKey;
+					step.DatajobKey = 0;
+					
+					foreach (var parameter in datajob.Parameters)
+					{
+						parameter.ListOfValuesKey = UpdateListOfValuesKey(parameter.ListOfValuesKey);
+					}
+
 					stepKeyMapping.Add(step.Key, step);
-					step.Key = newKey;
+					step.Key = 0;
 
 					step.DatalinkKey = UpdateDatalinkKey(step.DatalinkKey);
 				}
-				datajob.DexihDatalinkSteps = newSteps;
+				// datajob.DexihDatalinkSteps = newSteps;
 				
 				foreach (var step in datajob.DexihDatalinkSteps)
 				{
 					foreach (var dep in step.DexihDatalinkDependencies)
 					{
 						dep.Key = 0;
-						dep.DatalinkStepKey = step.Key;
-						dep.DependentDatalinkStepKey = stepKeyMapping.GetValueOrDefault(dep.DependentDatalinkStepKey).Key;
+						dep.DatalinkStepKey = 0;
+						dep.DependentDatalinkStepKey = 0;
 						dep.DependentDatalinkStep = stepKeyMapping.GetValueOrDefault(dep.DependentDatalinkStepKey);
 					}
 
@@ -3994,7 +4075,10 @@ namespace dexih.operations
             var dashboards = import.Dashboards
 	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
 	            .ToDictionary(c => c.Key, c => c);
-
+            var listOfValues = import.ListOfValues
+	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+	            .ToDictionary(c => c.Key, c => c);
+            
             // recurse the child columns and include any in the dictionary.
             var topColumns = columns.Values.ToArray();
             foreach (var column in topColumns)
@@ -4188,11 +4272,11 @@ namespace dexih.operations
 
 				var steps = datajob.DexihDatalinkSteps.ToDictionary(c => c.Key, c => c);
 
-				
 				foreach (var step in steps.Values)
 				{
 					step.Key = 0;
                     step.Datalink =  datalinks.GetValueOrDefault(step.DatalinkKey.Value);
+                    ResetKeys(step.Parameters);
 
 					foreach (var dep in step.DexihDatalinkDependencies)
 					{
@@ -4248,7 +4332,6 @@ namespace dexih.operations
 	            }
 	            
 	            ResetKeys(view.Parameters);
-
             }
 
             foreach (var dashboard in dashboards.Values)
@@ -4264,6 +4347,21 @@ namespace dexih.operations
 
             }
 
+            foreach(var lovItem in listOfValues.Values)
+            {
+	            if (lovItem.Key < 0) lovItem.Key = 0;
+
+	            if (lovItem.SourceDatalinkKey != null)
+	            {
+		            lovItem.SourceDatalink = datalinks.GetValueOrDefault(lovItem.SourceDatalinkKey.Value);
+	            }
+
+	            if (lovItem.SourceTableKey != null)
+	            {
+		            lovItem.SourceTable = tables.GetValueOrDefault(lovItem.SourceTableKey.Value);
+	            }
+            }
+            
             // set all existing datalink object to invalid.
             var datalinkTransforms = datalinks.Values.SelectMany(c => c.DexihDatalinkTransforms).Select(c=>c.Key);
 			var deletedDatalinkTransforms = DbContext.DexihDatalinkTransforms.Include(c=>c.DexihDatalinkTransformItems).ThenInclude(p=>p.DexihFunctionParameters)
@@ -4288,6 +4386,17 @@ namespace dexih.operations
 					}
 				}
 			}
+			
+			// set unused trigger parameters to invalid
+			var targets = datalinks.Values.SelectMany(c => c.DexihDatalinkTargets).Select(c => c.Key);
+			var deletedTargets = DbContext.DexihDatalinkTargets.Where(s =>
+				s.HubKey == import.HubKey &&
+				datalinks.Values.Select(d => d.Key).Contains(s.DatalinkKey) && !targets.Contains(s.Key));
+			foreach (var target in deletedTargets)
+			{
+				target.IsValid = false;
+				target.UpdateDate = DateTime.Now;
+			}
 
 
 			var dataLinkSteps = datajobs.Values.SelectMany(c => c.DexihDatalinkSteps).Select(c => c.Key);
@@ -4305,8 +4414,74 @@ namespace dexih.operations
 					dep.UpdateDate = DateTime.Now;
 				}
 			}
+			
+			// set unused trigger parameters to invalid
+			var triggers = datajobs.Values.SelectMany(c => c.DexihTriggers).Select(c => c.Key);
+			var deletedTriggers = DbContext.DexihTriggers.Where(s =>
+				s.HubKey == import.HubKey &&
+				datajobs.Values.Select(d => d.Key).Contains(s.DatajobKey) && !triggers.Contains(s.Key));
+			foreach (var trigger in deletedTriggers)
+			{
+				trigger.IsValid = false;
+				trigger.UpdateDate = DateTime.Now;
+			}
 
+			// set unused datajob parameters to invalid
+			var parameterKeys = datajobs.Values.SelectMany(c => c.Parameters).Select(c => c.Key);
+			var deletedDatajobParameters = DbContext.DexihDatajobParameters.Where(s =>
+				s.HubKey == import.HubKey && datajobs.Values.Select(d => d.Key).Contains(s.DatajobKey) &&
+				!parameterKeys.Contains(s.Key));
+			foreach (var parameter in deletedDatajobParameters)
+			{
+				parameter.IsValid = false;
+				parameter.UpdateDate = DateTime.Now;
+				;
+			}
+			
+			// set datalink parameters to invalid
+			parameterKeys = datalinks.Values.SelectMany(c => c.Parameters).Select(c => c.Key);
+			var deletedDatalinkParameters = DbContext.DexihDatalinkParameters.Where(s =>
+				s.HubKey == import.HubKey && datalinks.Values.Select(d => d.Key).Contains(s.DatalinkKey) &&
+				!parameterKeys.Contains(s.Key));
+			foreach (var parameter in deletedDatalinkParameters)
+			{
+				parameter.IsValid = false;
+				parameter.UpdateDate = DateTime.Now;
+			}
 
+			// set unused view parameters to invalid
+			parameterKeys = views.Values.SelectMany(c => c.Parameters).Select(c => c.Key);
+			var deletedViewParameters = DbContext.DexihViewParameters.Where(s =>
+				s.HubKey == import.HubKey && views.Values.Select(d => d.Key).Contains(s.ViewKey) &&
+				!parameterKeys.Contains(s.Key));
+			foreach (var parameter in deletedViewParameters)
+			{
+				parameter.IsValid = false;
+				parameter.UpdateDate = DateTime.Now;
+			}
+			
+			// set unused dashboard parameters to invalid
+			parameterKeys = dashboards.Values.SelectMany(c => c.Parameters).Select(c => c.Key);
+			var deletedDashboardParameters = DbContext.DexihDashboardParameters.Where(s =>
+				s.HubKey == import.HubKey && views.Values.Select(d => d.Key).Contains(s.DashboardKey) &&
+				!parameterKeys.Contains(s.Key));
+			foreach (var parameter in deletedDashboardParameters)
+			{
+				parameter.IsValid = false;
+				parameter.UpdateDate = DateTime.Now;
+			}
+			
+			// set unused api parameters to invalid
+			parameterKeys = apis.Values.SelectMany(c => c.Parameters).Select(c => c.Key);
+			var deletedApiParameters = DbContext.DexihApiParameters.Where(s =>
+				s.HubKey == import.HubKey && apis.Values.Select(d => d.Key).Contains(s.ApiKey) &&
+				!parameterKeys.Contains(s.Key));
+			foreach (var parameter in deletedApiParameters)
+			{
+				parameter.IsValid = false;
+				parameter.UpdateDate = DateTime.Now;
+			}
+			
 			// get all columns from the repository that need to be removed.
 			var allColumnKeys = tables.Values.SelectMany(t => t.DexihTableColumns).Select(c=>c.Key).Where(c => c > 0);
 			var deletedColumns = DbContext.DexihTableColumns.Where(c =>
@@ -4365,6 +4540,7 @@ namespace dexih.operations
 			AddItems(DbContext, apis.Values);
 			AddItems(DbContext, views.Values);
 			AddItems(DbContext, dashboards.Values);
+			AddItems(DbContext, listOfValues.Values);
 			
 			await SaveHubChangesAsync(import.HubKey, cancellationToken);
 
