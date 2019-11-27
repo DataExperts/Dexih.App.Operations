@@ -1138,6 +1138,7 @@ namespace dexih.operations
 //				}
 
 				dbConnection.HubKey = hubKey;
+				dbConnection.UpdateDate = DateTime.Now;
 				dbConnection.IsValid = true;
 
 				await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -1334,6 +1335,7 @@ namespace dexih.operations
 						SetTableKeys(col.ChildColumns);
 					}
 
+					dbTable.UpdateDate = DateTime.Now;
 					dbTable.IsValid = true;
 					dbTable.HubKey = hubKey;
 					
@@ -2250,6 +2252,7 @@ namespace dexih.operations
 	                }
                 }
 
+                dbRemoteAgent.UpdateDate = DateTime.Now;
                 dbRemoteAgent.IsValid = true;
 
 	            await DbContext.SaveChangesAsync(cancellationToken);
@@ -2397,6 +2400,7 @@ namespace dexih.operations
 					DbContext.DexihRemoteAgentHubs.Add(dbRemoteAgent);
                 }
 
+                dbRemoteAgent.UpdateDate = DateTime.Now;
                 dbRemoteAgent.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -2676,6 +2680,7 @@ namespace dexih.operations
 
 
 				dbColumnValidation.HubKey = hubKey;
+				dbColumnValidation.UpdateDate = DateTime.Now;
 				dbColumnValidation.IsValid = true;
 
 				await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -2748,6 +2753,7 @@ namespace dexih.operations
 
 
 				dbFunction.HubKey = hubKey;
+				dbFunction.UpdateDate = DateTime.Now;
 				dbFunction.IsValid = true;
 
 //			 var modifiedEntries = DbContext.ChangeTracker
@@ -2824,7 +2830,7 @@ namespace dexih.operations
 					DbContext.DexihFileFormats.Add(dbFileFormat);
 				}
 
-
+				dbFileFormat.UpdateDate = DateTime.Now;
 				dbFileFormat.IsValid = true;
 
 				await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -2895,7 +2901,7 @@ namespace dexih.operations
                     DbContext.DexihHubVariables.Add(dbHubHubVariable);
                 }
 
-
+				dbHubHubVariable.UpdateDate = DateTime.Now;
                 dbHubHubVariable.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -2921,7 +2927,7 @@ namespace dexih.operations
 	                view.IsValid = false;
                 }
 
-                await SaveHubChangesAsync(hubKey);
+                await SaveHubChangesAsync(hubKey, cancellationToken);
 
                 return dbViews;
             }
@@ -2967,6 +2973,7 @@ namespace dexih.operations
                 }
 
 
+                dbView.UpdateDate = DateTime.Now;
                 dbView.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3113,6 +3120,7 @@ namespace dexih.operations
                     DbContext.DexihApis.Add(dbApi);
                 }
 
+                dbApi.UpdateDate = DateTime.Now;
                 dbApi.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3256,7 +3264,7 @@ namespace dexih.operations
                     DbContext.DexihListOfValues.Add(dbListOfValues);
                 }
 
-
+                dbListOfValues.UpdateDate = DateTime.Now;
                 dbListOfValues.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3764,6 +3772,7 @@ namespace dexih.operations
 						lovItem.SourceTableKey = null;
 					}
 				}
+				
 			}
 		
 			foreach (var datalinkTest in datalinkTests.importObjects.Select(c => c.Item))
@@ -4132,7 +4141,6 @@ namespace dexih.operations
                     {
                         column.ColumnValidation = columnValidations.GetValueOrDefault(column.ColumnValidationKey.Value);
                     }
-                    
                 }
             }
 

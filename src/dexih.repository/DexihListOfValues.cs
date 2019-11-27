@@ -25,13 +25,13 @@ namespace dexih.repository
         public SelectQuery SelectQuery { get; set; }
         
         [Key(12)]
-        public long? KeyColumnKey { get; set; }
+        public string KeyColumn { get; set; }
         
         [Key(13)]
-        public long? NameColumnKey { get; set; }
+        public string NameColumn { get; set; }
         
         [Key(14)]
-        public long? DescriptionColumnKey { get; set; }
+        public string DescriptionColumn { get; set; }
 
         [Key(15)]
         public string StaticData { get; set; }

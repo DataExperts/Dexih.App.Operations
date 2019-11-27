@@ -205,7 +205,7 @@ namespace dexih.repository
                     .WithMany(p => p.Parameters)
                     .HasForeignKey(d => d.ApiKey)
                     .OnDelete(DeleteBehavior.Restrict)
-                    .HasConstraintName("FK_dexih_api_parameters_dexih_datalinks");
+                    .HasConstraintName("FK_dexih_api_parameters");
             });
                         
             modelBuilder.Entity<DexihColumnValidation>(entity =>
@@ -1755,7 +1755,7 @@ namespace dexih.repository
                     .WithMany(p => p.Parameters)
                     .HasForeignKey(d => d.ViewKey)
                     .OnDelete(DeleteBehavior.Restrict)
-                    .HasConstraintName("FK_dexih_datalink_views_dexih_views");
+                    .HasConstraintName("FK_dexih_views_parameters");
             });
             
             modelBuilder.Entity<DexihListOfValues>(entity =>
@@ -1779,9 +1779,9 @@ namespace dexih.repository
                         v => v == null ? null : JsonExtensions.Serialize(v),
                         v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v, true));
 
-                entity.Property(e => e.KeyColumnKey).HasColumnName("key_column_key");
-                entity.Property(e => e.NameColumnKey).HasColumnName("name_column_key");
-                entity.Property(e => e.DescriptionColumnKey).HasColumnName("desc_column_key");
+                entity.Property(e => e.KeyColumn).HasColumnName("key_column").HasMaxLength(50);
+                entity.Property(e => e.NameColumn).HasColumnName("name_column").HasMaxLength(50);
+                entity.Property(e => e.DescriptionColumn).HasColumnName("desc_column").HasMaxLength(50);
                 entity.Property(e => e.StaticData).HasColumnName("static_data");
                 entity.Property(e => e.Cache).HasColumnName("cache");
                 entity.Property(e => e.CacheSeconds).HasColumnName("cache_seconds");
@@ -1801,7 +1801,7 @@ namespace dexih.repository
                     .HasForeignKey(d => d.SourceTableKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_lov_dexih_tables");
-                
+
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihListOfValues)
                     .HasForeignKey(d => d.HubKey);

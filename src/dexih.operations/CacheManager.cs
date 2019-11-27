@@ -1031,6 +1031,10 @@ namespace dexih.operations
 			    if(lov == null)
 			    {
 				    lov = hub.DexihListOfValues.SingleOrDefault(c => c.Key == key && c.IsValid);
+				    if (lov == null)
+				    {
+					    throw new CacheManagerException($"The list of value with the key {key} could not be found.");
+				    }
 				    Hub.DexihListOfValues.Add(lov);
 				    
 				    LoadListOfValuesDependencies(lov, hub);
