@@ -23,9 +23,15 @@ namespace dexih.repository
         [Key(8)]
         public long? ListOfValuesKey { get; set; }
         
+        [Key(9)]
+        public bool AllowUserSelect { get; set; }
+
+        [Key(10)]
+        public string ValueDesc { get; set; }
+        
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihListOfValues ListOfValues { get; set; }
-        
+
         public override void ResetKeys()
         {
             Key = 0;

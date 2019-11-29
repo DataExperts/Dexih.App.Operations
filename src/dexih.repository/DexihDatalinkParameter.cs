@@ -8,7 +8,7 @@ namespace dexih.repository
     [MessagePackObject]
     public class DexihDatalinkParameter: InputParameterBase
     {
-        [Key(9)]
+        [Key(11)]
         [CopyParentCollectionKey]
         public long DatalinkKey { get; set; }
 

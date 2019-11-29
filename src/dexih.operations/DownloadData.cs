@@ -251,7 +251,7 @@ namespace dexih.operations
 
             [Key(4)]
             public InputColumn[] InputColumns { get; set; }
-
+            
             // used when downloading data from a specific a transform data.
             [Key(5)]
             public long? DatalinkTransformKey { get; set; }

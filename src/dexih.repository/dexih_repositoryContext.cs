@@ -26,7 +26,6 @@ namespace dexih.repository
 #if DEBUG
             optionsBuilder.EnableSensitiveDataLogging(true);
 #endif
-
         }
 
 		public DexihRepositoryContext(DbContextOptions options) : base(options)
@@ -194,8 +193,10 @@ namespace dexih.repository
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 
-                entity.Property(e => e.Value).HasColumnName("value");
+                entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(50);
                 entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
                 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -444,6 +445,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.Value).HasColumnName("value");
                 entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -472,6 +475,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.Value).HasColumnName("value");
                 entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -564,6 +569,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.Value).HasColumnName("value");
                 entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -719,6 +726,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.Value).HasColumnName("value");
                 entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -808,6 +817,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.Value).HasColumnName("value");
                 entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1746,6 +1757,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.Value).HasColumnName("value");
                 entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");

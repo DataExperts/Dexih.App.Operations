@@ -8,11 +8,11 @@ namespace dexih.repository
     [MessagePackObject]
     public class DexihApiParameter: InputParameterBase
     {
-        [Key(9)]
+        [Key(11)]
         [CopyParentCollectionKey]
         public long ApiKey { get; set; }
 
-        [Key(10)]
+        [Key(12)]
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihApi Api { get; set; }
 

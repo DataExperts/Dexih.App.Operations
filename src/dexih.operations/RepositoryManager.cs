@@ -16,6 +16,7 @@ using dexih.transforms;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace dexih.operations
 {
@@ -441,6 +442,84 @@ namespace dexih.operations
 					return hub != null;
 				}
 			}
+		}
+
+		public async Task<long> GetSharedListOfValueKey(EDataObjectType objectType, long key, string parameterName,
+			CancellationToken cancellationToken)
+		{
+			switch (objectType)
+			{
+				case EDataObjectType.Datalink:
+					var datalink = await DbContext.DexihDatalinks.SingleOrDefaultAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken);
+					if (datalink == null)
+					{
+						throw new RepositoryManagerException(
+							$"The datalink with the key {key} does not exist or is not shared.");
+					}
+
+					var parameter = await DbContext.DexihDatalinkParameters.SingleOrDefaultAsync(c =>
+						c.DatalinkKey == key && c.Name == parameterName && c.IsValid, cancellationToken: cancellationToken);
+
+					if (parameter != null && parameter.ListOfValuesKey > 0)
+					{
+						return parameter.ListOfValuesKey.Value;
+					}
+					
+					throw new RepositoryManagerException($"The datalink {datalink.Name} does not have a parameter with name {parameterName} containing a list of values.");
+				case EDataObjectType.View:
+					var view = await DbContext.DexihViews.SingleOrDefaultAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken);
+					if (view == null)
+					{
+						throw new RepositoryManagerException(
+							$"The view with the key {key} does not exist or is not shared.");
+					}
+
+					var viewParameter = await DbContext.DexihViewParameters.SingleOrDefaultAsync(c =>
+						c.ViewKey == key && c.Name == parameterName && c.IsValid, cancellationToken: cancellationToken);
+
+					if (viewParameter != null && viewParameter.ListOfValuesKey > 0)
+					{
+						return viewParameter.ListOfValuesKey.Value;
+					}
+					
+					throw new RepositoryManagerException($"The view {view.Name} does not have a parameter with name {parameterName} containing a list of values.");
+
+				case EDataObjectType.Dashboard:
+					var dashboard = await DbContext.DexihDashboards.SingleOrDefaultAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken);
+					if (dashboard == null)
+					{
+						throw new RepositoryManagerException($"The view with the key {key} does not exist or is not shared.");
+					}
+
+					var dashboardParameter = await DbContext.DexihDashboardParameters.SingleOrDefaultAsync(c =>
+						c.DashboardKey == key && c.Name == parameterName && c.IsValid, cancellationToken: cancellationToken);
+
+					if (dashboardParameter != null && dashboardParameter.ListOfValuesKey > 0)
+					{
+						return dashboardParameter.ListOfValuesKey.Value;
+					}
+					
+					throw new RepositoryManagerException($"The dashboard {dashboard.Name} does not have a parameter with name {parameterName} containing a list of values.");
+			}
+			
+			throw new RepositoryManagerException($"The {objectType} with key {key} does not contain parameters.");
+		}
+		
+		public async Task<bool> IsObjectShared(EDataObjectType objectType, long key, CancellationToken cancellationToken)
+		{
+			switch (objectType)
+			{
+				case EDataObjectType.Table:
+					return (await DbContext.DexihTables.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+				case EDataObjectType.Datalink:
+					return (await DbContext.DexihDatalinks.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+				case EDataObjectType.View:
+					return (await DbContext.DexihViews.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+				case EDataObjectType.Dashboard:
+					return (await DbContext.DexihDashboards.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+			}
+
+			return false;
 		}
 
 		/// <summary>
@@ -1526,6 +1605,47 @@ namespace dexih.operations
 			}
 		}
 
+		/// <summary>
+		/// Gets the view attached to a dashboard item.
+		/// </summary>
+		/// <param name="hubKey"></param>
+		/// <param name="dashboardItemKey"></param>
+		/// <param name="isShared">Returns error unless the dashboard is shared.</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		/// <exception cref="RepositoryManagerException"></exception>
+		public async Task<DexihView> GetDashboardItemView(long hubKey, long dashboardItemKey, bool isShared, CancellationToken cancellationToken)
+		{
+			try
+			{
+				var dashboardIem = await DbContext.DexihDashboardItems.SingleOrDefaultAsync(
+					c => c.HubKey == hubKey && c.Key == dashboardItemKey && c.IsValid, cancellationToken: cancellationToken);
+
+				if (isShared)
+				{
+					var dashboard = await DbContext.DexihDashboards.SingleOrDefaultAsync(c =>
+						c.HubKey == hubKey && c.Key == dashboardIem.DashboardKey && c.IsValid, cancellationToken: cancellationToken);
+
+					if (dashboard == null)
+					{
+						throw new RepositoryManagerException($"The dashboard with the key {dashboard.Key} was not found.");
+					}
+
+					if (!dashboard.IsShared)
+					{
+						throw new RepositoryManagerException(
+							$"The dashboard {dashboard.Name} is not shared.");
+					}
+				}
+
+				return await DbContext.DexihViews.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == dashboardIem.ViewKey && c.IsValid, cancellationToken: cancellationToken);
+				
+			}
+			catch (Exception ex)
+			{
+				throw new RepositoryManagerException($"Get dashboard item with key {dashboardItemKey} failed.  {ex.Message}", ex);
+			}
+		}
 		public async Task<DexihListOfValues> GetListOfValues(long hubKey, long listOfValuesKey, CancellationToken cancellationToken)
 		{
 			try
