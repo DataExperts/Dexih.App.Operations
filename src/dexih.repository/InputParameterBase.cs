@@ -22,9 +22,9 @@ namespace dexih.repository
         
         [Key(8)]
         public long? ListOfValuesKey { get; set; }
-        
-        [Key(9)]
-        public bool AllowUserSelect { get; set; }
+
+        [Key(9)] 
+        public bool AllowUserSelect { get; set; } = true;
 
         [Key(10)]
         public string ValueDesc { get; set; }
