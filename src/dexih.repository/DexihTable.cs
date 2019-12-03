@@ -259,7 +259,7 @@ namespace dexih.repository
 	        }
 
 
-            foreach (var dbColumn in DexihTableColumns.Where(c => c.IsValid).OrderBy(c => c.Position))
+            foreach (var dbColumn in DexihTableColumns.Where(c => c.IsValid && c.DeltaType != EDeltaType.IgnoreField).OrderBy(c => c.Position))
             {
                 table.Columns.Add(dbColumn.GetTableColumn(inputColumns));
             }

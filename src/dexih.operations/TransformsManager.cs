@@ -282,7 +282,7 @@ namespace dexih.operations
                 // add a mapping transform to include inputColumns.
                 var mappings = new Mappings();
                 
-                foreach (var column in datalinkColumns)
+                foreach (var column in datalinkColumns.Where(c => c.DeltaType != EDeltaType.IgnoreField))
                 {
                     var transformColumn = transformColumns.SingleOrDefault(c => c.Name == column.Name);
                     if (transformColumn == null)
@@ -296,7 +296,7 @@ namespace dexih.operations
                 {
                     sourceTransform = new TransformMapping(sourceTransform, mappings)
                     {
-                        Name = "Internal Mapping"
+                        Name = "Input Column Mapping"
                     };
                 }
 
