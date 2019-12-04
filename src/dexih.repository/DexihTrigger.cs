@@ -21,8 +21,11 @@ namespace dexih.repository
 
         [Key(9)]
         public TimeSpan? IntervalTime { get; set; }
-
+        
         [Key(10)]
+        public int Position { get; set; }
+
+        [Key(11)]
         [NotMapped, CopyIgnore]
         public EDayOfWeek[] DaysOfWeek
         {
@@ -54,16 +57,16 @@ namespace dexih.repository
         [JsonIgnore]
         public string DaysOfWeekString { get; set; }
 
-        [Key(11)]
+        [Key(12)]
         public TimeSpan? StartTime { get; set; }
 
-        [Key(12)]
+        [Key(13)]
         public TimeSpan? EndTime { get; set; }
 
-        [Key(13)]
+        [Key(14)]
         public string CronExpression { get; set; }
 
-        [Key(14)]
+        [Key(15)]
         public int? MaxRecurs { get; set; }
 
         [NotMapped]

@@ -367,13 +367,13 @@ namespace dexih.operations
 					foreach (var datalinkStep in DatalinkSteps.Where(c => c.WriterTarget.WriterResult == null || c.WriterTarget.WriterResult.RunStatus == ERunStatus.Initialised))
 					{
 						var dbStep = Datajob.DexihDatalinkSteps.Single(c => c.IsValid && c.Key == datalinkStep.DatalinkStepKey);
-						if (dbStep.DexihDatalinkDependencies.Any(c => c.DependentDatalinkStepKey == datalinkRun.DatalinkStepKey))
+						if (dbStep.DexihDatalinkDependencies.Any())
 						{
 							//check if the jobs other dependencies have finished
 							var allFinished = true;
-							foreach (var dbDependentStep in dbStep.DexihDatalinkDependencies.Where(c => c.DependentDatalinkStepKey != datalinkRun.DatalinkStepKey))
+							foreach (var dbDependentStep in dbStep.DexihDatalinkDependencies)
 							{
-								var dependentStep = DatalinkSteps.Single(c => c.DatalinkStepKey == dbDependentStep.DatalinkStepKey);
+								var dependentStep = DatalinkSteps.Single(c => c.DatalinkStepKey == dbDependentStep.DependentDatalinkStepKey);
 
 								if (dependentStep.WriterTarget.WriterResult.RunStatus != ERunStatus.Finished)
 								{
@@ -383,7 +383,7 @@ namespace dexih.operations
 							}
 							if (allFinished) //all dependent jobs finished, then run the datalink.
 							{
-								StartDatalink(datalinkRun);
+								StartDatalink(datalinkStep);
 							}
 							break;
 						}

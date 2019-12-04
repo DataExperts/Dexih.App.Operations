@@ -22,15 +22,17 @@ namespace dexih.repository
 
         [Key(8)]
         public long? DatalinkKey { get; set; }
-
-
+        
         [Key(9)]
-        public ICollection<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
+        public int Position { get; set; }
 
         [Key(10)]
-        public ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
+        public ICollection<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
 
         [Key(11)]
+        public ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
+
+        [Key(12)]
         public ICollection<DexihDatalinkStepParameter> Parameters { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreMember]

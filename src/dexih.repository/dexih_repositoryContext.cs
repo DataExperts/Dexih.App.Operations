@@ -9,8 +9,8 @@ using dexih.functions.Query;
 using dexih.transforms;
 using dexih.transforms.Mapping;
 using Dexih.Utils.DataType;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 
 
 namespace dexih.repository
@@ -783,6 +783,7 @@ namespace dexih.repository
 
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
+                entity.Property(e => e.Position).HasColumnName("position");
 
 				entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1659,6 +1660,7 @@ namespace dexih.repository
                 entity.Property(e => e.Key).HasColumnName("trigger_key");
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
 
+                entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.StartDate).HasColumnName("start_date");
                 entity.Property(e => e.StartTime).HasColumnName("start_time");
                 entity.Property(e => e.EndTime).HasColumnName("end_time");
