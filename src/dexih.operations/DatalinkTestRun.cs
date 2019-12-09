@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using dexih.functions;
 using dexih.repository;
 using dexih.transforms;
 using Dexih.Utils.CopyProperties;
+using Dexih.Utils.DataType;
 using Dexih.Utils.ManagedTasks;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +16,9 @@ namespace dexih.operations
     public enum EStartMode { RunSnapshot = 1, RunTests}
     public class DatalinkTestRun: IManagedObject
     {        
+        
+        const int MaxErrorRows = 100;
+            
         #region Events
         public delegate void ProgressUpdate(TransformWriterResult writerResult);
         public delegate void StatusUpdate(TransformWriterResult writerResult);
@@ -92,7 +97,6 @@ namespace dexih.operations
                 SourceTableName = "",
                 TransformWriterOptions = _transformWriterOptions
             };
-           
         }
 
         private void UpdateProgress(int percent, string message = null, Exception exception = null)
@@ -282,6 +286,8 @@ namespace dexih.operations
                 
                 WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Started, null, null);
 
+                var passed = 0;
+                var failed = 0;
 
                 foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
                 {
@@ -316,7 +322,6 @@ namespace dexih.operations
                         };
                         
                         datalink.DexihDatalinkTargets.Add(target);
-                        
                         datalink.UpdateStrategy = TransformDelta.EUpdateStrategy.Reload;
                         datalink.LoadStrategy = TransformWriterTarget.ETransformWriterMethod.Bulk;
 
@@ -329,7 +334,7 @@ namespace dexih.operations
                         };
 
                         // dexihTargetConnection.DexihTables.Add(table);
-                        targetTables = new List<DexihTable>() {table};
+                        targetTables = new List<DexihTable> {table};
                     }
                     else
                     {
@@ -348,11 +353,12 @@ namespace dexih.operations
                         table.Schema = step.TargetSchema;
                     }
 
-
                     UpdateProgress(50);
 
                     // run the datalink
                     var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions);
+                    datalinkRun.WriterTarget.WriterResult.AuditType = "DatalinkTestStep";
+                    datalinkRun.WriterTarget.WriterResult.ReferenceKey = step.Key;
 
                     // await datalinkRun.Initialize(cancellationToken);
                     datalinkRun.Build(token);
@@ -383,42 +389,129 @@ namespace dexih.operations
                         var targetTable = table.GetTable(_hub, targetConnection, _transformSettings);
                         var targetTransform = targetConnection.GetTransformReader(targetTable);
 
+                        // the error table is used to store any rows which do not match.
+                        var dexihErrorConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ErrorConnectionKey);
+                        var dexihErrorTable = table.CloneProperties<DexihTable>();
+                        dexihErrorTable.ConnectionKey = dexihErrorConnection.Key;
+                        dexihErrorTable.Name = step.ErrorTableName;
+                        dexihErrorTable.Schema = step.ErrorSchema;
+                        var errorConnection = dexihErrorConnection.GetConnection(_transformSettings);
+                        var errorTable = dexihErrorTable.GetTable(_hub, errorConnection, _transformSettings);
+                        
+                        foreach (var column in errorTable.Columns)
+                        {
+                            column.DeltaType = EDeltaType.NonTrackingField;
+                        }
+                        errorTable.Columns.Add(new TableColumn("error_audit_key", ETypeCode.Int64, EDeltaType.CreateAuditKey));
+                        errorTable.Columns.Add(new TableColumn("error_operation", ETypeCode.CharArray, EDeltaType.DatabaseOperation) { MaxLength = 1});
+                        
                         // use the delta transform to compare expected and target tables.
                         var delta = new TransformDelta(targetTransform, expectedTransform,
-                            TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve, 0, false);
+                            TransformDelta.EUpdateStrategy.AppendUpdateDelete, 0, false);
 
                         await delta.Open(0, null, token);
 
-                        testResult.RowCountMatch = true;
+                        testResult.RowsMismatching = 0;
+                        testResult.RowsMissingFromSource = 0;
+                        testResult.RowsMissingFromTarget = 0;
+
+                        var operationColumn = delta.CacheTable.Columns.GetOrdinal(EDeltaType.DatabaseOperation);
+                        
+                        var errorCache = new TableCache();
+
+                        // loop through the delta.  any rows which don't match on source/target should filter through, others will be ignored.
                         while (await delta.ReadAsync(token))
                         {
-                            testResult.RowCountMatch = false;
+                            testResult.TestPassed = false;
+                            switch (delta[operationColumn])
+                            {
+                                case 'C':
+                                    testResult.RowsMissingFromTarget++;
+                                    break;
+                                case 'U':
+                                    testResult.RowsMismatching++;
+                                    break;
+                                case 'D':
+                                    testResult.RowsMissingFromSource++;
+                                    break;
+                            }
+                            datalinkRun.WriterTarget.WriterResult.Failed++;
+                            WriterResult.Failed++;
                             WriterResult.IncrementRowsCreated();
+
+                            if (errorCache.Count < MaxErrorRows)
+                            {
+                                var row = new object[errorTable.Columns.Count];
+
+                                for (var i = 0; i < errorTable.Columns.Count; i++)
+                                {
+                                    var column = errorTable[i];
+                                    switch (column.DeltaType)
+                                    {
+                                        case EDeltaType.CreateAuditKey:
+                                            row[i] = datalinkRun.WriterTarget.WriterResult.AuditKey;
+                                            break;
+                                        case EDeltaType.DatabaseOperation:
+                                            row[i] = delta[operationColumn];
+                                            break;
+                                        default:
+                                            row[i] = delta[column.Name];
+                                            break;
+                                    }
+                                }
+
+                                errorCache.Add(row);
+                            }
+                        }
+
+                        if (errorCache.Count > 0)
+                        {
+                            errorTable.Data = errorCache;
+                            var createReader = new ReaderMemory(errorTable);
+                            
+                            if (!await errorConnection.TableExists(errorTable, cancellationToken))
+                            {
+                                await errorConnection.CreateTable(errorTable, false, cancellationToken);    
+                            }
+                            
+                            await errorConnection.ExecuteInsertBulk(errorTable, createReader, cancellationToken);
                         }
 
                         WriterResult.RowsIgnored += delta.TotalRowsIgnored;
                         WriterResult.RowsPreserved += delta.TotalRowsPreserved;
 
-                        if (testResult.RowCountMatch)
+                        if (testResult.TestPassed == false)
                         {
-                            WriterResult.Passed++;
+                            failed++;
                         }
                         else
                         {
-                            WriterResult.Failed++;
+                            passed++;
                         }
 
+                        if (datalinkRun.WriterTarget.WriterResult.RunStatus == TransformWriterResult.ERunStatus.Finished)
+                        {
+                            if (testResult.TestPassed)
+                            {
+                                datalinkRun.WriterTarget.WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, "Datalink test passed", null);
+                            }
+                            else
+                            {
+                                datalinkRun.WriterTarget.WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Failed, $"Datalink test failed, {testResult.RowsMissingFromSource} rows missing from expected, {testResult.RowsMissingFromTarget} rows missing from actual, {testResult.RowsMismatching} rows with mismatching columns.", null);
+                            }
+                        }
+                        
                         TestResults.Add(testResult);
                     }
                 }
 
                 if (WriterResult.Failed > 0)
                 {
-                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Failed, $"{WriterResult.Passed} tests passed, {WriterResult.Failed} test failed.", null);
+                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Failed, $"{passed} tests passed, {failed} test failed.", null);
                 }
                 else
                 {
-                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, $"{WriterResult.Passed} tests passed.", null);
+                    WriterResult.SetRunStatus(TransformWriterResult.ERunStatus.Passed, $"{passed} tests passed.", null);
                 }
 
                 await WriterResult.CompleteDatabaseWrites();
@@ -538,13 +631,11 @@ namespace dexih.operations
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            
-
         }
 
         public void Cancel()
         {
-            throw new NotImplementedException();
+            _cancellationTokenSource.Cancel();
         }
 
         public void Schedule(DateTime startsAt, CancellationToken cancellationToken = default)

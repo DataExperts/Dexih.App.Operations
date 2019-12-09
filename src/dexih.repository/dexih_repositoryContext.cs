@@ -961,6 +961,10 @@ namespace dexih.repository
                 entity.Property(e => e.ExpectedTableName).HasColumnName("expected_table_name").HasMaxLength(50);
                 entity.Property(e => e.ExpectedSchema).HasColumnName("expected_schema").HasMaxLength(50);
 
+                entity.Property(e => e.ErrorConnectionKey).HasColumnName("error_connection_key");
+                entity.Property(e => e.ErrorTableName).HasColumnName("error_table_name").HasMaxLength(50);
+                entity.Property(e => e.ErrorSchema).HasColumnName("error_schema").HasMaxLength(50);
+
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");

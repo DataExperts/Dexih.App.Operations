@@ -46,14 +46,7 @@ namespace dexih.operations
 
         public Task<(DatalinkRun datalinkRun, TransformWriterResult writerResult)> WaitForFinish()
         {
-            if (_taskCompletionSource == null)
-            {
-                return null;
-            }
-            else
-            {
-                return _taskCompletionSource.Task;
-            }
+            return _taskCompletionSource?.Task;
         }
 
         public DatalinkRun(TransformSettings transformSettings, ILogger logger, long parentAuditKey, DexihDatalink hubDatalink, DexihHub hub, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions)
@@ -95,14 +88,7 @@ namespace dexih.operations
             }
 
             var primaryTarget = Datalink.DexihDatalinkTargets.SingleOrDefault(c => c.IsValid && c.NodeDatalinkColumnKey == null);
-            if (primaryTarget == null)
-            {
-                WriterTarget = new TransformWriterTarget();   
-            }
-            else
-            {
-                WriterTarget = NewTransformWriterTarget(primaryTarget, null, auditConnection);
-            }
+            WriterTarget = NewTransformWriterTarget(primaryTarget, null, auditConnection);
 
             foreach (var target in Datalink.DexihDatalinkTargets.Where(c=> c.IsValid && c.NodeDatalinkColumnKey != null))
             {
@@ -120,18 +106,18 @@ namespace dexih.operations
 
         private TransformWriterTarget NewTransformWriterTarget(DexihDatalinkTarget target, TransformWriterResult parentWriterResult, Connection auditConnection)
         {
-            var dbTargetTable = _hub.GetTableFromKey(target.TableKey);
-            if (dbTargetTable == null)
+            Table targetTable = null;
+            Table rejectTable = null;
+            Connection targetConnection = null;
+            if (target != null)
             {
-                throw new DatalinkRunException(
-                    $"A target table with the key {target.TableKey} could not be found.");
+                var dbTargetTable = _hub.GetTableFromKey(target.TableKey);
+                var dbTargetConnection =
+                    _hub.DexihConnections.Single(c => c.IsValid && c.Key == dbTargetTable.ConnectionKey);
+                targetConnection = dbTargetConnection.GetConnection(_transformSettings);
+                targetTable = dbTargetTable.GetTable(_hub, targetConnection, _transformSettings);
+                rejectTable = dbTargetTable.GetRejectedTable(_hub, targetConnection, _transformSettings);
             }
-
-            var dbTargetConnection =
-                _hub.DexihConnections.Single(c => c.IsValid && c.Key == dbTargetTable.ConnectionKey);
-            var targetConnection = dbTargetConnection.GetConnection(_transformSettings);
-            var targetTable = dbTargetTable.GetTable(_hub, targetConnection, _transformSettings);
-            var rejectTable = dbTargetTable.GetRejectedTable(_hub, targetConnection, _transformSettings);
 
             var writerResult = new TransformWriterResult()
             {
@@ -145,8 +131,8 @@ namespace dexih.operations
                 SourceTableKey = Datalink.SourceDatalinkTable.SourceTable?.Key ?? 0,
                 SourceTableName = Datalink.SourceDatalinkTable.Name,
                 TransformWriterOptions = _transformWriterOptions,
-                TargetTableKey = target.TableKey,
-                TargetTableName = targetTable.Name,
+                TargetTableKey = target?.TableKey??0,
+                TargetTableName = targetTable?.Name??"No target table",
                 ProfileTableName = Datalink.ProfileTableName,
                 RowsPerProgressEvent = Datalink.RowsPerProgress
 

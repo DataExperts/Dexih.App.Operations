@@ -137,19 +137,19 @@ namespace dexih.repository
 		public virtual DexihDatalinkTransform Dt { get; set; }
 
         [Key(39)]
-        [CopyIgnore]
+        // [CopyIgnore]
 		public virtual DexihDatalinkColumn SourceDatalinkColumn { get; set; }
 
         [Key(40)]
-        [CopyIgnore]
+        // [CopyIgnore]
 		public virtual DexihDatalinkColumn TargetDatalinkColumn { get; set; }
 
         [Key(41)]
-        [CopyIgnore]
+        // [CopyIgnore]
 		public virtual DexihDatalinkColumn JoinDatalinkColumn { get; set; }
 
         [Key(42)]
-        [CopyIgnore]
+        // [CopyIgnore]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreMember]

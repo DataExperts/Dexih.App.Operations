@@ -594,11 +594,11 @@ namespace dexih.operations
 		    AddDatalinks(datalinkKeys, hub);
 
 		    var connectionKeys = datalinkTest.DexihDatalinkTestSteps.Select(c => c.ExpectedConnectionKey).Concat(
-			    datalinkTest.DexihDatalinkTestSteps.Select(c=>c.TargetConnectionKey));
+			    datalinkTest.DexihDatalinkTestSteps.Select(c=>c.TargetConnectionKey).Concat(
+				datalinkTest.DexihDatalinkTestSteps.Select(c => c.ErrorConnectionKey)));
 		    
 		    AddConnections(connectionKeys, false, hub);
 	    }
-	    
 
 	    public async Task LoadDatajobDependencies(DexihDatajob hubDatajob, bool includeDependencies, DexihRepositoryContext dbContext)
         {

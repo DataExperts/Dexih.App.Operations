@@ -3423,7 +3423,7 @@ namespace dexih.operations
 
 			foreach (var datalink in datalinks)
 			{
-				//TODO Update datalinktest to allow for multiple target tables.
+				//TODO Update datalink test to allow for multiple target tables.
 				
 				var targetTable = datalink.DexihDatalinkTargets.Count == 0
 					? null
@@ -3439,7 +3439,11 @@ namespace dexih.operations
 					ExpectedTableName = $"{targetName}_expected_{uniqueId}",
 					ExpectedSchema = "",
 					TargetTableName = $"{targetName}_{uniqueId}",
-					TargetConnectionKey = targetConnectionKey
+					TargetSchema = "",
+					TargetConnectionKey = targetConnectionKey,
+					ErrorTableName = $"{targetName}_error_{uniqueId}",
+					ErrorSchema = "",
+					ErrorConnectionKey = targetConnectionKey
 				};
 
 				var sourceTables = datalink.GetAllSourceTables(hub);

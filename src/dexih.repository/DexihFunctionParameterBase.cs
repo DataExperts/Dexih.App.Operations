@@ -53,7 +53,7 @@ namespace dexih.repository
         public EntityStatus EntityStatus { get; set; }
 
         [Key(17)]
-        [CopyIgnore]
+        // [CopyIgnore]
         public DexihDatalinkColumn DatalinkColumn { get; set; }
     }
 

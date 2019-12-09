@@ -39,7 +39,16 @@ namespace dexih.repository
         [Key(15)]
         public string ExpectedSchema { get; set; }
 
+        [Key(14)]
+        public long ErrorConnectionKey { get; set; }
+
+        [Key(15)]
+        public string ErrorTableName { get; set; }
+
         [Key(16)]
+        public string ErrorSchema { get; set; }
+
+        [Key(17)]
         public ICollection<DexihDatalinkTestTable> DexihDatalinkTestTables { get; set; }
         
         [JsonIgnore, CopyIgnore, IgnoreMember]
