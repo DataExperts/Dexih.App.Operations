@@ -59,7 +59,7 @@ namespace dexih.repository
             set => ListOfValuesString = value.Serialize();
         }
         
-        [JsonIgnore]
+        [JsonIgnore, IgnoreMember]
         public string ListOfValuesString { get; set; }
         
         [Key(16)]
@@ -80,7 +80,7 @@ namespace dexih.repository
             set => ListOfNotValuesString = value.Serialize();
         }
         
-        [JsonIgnore]
+        [JsonIgnore, IgnoreMember]
         public string ListOfNotValuesString { get; set; }
 
 

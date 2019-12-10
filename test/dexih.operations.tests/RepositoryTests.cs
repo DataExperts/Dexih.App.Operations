@@ -23,6 +23,7 @@ namespace dexih.operations.tests
         private async Task<DexihHub> CreateHub()
         {
             var user =  await _repositoryManager.FindByEmailAsync("admin@dataexpertsgroup.com");
+            user = await _repositoryManager.GetUserAsync(user.Id, CancellationToken.None);
             // use a guid to make the hub name unique
             var guid = Guid.NewGuid().ToString();
             var hub = new DexihHub()
@@ -33,7 +34,7 @@ namespace dexih.operations.tests
 
             return await _repositoryManager.SaveHub(hub, user, CancellationToken.None);
         }
-        private async Task<ApplicationUser> CreateUser(ApplicationUser.EUserRole userRole)
+        private async Task<ApplicationUser> CreateUser(EUserRole userRole)
         {
             var email = Guid.NewGuid() + "@dataexpertsgroup.com";
             var appUser = new ApplicationUser()
@@ -54,16 +55,16 @@ namespace dexih.operations.tests
         [Fact]
         public async Task Add_User()
         {
-            var appUser = await CreateUser(ApplicationUser.EUserRole.Manager);
+            var appUser = await CreateUser(EUserRole.Manager);
 
-            var retrievedUser = await _repositoryManager.GetUserFromEmail(appUser.Email, CancellationToken.None);
+            var retrievedUser = await _repositoryManager.GetUserFromEmailAsync(appUser.Email, CancellationToken.None);
             Assert.Equal(appUser.FirstName, retrievedUser.FirstName);
             Assert.Equal(appUser.LastName, retrievedUser.LastName);
             Assert.Equal(appUser.Email, retrievedUser.Email);
             Assert.Equal(appUser.UserName, retrievedUser.UserName);
             Assert.Equal(appUser.HubQuota, retrievedUser.HubQuota);
             Assert.Equal(appUser.InviteQuota, retrievedUser.InviteQuota);
-            Assert.Equal(ApplicationUser.EUserRole.Manager, appUser.UserRole);
+            Assert.Equal(EUserRole.Manager, appUser.UserRole);
         }
         
         [Fact]
@@ -79,10 +80,10 @@ namespace dexih.operations.tests
             Assert.Equal(hub.Description, retrievedHub.Description);
 
             // set a user to owner access 
-            var user = await CreateUser(ApplicationUser.EUserRole.Manager);
+            var user = await CreateUser(EUserRole.Manager);
             await _repositoryManager.HubSetUserPermissions(hub.HubKey, new[] {user.Id}, EPermission.Owner, CancellationToken.None);
 
-            var adminUser = await CreateUser(ApplicationUser.EUserRole.Administrator);
+            var adminUser = await CreateUser(EUserRole.Administrator);
 
             // get users for the hub
             var hubUsers = await _repositoryManager.GetHubUsers(hub.HubKey, CancellationToken.None);
@@ -152,20 +153,20 @@ namespace dexih.operations.tests
                 ConnectionKey = connection.Key,
                 DexihTableColumns = new List<DexihTableColumn>()
                 {
-                    new DexihTableColumn() {Name = "column1", DataType = DataType.ETypeCode.Int32, DeltaType = TableColumn.EDeltaType.TrackingField},
+                    new DexihTableColumn() {Name = "column1", DataType = ETypeCode.Int32, DeltaType = EDeltaType.TrackingField},
                     new DexihTableColumn()
                     {
-                        Name = "column2", DataType = DataType.ETypeCode.Node, DeltaType = TableColumn.EDeltaType.TrackingField,
+                        Name = "column2", DataType = ETypeCode.Node, DeltaType = EDeltaType.TrackingField,
                         ChildColumns = new List<DexihTableColumn> ()
                         {
-                            new DexihTableColumn() {Name = "childColumn1", DataType = DataType.ETypeCode.Int32, DeltaType = TableColumn.EDeltaType.TrackingField},
+                            new DexihTableColumn() {Name = "childColumn1", DataType = ETypeCode.Int32, DeltaType = EDeltaType.TrackingField},
                             new DexihTableColumn()
                             {
-                                Name = "childColumn2", DataType = DataType.ETypeCode.Node, DeltaType = TableColumn.EDeltaType.TrackingField,
+                                Name = "childColumn2", DataType = ETypeCode.Node, DeltaType = EDeltaType.TrackingField,
                                 ChildColumns = new List<DexihTableColumn> ()
                                 {
-                                    new DexihTableColumn() {Name = "grandChildColumn1", DataType = DataType.ETypeCode.Int32, DeltaType = TableColumn.EDeltaType.TrackingField},
-                                    new DexihTableColumn() {Name = "grandChildColumn2", DataType = DataType.ETypeCode.Int32, DeltaType = TableColumn.EDeltaType.TrackingField},
+                                    new DexihTableColumn() {Name = "grandChildColumn1", DataType = ETypeCode.Int32, DeltaType = EDeltaType.TrackingField},
+                                    new DexihTableColumn() {Name = "grandChildColumn2", DataType = ETypeCode.Int32, DeltaType = EDeltaType.TrackingField},
                                 }
                             },
                         }
@@ -207,7 +208,7 @@ namespace dexih.operations.tests
             // delete a column
             retrievedTable.DexihTableColumns.Remove(columns[1]);
             // add a column
-            retrievedTable.DexihTableColumns.Add(new DexihTableColumn() {Name = "column3", DataType = DataType.ETypeCode.Int32, DeltaType = TableColumn.EDeltaType.TrackingField});
+            retrievedTable.DexihTableColumns.Add(new DexihTableColumn() {Name = "column3", DataType = ETypeCode.Int32, DeltaType = EDeltaType.TrackingField});
             
             var savedTable2 = await _repositoryManager.SaveTable(hub.HubKey, retrievedTable, true, false, CancellationToken.None);
             var columns2 = savedTable2.DexihTableColumns.Where(c=>c.IsValid).ToArray();

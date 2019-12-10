@@ -8,7 +8,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-	public partial class DexihFileFormat : DexihHubNamedEntity
+	public class DexihFileFormat : DexihHubNamedEntity
     {
 		public DexihFileFormat() => DexihTables = new HashSet<DexihTable>();
 

@@ -5,7 +5,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihDatalinkProfile : DexihHubNamedEntity
+    public class DexihDatalinkProfile : DexihHubNamedEntity
     {
         [Key(7)]
         [CopyParentCollectionKey]

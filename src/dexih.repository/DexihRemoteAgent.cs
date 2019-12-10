@@ -9,7 +9,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihRemoteAgent : DexihBaseEntity
+    public class DexihRemoteAgent : DexihBaseEntity
     {        
         public DexihRemoteAgent()
         {

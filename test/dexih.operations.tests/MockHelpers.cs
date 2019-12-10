@@ -67,10 +67,9 @@ namespace dexih.operations.tests
 
         public static UserManager<TUser> TestUserManager<TUser>(IUserStore<TUser> store = null) where TUser : class
         {
-            store = store ?? new Mock<IUserStore<TUser>>().Object;
+            store ??= new Mock<IUserStore<TUser>>().Object;
             var options = new Mock<IOptions<IdentityOptions>>();
-            var idOptions = new IdentityOptions();
-            idOptions.Lockout.AllowedForNewUsers = false;
+            var idOptions = new IdentityOptions {Lockout = {AllowedForNewUsers = false}};
             options.Setup(o => o.Value).Returns(idOptions);
             var userValidators = new List<IUserValidator<TUser>>();
             var validator = new Mock<IUserValidator<TUser>>();
@@ -88,13 +87,11 @@ namespace dexih.operations.tests
 
         public static RoleManager<TRole> TestRoleManager<TRole>(IRoleStore<TRole> store = null) where TRole : class
         {
-            store = store ?? new Mock<IRoleStore<TRole>>().Object;
-            var roles = new List<IRoleValidator<TRole>>();
-            roles.Add(new RoleValidator<TRole>());
-            return new AspNetRoleManager<TRole>(store, roles,
+            store ??= new Mock<IRoleStore<TRole>>().Object;
+            var roles = new List<IRoleValidator<TRole>> {new RoleValidator<TRole>()};
+            return new RoleManager<TRole>(store, roles,
                 new UpperInvariantLookupNormalizer(),
                 new IdentityErrorDescriber(),
-                null,
                 null);
         }
 

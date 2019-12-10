@@ -8,7 +8,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using dexih.functions;
 
 namespace dexih.operations
 {
@@ -45,15 +44,13 @@ namespace dexih.operations
         {
             try
             {
-                var transformManager = new TransformsManager(TransformSettings);
-
                 var zipStream = new MemoryStream();
                 var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true);
 
                 foreach (var downloadObject in DownloadObjects)
                 {
-                    Transform transform = null;
-                    var name = "";
+                    Transform transform;
+                    string name;
 
                     switch (downloadObject.ObjectType)
                     {
@@ -221,7 +218,7 @@ namespace dexih.operations
                 inputColumns, datalinkTransformKey, null,
                 transformWriterOptions);
             var transform = runPlan.sourceTransform;
-            var openReturn = await transform.Open(0, null, cancellationToken);
+            var openReturn = await transform.Open(0, selectQuery, cancellationToken);
             if (!openReturn)
             {
                 throw new DownloadDataException(

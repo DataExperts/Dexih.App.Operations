@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -106,7 +105,7 @@ namespace dexih.repository
             catch (DbUpdateException ex)
             {
                 if (ex.InnerException != null) throw ex.InnerException;
-                throw ex;
+                throw;
             }
         }
 

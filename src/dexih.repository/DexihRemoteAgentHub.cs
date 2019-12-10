@@ -5,7 +5,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihRemoteAgentHub : DexihHubEntity
+    public class DexihRemoteAgentHub : DexihHubEntity
     {
 
         [Key(4)]
@@ -20,10 +20,7 @@ namespace dexih.repository
 
         [Key(7)]
         public bool IsAuthorized { get; set; }
-
-        [JsonIgnore, CopyIgnore, IgnoreMember]
-        public virtual DexihHub Hub { get; set; }
-
+        
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihRemoteAgent RemoteAgent { get; set; }
 

@@ -1,15 +1,13 @@
 ﻿using System;
 
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using Dexih.Utils.CopyProperties;
 using Dexih.Utils.Crypto;
 using MessagePack;
 
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihHubVariable : DexihHubNamedEntity
+    public class DexihHubVariable : DexihHubNamedEntity
     {
         [Key(7)]
         [NotMapped]
@@ -75,7 +73,5 @@ namespace dexih.repository
             }
         }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
-        public virtual DexihHub Hub { get; set; }
     }
 }

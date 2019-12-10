@@ -8,7 +8,7 @@ using MessagePack;
 namespace dexih.repository
 {
 	[MessagePackObject]
-    public partial class DexihDatalinkColumn : DexihColumnBase
+    public class DexihDatalinkColumn : DexihColumnBase
     {
         public DexihDatalinkColumn()
         {

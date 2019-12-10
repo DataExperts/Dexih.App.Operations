@@ -16,7 +16,6 @@ using dexih.transforms;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace dexih.operations
 {
@@ -715,7 +714,6 @@ namespace dexih.operations
 	        {
 		        // other entries.  If the key value <=0 modify the state to added, otherwise modify existing entity.
 		        var item = entity.Entity;
-		        var properties = item.GetType().GetProperties();
 
 		        var importAction = EImportAction.Skip;
 		        
@@ -2676,29 +2674,36 @@ namespace dexih.operations
                 }
 
 	            // add the default for each of the requested auditColumns.
-	            foreach (var auditColumn in auditColumns)
+	            if (auditColumns != null)
 	            {
-		            var exists = hubTable.DexihTableColumns.FirstOrDefault(c => c.DeltaType == auditColumn && c.IsValid);
-		            if (exists == null)
+		            foreach (var auditColumn in auditColumns)
 		            {
-			            var dataType = GetDeltaDataType(auditColumn);
-			            var newColumn =
-				            NewDefaultTableColumn(auditColumn.ToString(), namingStandards, hubTable.Name, dataType, auditColumn, position++);
-
-			            // ensure the name is unique.
-			            string[] baseName = {newColumn.Name};
-			            var version = 1;
-			            while (hubTable.DexihTableColumns.FirstOrDefault(c => c.Name == baseName[0] && c.IsValid) != null)
+			            var exists =
+				            hubTable.DexihTableColumns.FirstOrDefault(c => c.DeltaType == auditColumn && c.IsValid);
+			            if (exists == null)
 			            {
-				            baseName[0] = newColumn.Name + (version++).ToString();
+				            var dataType = GetDeltaDataType(auditColumn);
+				            var newColumn =
+					            NewDefaultTableColumn(auditColumn.ToString(), namingStandards, hubTable.Name, dataType,
+						            auditColumn, position++);
+
+				            // ensure the name is unique.
+				            string[] baseName = {newColumn.Name};
+				            var version = 1;
+				            while (hubTable.DexihTableColumns.FirstOrDefault(c => c.Name == baseName[0] && c.IsValid) !=
+				                   null)
+				            {
+					            baseName[0] = newColumn.Name + (version++).ToString();
+				            }
+
+				            newColumn.Name = baseName[0];
+
+				            hubTable.DexihTableColumns.Add(newColumn);
 			            }
-			            newColumn.Name = baseName[0];
-				            
-			            hubTable.DexihTableColumns.Add(newColumn);
 		            }
 	            }
 
-                hubTable.IsValid = true;
+	            hubTable.IsValid = true;
 
                 return hubTable;
             }
@@ -4567,7 +4572,6 @@ namespace dexih.operations
 			{
 				parameter.IsValid = false;
 				parameter.UpdateDate = DateTime.Now;
-				;
 			}
 			
 			// set datalink parameters to invalid

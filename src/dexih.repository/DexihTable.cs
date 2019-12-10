@@ -14,7 +14,7 @@ using MessagePack;
 namespace dexih.repository
 {
 	[MessagePackObject]
-    public partial class DexihTable : DexihHubNamedEntity
+    public class DexihTable : DexihHubNamedEntity
     {
         public DexihTable()
         {
@@ -90,7 +90,7 @@ namespace dexih.repository
 	        
         }
         
-        [JsonIgnore]
+        [JsonIgnore, IgnoreMember]
         public string SortColumnKeysString { get; set; }
         
         [Key(20)]

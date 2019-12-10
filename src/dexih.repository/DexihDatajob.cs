@@ -44,10 +44,7 @@ namespace dexih.repository
 
         [Key(12)]
         public virtual ICollection<DexihTrigger> DexihTriggers { get; set; }
-
-        [JsonIgnore, CopyIgnore, IgnoreMember]
-        public virtual DexihHub Hub { get; set; }
-
+        
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public virtual DexihConnection AuditConnection { get; set; }
 

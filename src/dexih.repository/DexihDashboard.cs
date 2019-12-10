@@ -1,6 +1,5 @@
 using MessagePack;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace dexih.repository
 {

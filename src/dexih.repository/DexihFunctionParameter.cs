@@ -6,7 +6,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihFunctionParameter : DexihFunctionParameterBase
+    public class DexihFunctionParameter : DexihFunctionParameterBase
     {
         public DexihFunctionParameter()
         {

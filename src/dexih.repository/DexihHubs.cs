@@ -8,7 +8,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihHub : DexihBaseEntity
+    public class DexihHub : DexihBaseEntity
     {
        
         public DexihHub()

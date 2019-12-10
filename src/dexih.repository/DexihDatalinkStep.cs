@@ -6,7 +6,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihDatalinkStep : DexihHubNamedEntity
+    public class DexihDatalinkStep : DexihHubNamedEntity
     {
         public DexihDatalinkStep()
         {

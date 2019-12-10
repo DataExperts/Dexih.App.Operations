@@ -5,7 +5,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihFunctionArrayParameter : DexihFunctionParameterBase
+    public class DexihFunctionArrayParameter : DexihFunctionParameterBase
     {
 
 

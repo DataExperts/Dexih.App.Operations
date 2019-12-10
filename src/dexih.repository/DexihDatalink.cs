@@ -12,7 +12,7 @@ using MessagePack;
 namespace dexih.repository
 {
     [MessagePackObject]
-    public partial class DexihDatalink : DexihHubNamedEntity
+    public class DexihDatalink : DexihHubNamedEntity
     {
         
         public DexihDatalink()
