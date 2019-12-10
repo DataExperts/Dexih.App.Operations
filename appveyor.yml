@@ -21,6 +21,12 @@ dotnet_csproj:
 test_script:
   - appveyor-retry dotnet restore -v Minimal
   - dotnet test -c %CONFIGURATION% .\test\dexih.operations.tests\
+
+clone_depth: 1
+
+before_build:
+  - git clone --depth 1 --single-branch --branch ${APPVEYOR_REPO_BRANCH} https://github.com/DataExperts/dexih.transforms ../dexih.transforms
+  
 artifacts:
   - path: artifacts\dexih.operations.*.nupkg
 deploy:
