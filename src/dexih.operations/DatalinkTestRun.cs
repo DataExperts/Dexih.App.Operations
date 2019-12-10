@@ -390,21 +390,30 @@ namespace dexih.operations
                         var targetTransform = targetConnection.GetTransformReader(targetTable);
 
                         // the error table is used to store any rows which do not match.
-                        var dexihErrorConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ErrorConnectionKey);
-                        var dexihErrorTable = table.CloneProperties<DexihTable>();
-                        dexihErrorTable.ConnectionKey = dexihErrorConnection.Key;
-                        dexihErrorTable.Name = step.ErrorTableName;
-                        dexihErrorTable.Schema = step.ErrorSchema;
-                        var errorConnection = dexihErrorConnection.GetConnection(_transformSettings);
-                        var errorTable = dexihErrorTable.GetTable(_hub, errorConnection, _transformSettings);
-                        
-                        foreach (var column in errorTable.Columns)
+                        var dexihErrorConnection = _hub.DexihConnections.SingleOrDefault(c => c.IsValid && c.Key == step.ErrorConnectionKey);
+                        Connection errorConnection = null;
+                        Table errorTable = null;
+                        if (dexihErrorConnection != null)
                         {
-                            column.DeltaType = EDeltaType.NonTrackingField;
+                            var dexihErrorTable = table.CloneProperties<DexihTable>();
+                            dexihErrorTable.ConnectionKey = dexihErrorConnection.Key;
+                            dexihErrorTable.Name = step.ErrorTableName;
+                            dexihErrorTable.Schema = step.ErrorSchema;
+                            errorConnection = dexihErrorConnection.GetConnection(_transformSettings);
+                            errorTable = dexihErrorTable.GetTable(_hub, errorConnection, _transformSettings);
+
+                            foreach (var column in errorTable.Columns)
+                            {
+                                column.DeltaType = EDeltaType.NonTrackingField;
+                            }
+
+                            errorTable.Columns.Add(new TableColumn("error_audit_key", ETypeCode.Int64,
+                                EDeltaType.CreateAuditKey));
+                            errorTable.Columns.Add(new TableColumn("error_operation", ETypeCode.CharArray,
+                                EDeltaType.DatabaseOperation) {MaxLength = 1});
+
                         }
-                        errorTable.Columns.Add(new TableColumn("error_audit_key", ETypeCode.Int64, EDeltaType.CreateAuditKey));
-                        errorTable.Columns.Add(new TableColumn("error_operation", ETypeCode.CharArray, EDeltaType.DatabaseOperation) { MaxLength = 1});
-                        
+
                         // use the delta transform to compare expected and target tables.
                         var delta = new TransformDelta(targetTransform, expectedTransform,
                             TransformDelta.EUpdateStrategy.AppendUpdateDelete, 0, false);
@@ -439,7 +448,7 @@ namespace dexih.operations
                             WriterResult.Failed++;
                             WriterResult.IncrementRowsCreated();
 
-                            if (errorCache.Count < MaxErrorRows)
+                            if (errorTable != null && errorCache.Count < MaxErrorRows)
                             {
                                 var row = new object[errorTable.Columns.Count];
 

@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
@@ -33,8 +33,8 @@ namespace dexih.repository
         [Key(14)]
         public string DescriptionColumn { get; set; }
 
-        [Key(15)]
-        public string StaticData { get; set; }
+        [Key(15), CopyReference]
+        public ICollection<ListOfValuesItem> StaticData { get; set; }
 
         [Key(16)] 
         public bool Cache { get; set; }
@@ -54,4 +54,6 @@ namespace dexih.repository
         }
         
     }
+    
+    
 }

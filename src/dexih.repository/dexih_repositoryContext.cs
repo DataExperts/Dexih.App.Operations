@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
@@ -1795,16 +1797,20 @@ namespace dexih.repository
 
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query")
                     .HasConversion(
-                        v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v, true));
+                        v => v == null ? null : v.Serialize(),
+                        v => v == null ? null : v.Deserialize<SelectQuery>(true));
 
                 entity.Property(e => e.KeyColumn).HasColumnName("key_column").HasMaxLength(50);
                 entity.Property(e => e.NameColumn).HasColumnName("name_column").HasMaxLength(50);
                 entity.Property(e => e.DescriptionColumn).HasColumnName("desc_column").HasMaxLength(50);
-                entity.Property(e => e.StaticData).HasColumnName("static_data");
                 entity.Property(e => e.Cache).HasColumnName("cache");
                 entity.Property(e => e.CacheSeconds).HasColumnName("cache_seconds");
-                
+
+                entity.Property(e => e.StaticData).HasColumnName("static_data")
+                    .HasConversion(
+                        v => v == null ? null : v.Serialize(),
+                        v => v == null ? null : v.Deserialize<ICollection<ListOfValuesItem>>(true));
+
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
@@ -1826,7 +1832,11 @@ namespace dexih.repository
                     .HasForeignKey(d => d.HubKey);
             });
             
+           
+                        
         }
+        
+
 
         public DbSet<DexihApi> DexihApis { get; set; }
         public DbSet<DexihApiParameter> DexihApiParameters { get; set; }
