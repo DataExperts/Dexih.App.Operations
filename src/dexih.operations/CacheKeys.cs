@@ -12,5 +12,8 @@ namespace dexih.operations
         public static string RemoteAgentHubs(string remoteAgentId) => $"REMOTEAGENT-HUBS-{remoteAgentId}";
         public static string RemoteAgentKeyHubs(long remoteAgentKey) => $"REMOTEAGENTKEY-HUBS-{remoteAgentKey}";
         public static string RemoteAgentUserHubs(string userId) => $"REMOTEAGENT-USER-HUBS-{userId}";
+
+        public static string LookupValues(long hubKey, long lookupValueKey) =>
+            $"LOOKUPVALUES-{hubKey}-{lookupValueKey}";
     }
 }
