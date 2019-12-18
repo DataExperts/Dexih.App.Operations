@@ -557,7 +557,7 @@ $FunctionCode
 	                var parameter = parameters.Inputs?.SingleOrDefault(c => c.Name == inputParameter.Name);
 	                if (parameter != null)
 	                {
-		                var basicType = GetBasicType(inputParameter.DataType);
+		                var basicType = inputParameter.DataType.GetBasicType();
 		                switch (basicType)
 		                {
 			                case EBasicType.Unknown:

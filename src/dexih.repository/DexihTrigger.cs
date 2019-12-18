@@ -96,10 +96,10 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreMember]
         public DexihDatajob Datajob { get; set; }
 
-        public ManagedTaskSchedule CreateManagedTaskSchedule()
+        public ManagedTaskTrigger CreateManagedTaskTrigger()
         {
             var daysOfWeek = DaysOfWeek?.ToArray() ?? Enum.GetValues(typeof(EDayOfWeek)).Cast<EDayOfWeek>().ToArray();
-            var managedTaskSchedule = new ManagedTaskSchedule()
+            var managedTaskTrigger = new ManagedTaskTrigger()
             {
                 Details =  Description,
                 EndDate = null,
@@ -115,7 +115,7 @@ namespace dexih.repository
                 WeeksOfMonth = null
             };
 
-            return managedTaskSchedule;
+            return managedTaskTrigger;
         }
         
         public override void ResetKeys()
