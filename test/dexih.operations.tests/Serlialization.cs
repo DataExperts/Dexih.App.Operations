@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using MessagePack;
+using MessagePack.Resolvers;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -14,6 +15,13 @@ namespace dexih.operations.tests
         public Serlialization(ITestOutputHelper output)
         {
             _output = output;
+            
+            var resolver = CompositeResolver.Create(
+                new[] { MessagePack.Formatters.TypelessFormatter.Instance },
+                new[] { MessagePack.Resolvers.StandardResolver.Instance });
+            var options = MessagePackSerializerOptions.Standard.WithResolver(resolver);
+            MessagePackSerializer.DefaultOptions = options;
+
         }
         
         public class IntKeySample
@@ -27,9 +35,10 @@ namespace dexih.operations.tests
         void Test_Serialize()
         {
             var value = new [] { new IntKeySample(), new IntKeySample()};
-            var bytes = MessagePackSerializer.Serialize(value, MessagePack.Resolvers.ContractlessStandardResolver.Instance);
+            var options = MessagePackSerializerOptions.Standard.WithResolver(MessagePack.Resolvers.ContractlessStandardResolver.Instance);
+            var bytes = MessagePackSerializer.Serialize(value, options);
             _output.WriteLine($"Length: {bytes.Length}");
-            _output.WriteLine(MessagePackSerializer.ToJson(bytes));
+            _output.WriteLine(MessagePackSerializer.ConvertToJson(bytes));
         }
         
         [Fact]
@@ -39,9 +48,8 @@ namespace dexih.operations.tests
 
             var cacheManager = new CacheManager(1, "abc");
             var returnValue = cacheManager.LoadGlobal("123", DateTime.Now);
-            MessagePackSerializer.SetDefaultResolver(MessagePack.Resolvers.ContractlessStandardResolver.Instance);
             var bytes = MessagePackSerializer.Serialize(cacheManager);
-            _output.WriteLine(MessagePackSerializer.ToJson(bytes));
+            _output.WriteLine(MessagePackSerializer.ConvertToJson(bytes));
             var cacheManager2 = MessagePackSerializer.Deserialize<CacheManager>(bytes);
             
             Assert.Equal(cacheManager.HubKey, cacheManager2.HubKey);
