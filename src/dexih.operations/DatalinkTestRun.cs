@@ -322,7 +322,7 @@ namespace dexih.operations
                         };
                         
                         datalink.DexihDatalinkTargets.Add(target);
-                        datalink.UpdateStrategy = TransformDelta.EUpdateStrategy.Reload;
+                        datalink.UpdateStrategy = EUpdateStrategy.Reload;
                         datalink.LoadStrategy = TransformWriterTarget.ETransformWriterMethod.Bulk;
 
                         // var targetTable = datalink.GetOutputTable();
@@ -416,7 +416,7 @@ namespace dexih.operations
 
                         // use the delta transform to compare expected and target tables.
                         var delta = new TransformDelta(targetTransform, expectedTransform,
-                            TransformDelta.EUpdateStrategy.AppendUpdateDelete, 0, false);
+                            EUpdateStrategy.AppendUpdateDelete, 0, false);
 
                         await delta.Open(0, null, token);
 
@@ -598,7 +598,7 @@ namespace dexih.operations
 
             using (var writer = new TransformWriterTarget(testConnection, testTable))
             {
-                await writer.WriteRecordsAsync(sourceConnection.GetTransformReader(sourceTable), TransformDelta.EUpdateStrategy.Reload, cancellationToken);    
+                await writer.WriteRecordsAsync(sourceConnection.GetTransformReader(sourceTable), EUpdateStrategy.Reload, cancellationToken);    
             }
             
 

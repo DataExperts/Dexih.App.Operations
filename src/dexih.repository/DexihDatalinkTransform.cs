@@ -232,13 +232,13 @@ namespace dexih.repository
                             {
                                 Column1 = sourceColumn,
                                 Column2 = filterColumn,
-                                Compare = item.FilterCompare??ECompare.IsEqual, 
+                                Operator = item.FilterCompare??ECompare.IsEqual, 
                                 Value1 = item.SourceValue,
                                 Value2 = item.FilterValue
                             });
                             break;
                         case ETransformItemType.AggregatePair:
-                            mappings.Add(new MapAggregate(sourceColumn, targetColumn, item.Aggregate??SelectColumn.EAggregate.Sum)
+                            mappings.Add(new MapAggregate(sourceColumn, targetColumn, item.Aggregate??EAggregate.Sum)
                             {
                                 Value = item.SourceValue
                             });
@@ -257,7 +257,7 @@ namespace dexih.repository
                             
                             break;
                         case ETransformItemType.Sort:
-                            mappings.Add(new MapSort(sourceColumn, item.SortDirection ?? Sort.EDirection.Ascending));
+                            mappings.Add(new MapSort(sourceColumn, item.SortDirection ?? ESortDirection.Ascending));
                             break;
                         case ETransformItemType.Column:
                             mappings.Add(new MapGroup(sourceColumn));

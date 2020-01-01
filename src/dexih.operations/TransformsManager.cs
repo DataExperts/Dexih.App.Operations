@@ -328,9 +328,9 @@ namespace dexih.operations
 
                 if (maxDatalinkTransformKey == null && 
                     transformWriterOptions.IsEmptyTarget() == false && 
-                    updateStrategy != TransformDelta.EUpdateStrategy.Reload && 
+                    updateStrategy != EUpdateStrategy.Reload && 
                     incrementalCol != null && 
-                    (updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDelete || updateStrategy != TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve) && 
+                    (updateStrategy != EUpdateStrategy.AppendUpdateDelete || updateStrategy != EUpdateStrategy.AppendUpdateDeletePreserve) && 
                     maxIncrementalValue != null && 
                     maxIncrementalValue.ToString() != "")
                 {

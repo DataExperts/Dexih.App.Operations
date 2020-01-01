@@ -1041,7 +1041,7 @@ namespace dexih.repository
                 entity.Property(e => e.Aggregate).HasColumnName("aggregate").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? SelectColumn.EAggregate.Sum : (SelectColumn.EAggregate) Enum.Parse(typeof(SelectColumn.EAggregate), v));
+                        v => String.IsNullOrEmpty(v) ? EAggregate.Sum : (EAggregate) Enum.Parse(typeof(EAggregate), v));
                 entity.Property(e => e.OnError).HasColumnName("on_error").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
@@ -1053,7 +1053,7 @@ namespace dexih.repository
                 entity.Property(e => e.SortDirection).HasColumnName("sort_direction").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? Sort.EDirection.Descending : (Sort.EDirection) Enum.Parse(typeof(Sort.EDirection), v));
+                        v => String.IsNullOrEmpty(v) ? ESortDirection.Descending : (ESortDirection) Enum.Parse(typeof(ESortDirection), v));
                 entity.Property(e => e.SeriesGrain).HasColumnName("series_grain").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
@@ -1231,7 +1231,7 @@ namespace dexih.repository
                 entity.Property(e => e.UpdateStrategy).HasColumnName("update_strategy").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TransformDelta.EUpdateStrategy) Enum.Parse(typeof(TransformDelta.EUpdateStrategy), v));
+                        v => (EUpdateStrategy) Enum.Parse(typeof(EUpdateStrategy), v));
                 
                 entity.Property(e => e.ProfileTableName).HasColumnName("profile_table_name");
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");

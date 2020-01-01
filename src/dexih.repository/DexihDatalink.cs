@@ -33,7 +33,7 @@ namespace dexih.repository
         public long? AuditConnectionKey { get; set; }
 
         [Key(9)]
-        public TransformDelta.EUpdateStrategy UpdateStrategy { get; set; } = TransformDelta.EUpdateStrategy.Reload;
+        public EUpdateStrategy UpdateStrategy { get; set; } = EUpdateStrategy.Reload;
 
         [Key(10)]
         public TransformWriterTarget.ETransformWriterMethod LoadStrategy { get; set; } =

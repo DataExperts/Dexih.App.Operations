@@ -1675,25 +1675,25 @@ namespace dexih.operations
         /// </summary>
         /// <param name="hubTable"></param>
         /// <returns></returns>
-        public TransformDelta.EUpdateStrategy GetBestUpdateStrategy(DexihTable hubTable)
+        public EUpdateStrategy GetBestUpdateStrategy(DexihTable hubTable)
 		{
             try
             {
                 //TODO Improve get best strategy 
 
 	            if (hubTable == null)
-		            return TransformDelta.EUpdateStrategy.Reload;
+		            return EUpdateStrategy.Reload;
 	            else if (hubTable.DexihTableColumns.Count(c => c.DeltaType == EDeltaType.NaturalKey) == 0)
 	            {
 		            // no natural key.  Reload is the only choice
-		            return TransformDelta.EUpdateStrategy.Reload;
+		            return EUpdateStrategy.Reload;
 	            }
 	            else
 	            {
 		            if (hubTable.IsVersioned)
-			            return TransformDelta.EUpdateStrategy.AppendUpdateDeletePreserve;
+			            return EUpdateStrategy.AppendUpdateDeletePreserve;
 		            else
-			            return TransformDelta.EUpdateStrategy.AppendUpdateDelete;
+			            return EUpdateStrategy.AppendUpdateDelete;
 	            }
             }
             catch (Exception ex)

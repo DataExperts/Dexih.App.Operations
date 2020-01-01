@@ -88,7 +88,7 @@ namespace dexih.repository
         public long? CustomFunctionKey { get; set; }
 
         [Key(24)]
-        public Sort.EDirection? SortDirection { get; set; }
+        public ESortDirection? SortDirection { get; set; }
 
         [Key(25)]
         public ECompare? FilterCompare { get; set; }
