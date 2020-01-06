@@ -300,6 +300,8 @@ namespace dexih.operations
                     };
                 }
 
+                sourceTransform.IgnoreQuery = hubDatalinkTable.DisablePushDown;
+
                 return (sourceTransform, sourceTable);
             }
             catch (Exception ex)

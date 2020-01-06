@@ -664,6 +664,8 @@ namespace dexih.repository
                 entity.Property(e => e.RowsEndAt).HasColumnName("rows_end_at");
                 entity.Property(e => e.RowsIncrement).HasColumnName("rows_increment");
 
+                entity.Property(e => e.DisablePushDown).HasColumnName("disable_push_down");
+
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");

@@ -43,6 +43,9 @@ namespace dexih.repository
         public ESourceType SourceType { get; set; } = ESourceType.Table;
 
         [Key(13)]
+        public bool DisablePushDown { get; set; }
+        
+        [Key(14)]
         public ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreMember]
