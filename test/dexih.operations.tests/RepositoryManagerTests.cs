@@ -458,7 +458,7 @@ namespace dexih.operations.tests
                 Assert.Equal(dbSourceTable.Key, dbDatalink.SourceDatalinkTable.SourceTableKey);
                 Assert.Equal(ESourceType.Table, dbDatalink.SourceDatalinkTable.SourceType);
                 Assert.True(dbDatalink.DexihDatalinkTargets.Count > 0);
-                Assert.Equal(TransformDelta.EUpdateStrategy.AppendUpdateDelete, dbDatalink.UpdateStrategy);
+                Assert.Equal(EUpdateStrategy.AppendUpdateDelete, dbDatalink.UpdateStrategy);
 
                 // check target table created properly.
                 var dbTable = await repositoryManager.GetTable(newDatalink.HubKey, (long)newDatalink.DexihDatalinkTargets.First().TableKey, true, CancellationToken.None);
