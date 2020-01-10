@@ -1,18 +1,19 @@
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatajobParameter: InputParameterBase
     {
-        [Key(11)]
+        [DataMember(Order = 11)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatajob Datajob { get; set; }
 
     }

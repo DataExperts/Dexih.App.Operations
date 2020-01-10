@@ -1,19 +1,20 @@
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihApiParameter: InputParameterBase
     {
-        [Key(11)]
+        [DataMember(Order = 11)]
         [CopyParentCollectionKey]
         public long ApiKey { get; set; }
 
-        [Key(12)]
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [DataMember(Order = 12)]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihApi Api { get; set; }
 
     }

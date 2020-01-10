@@ -1,23 +1,24 @@
 ﻿using System;
 using System.Text;
 using System.Linq;
-using MessagePack;
+using System.Runtime.Serialization;
+
 
 namespace dexih.repository
 {
     /// <summary>
     /// Transform Settings is used to pass various parameters when creating the transforms.
     /// </summary>
-    [MessagePackObject]
+    [DataContract]
     public class TransformSettings
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public DexihHubVariable[] HubVariables { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public InputParameterBase[] InputParameters { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public RemoteSettings RemoteSettings { get; set; }
 
         public bool HasVariables()

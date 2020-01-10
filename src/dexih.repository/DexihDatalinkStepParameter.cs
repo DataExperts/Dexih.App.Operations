@@ -1,18 +1,19 @@
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatalinkStepParameter: InputParameterBase
     {
-        [Key(11)]
+        [DataMember(Order = 11)]
         [CopyParentCollectionKey]
         public long DatalinkStepKey { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalinkStep DatalinkStep { get; set; }
 
     }

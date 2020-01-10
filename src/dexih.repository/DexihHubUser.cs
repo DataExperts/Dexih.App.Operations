@@ -1,25 +1,26 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihHubUser : DexihBaseEntity
     {
 
 
-        [Key(3)]
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [DataMember(Order = 3)]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public long HubKey { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string UserId { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public EPermission Permission { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihHub Hub { get; set; }
     }
 }

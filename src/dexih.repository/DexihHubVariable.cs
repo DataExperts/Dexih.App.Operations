@@ -1,25 +1,26 @@
 ﻿using System;
 
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using Dexih.Utils.Crypto;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihHubVariable : DexihHubNamedEntity
     {
-        [Key(7)]
+        [DataMember(Order = 7)]
         [NotMapped]
         public string ValueRaw { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string Value { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public bool IsEncrypted { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public bool IsEnvironmentVariable { get; set; }
 
         public override void ResetKeys()

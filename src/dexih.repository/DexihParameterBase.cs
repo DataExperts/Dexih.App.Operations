@@ -1,29 +1,30 @@
-﻿using Dexih.Utils.DataType;
-using MessagePack;
+﻿using System.Runtime.Serialization;
+using Dexih.Utils.DataType;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
-    [Union(0, typeof(DexihCustomFunctionParameter))]
-    [Union(1, typeof(DexihFunctionParameterBase))]
+    [DataContract]
+    // [Union(0, typeof(DexihCustomFunctionParameter))]
+    // [Union(1, typeof(DexihFunctionParameterBase))]
     public class DexihParameterBase : DexihHubNamedEntity
     {
-        [Key(7)]
+        [DataMember(Order = 7)]
         public int Position { get; set; } = 0;
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public EParameterDirection Direction { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public ETypeCode DataType { get; set; }
         
-        [Key(10)]
+        [DataMember(Order = 10)]
         public bool AllowNull { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public bool IsGeneric { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public int Rank { get; set; } = 0;
 
         public bool IsInput() => Direction == EParameterDirection.Input || Direction == EParameterDirection.ResultInput || Direction == EParameterDirection.Join;

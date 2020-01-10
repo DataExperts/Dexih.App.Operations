@@ -1,9 +1,10 @@
-using MessagePack;
+
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDashboard: DexihHubNamedEntity
     {
         public DexihDashboard()
@@ -12,28 +13,28 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDashboardParameter>();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public bool IsShared { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public int MinRows { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public int MinCols { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public int MaxRows { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public int MaxCols { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public bool AutoRefresh { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public ICollection<DexihDashboardItem>  DexihDashboardItems { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public ICollection<DexihDashboardParameter> Parameters { get; set; }
         
         public override void ResetKeys()

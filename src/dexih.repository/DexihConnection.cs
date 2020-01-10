@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.Crypto;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihConnection : DexihHubNamedEntity
     {
         #region Enums
@@ -22,64 +23,64 @@ namespace dexih.repository
         }
 
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public string ConnectionAssemblyName { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string ConnectionClassName { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public EConnectionPurpose Purpose { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public string Server { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public bool UseWindowsAuth { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public string Username { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public string Password { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public bool UsePasswordVariable { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public string DefaultDatabase { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public string Filename { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public bool UseConnectionString { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public string ConnectionString { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public bool UseConnectionStringVariable { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         public bool EmbedTableKey { get; set; }
 
         //these store the raw (unencrypted values) and are not saved to the database.
-//        [Key(21)]
+//        [DataMember(Order = 21)]
 //        [NotMapped]
 //        public string PasswordRaw { get; set; }
 
-//        [Key(22)]
+//        [DataMember(Order = 22)]
 //        [NotMapped]
 //        public string ConnectionStringRaw { get; set; }
 
-        [JsonIgnore, IgnoreMember]
+        [JsonIgnore, IgnoreDataMember]
         public ICollection<DexihTable> DexihTables { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalink> DexihDatalinkAuditConnections { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
 
 

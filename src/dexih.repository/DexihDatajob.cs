@@ -3,13 +3,14 @@
 
 using Dexih.Utils.CopyProperties;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Query;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatajob : DexihHubNamedEntity
     {
 
@@ -20,18 +21,18 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDatajobParameter>();
         }
 
-        [Key(7)] public EFailAction FailAction { get; set; } = EFailAction.Abend;
+        [DataMember(Order = 7)] public EFailAction FailAction { get; set; } = EFailAction.Abend;
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public long? AuditConnectionKey { get; set; }
 
         /// <summary>
         /// Indicates if the job should watch for any new files.
         /// </summary>
-        [Key(9)]
+        [DataMember(Order = 9)]
         public bool FileWatch { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public bool AutoStart { get; set; }
 
         /// <summary>
@@ -39,16 +40,16 @@ namespace dexih.repository
         /// </summary>
         // public bool ExternalTrigger { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public virtual ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public virtual ICollection<DexihTrigger> DexihTriggers { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihConnection AuditConnection { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public ICollection<DexihDatajobParameter> Parameters { get; set; }
 
         public override void ResetKeys()

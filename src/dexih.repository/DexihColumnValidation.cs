@@ -1,14 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.DataType;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihColumnValidation : DexihHubNamedEntity
     {
 
@@ -17,31 +18,31 @@ namespace dexih.repository
             DexihColumnValidationColumn = new HashSet<DexihTableColumn>();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public ETypeCode DataType { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public int? MinLength { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public int? MaxLength { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public bool AllowDbNull { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public decimal? MinValue { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public decimal? MaxValue { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public string PatternMatch { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string RegexMatch { get; set; }
         
-        [Key(15)]
+        [DataMember(Order = 15)]
         [NotMapped, CopyIgnore]
         public string[] ListOfValues
         {
@@ -59,10 +60,10 @@ namespace dexih.repository
             set => ListOfValuesString = value.Serialize();
         }
         
-        [JsonIgnore, IgnoreMember]
+        [JsonIgnore, IgnoreDataMember]
         public string ListOfValuesString { get; set; }
         
-        [Key(16)]
+        [DataMember(Order = 16)]
         [NotMapped, CopyIgnore]
         public string[] ListOfNotValues
         {
@@ -80,34 +81,34 @@ namespace dexih.repository
             set => ListOfNotValuesString = value.Serialize();
         }
         
-        [JsonIgnore, IgnoreMember]
+        [JsonIgnore, IgnoreDataMember]
         public string ListOfNotValuesString { get; set; }
 
 
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihTableColumn LookupColumn { get; set; }
 
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public long? LookupColumnKey { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public bool LookupIsValid { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public bool LookupMultipleRecords { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         public TransformFunction.EInvalidAction InvalidAction { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public ECleanAction CleanAction { get; set; }
 
-        [Key(22)]
+        [DataMember(Order = 22)]
         public string CleanValue { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihTableColumn> DexihColumnValidationColumn {get; set;}
         
         public override void ResetKeys()

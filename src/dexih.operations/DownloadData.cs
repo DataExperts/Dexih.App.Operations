@@ -1,32 +1,33 @@
 ﻿using dexih.functions.Query;
 using dexih.repository;
 using dexih.transforms;
-using MessagePack;
+
 using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace dexih.operations
 {
-    [MessagePackObject]
+    [DataContract]
     public class DownloadData
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public TransformSettings TransformSettings { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public CacheManager Cache { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public DownloadObject[] DownloadObjects { get; set; }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public EDownloadFormat DownloadFormat { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public bool ZipFiles { get; set; }
 
         public DownloadData() { }
@@ -231,26 +232,26 @@ namespace dexih.operations
             return (transform, dbDatalink.Name);
         }
         
-        [MessagePackObject]
+        [DataContract]
         public class DownloadObject
         {
-            [Key(0)]
+            [DataMember(Order = 0)]
             public EDataObjectType ObjectType { get; set; }
 
-            [Key(1)]
+            [DataMember(Order = 1)]
             public long ObjectKey { get; set; }
 
-            [Key(2)]
+            [DataMember(Order = 2)]
             public SelectQuery Query { get; set; }
 
-            [Key(3)]
+            [DataMember(Order = 3)]
             public InputParameters InputParameters { get; set; }
 
-            [Key(4)]
+            [DataMember(Order = 4)]
             public InputColumn[] InputColumns { get; set; }
             
             // used when downloading data from a specific a transform data.
-            [Key(5)]
+            [DataMember(Order = 5)]
             public long? DatalinkTransformKey { get; set; }
 
         }

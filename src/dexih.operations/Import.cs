@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using dexih.repository;
-using MessagePack;
+
 
 namespace dexih.operations
 {
@@ -12,55 +13,55 @@ namespace dexih.operations
         Replace = 1, New, Leave, Skip, Delete
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class Import
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public long HubKey { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public ImportObjects<DexihHubVariable> HubVariables { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public ImportObjects<DexihDatajob> Datajobs { get; set; }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public ImportObjects<DexihDatalink> Datalinks { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public ImportObjects<DexihConnection> Connections { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public ImportObjects<DexihTable> Tables { get; set; }
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public ImportObjects<DexihColumnValidation> ColumnValidations { get; set; }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public ImportObjects<DexihFileFormat> FileFormats { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public ImportObjects<DexihCustomFunction> CustomFunctions { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public ImportObjects<DexihRemoteAgentHub> RemoteAgentHubs { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public ImportObjects<DexihDatalinkTest> DatalinkTests { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public ImportObjects<DexihView> Views { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public ImportObjects<DexihApi> Apis { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public ImportObjects<DexihDashboard> Dashboards { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public ImportObjects<DexihListOfValues> ListOfValues { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public List<string> Warnings { get; set; }
 
         public Import()
@@ -290,7 +291,7 @@ namespace dexih.operations
         }
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class ImportObject<T>
     {
         public ImportObject()
@@ -303,10 +304,10 @@ namespace dexih.operations
             ImportAction = importAction;
         }
         
-        [Key(0)]
+        [DataMember(Order = 0)]
         public T Item { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public EImportAction ImportAction { get; set; }
     }
     

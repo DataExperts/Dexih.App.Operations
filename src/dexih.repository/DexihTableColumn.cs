@@ -2,14 +2,15 @@
 
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-	[MessagePackObject]
+	[DataContract]
     public class DexihTableColumn : DexihColumnBase
     {
 	    public DexihTableColumn()
@@ -17,33 +18,33 @@ namespace dexih.repository
 		    ChildColumns = new HashSet<DexihTableColumn>();
 	    }
 
-        [Key(24)]
+        [DataMember(Order = 24)]
         [CopyParentCollectionKey(nameof(Key))]
 		public long? TableKey { get; set; }
 	    
-	    [JsonIgnore, IgnoreMember, CopyParentCollectionKey(nameof(ParentColumnKey))]
+	    [JsonIgnore, IgnoreDataMember, CopyParentCollectionKey(nameof(ParentColumnKey))]
 	    public long? ParentColumnKey { get; set; }
 	    
-	    [JsonIgnore, CopyIgnore, IgnoreMember]
+	    [JsonIgnore, CopyIgnore, IgnoreDataMember]
 	    public DexihTableColumn ParentColumn { get; set; }
 
-        [Key(25)]
+        [DataMember(Order = 25)]
         public ICollection<DexihTableColumn> ChildColumns { get; set; }
 
-        [Key(26)]
+        [DataMember(Order = 26)]
         public long? ColumnValidationKey { get; set; }
 
-        [Key(27)]
+        [DataMember(Order = 27)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihTable Table { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihColumnValidation ColumnValidation { get; set; }
 
-	    [JsonIgnore, CopyIgnore, IgnoreMember]
+	    [JsonIgnore, CopyIgnore, IgnoreDataMember]
 	    public ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }
 	    
 	    public TableColumn GetTableColumn(InputColumn[] inputColumns)

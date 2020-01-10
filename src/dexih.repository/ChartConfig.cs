@@ -1,97 +1,98 @@
-using MessagePack;
+using System.Runtime.Serialization;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class ChartConfig
     {
       
         
-        [Key(0)]
+        [DataMember(Order = 0)]
         public string LabelColumn { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string SeriesColumn { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public string[] SeriesColumns { get; set; }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public string XColumn { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string YColumn { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public string MinColumn { get; set; }
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public string MaxColumn { get; set; }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public string RadiusColumn { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string LatitudeColumn { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string LongitudeColumn { get; set; }
 
-        [Key(10)] 
+        [DataMember(Order = 10)] 
         public EChartType ChartType { get; set; } = EChartType.BarVertical;
 
-        [Key(11)] 
+        [DataMember(Order = 11)] 
         public string ColorScheme { get; set; } = "natural";
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public bool ShowGradient { get; set; }
 
-        [Key(13)] public bool ShowXAxis { get; set; } = true;
+        [DataMember(Order = 13)] public bool ShowXAxis { get; set; } = true;
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public bool ShowYAxis { get; set; } = true;
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public bool ShowLegend { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public string LegendPosition { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public bool ShowXAxisLabel { get; set; } = true;
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public bool ShowYAxisLabel { get; set; } = true;
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public bool ShowGridLines { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         public string XAxisLabel { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public string YAxisLabel { get; set; }
 
-        [Key(22)]
+        [DataMember(Order = 22)]
         public double? XScaleMax { get; set; }
 
-        [Key(23)]
+        [DataMember(Order = 23)]
         public double? XScaleMin { get; set; }
 
-        [Key(24)]
+        [DataMember(Order = 24)]
         public double? YScaleMax { get; set; }
 
-        [Key(25)]
+        [DataMember(Order = 25)]
         public double? YScaleMin { get; set; }
 
-        [Key(26)]
+        [DataMember(Order = 26)]
         public bool AutoScale { get; set; } = true;
 
         // pie charts only
-        [Key(27)]
+        [DataMember(Order = 27)]
         public bool ExplodeSlices { get; set; }
 
-        [Key(28)]
+        [DataMember(Order = 28)]
         public bool Doughnut { get; set; }
     }
 }

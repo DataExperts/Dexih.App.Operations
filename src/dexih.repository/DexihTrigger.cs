@@ -1,31 +1,32 @@
 ﻿using System;
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.ManagedTasks;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihTrigger : DexihHubNamedEntity
     {
-        [Key(7)]
+        [DataMember(Order = 7)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public DateTime? StartDate { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public TimeSpan? IntervalTime { get; set; }
         
-        [Key(10)]
+        [DataMember(Order = 10)]
         public int Position { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         [NotMapped, CopyIgnore]
         public EDayOfWeek[] DaysOfWeek
         {
@@ -57,16 +58,16 @@ namespace dexih.repository
         [JsonIgnore]
         public string DaysOfWeekString { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public TimeSpan? StartTime { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public TimeSpan? EndTime { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string CronExpression { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public int? MaxRecurs { get; set; }
 
         [NotMapped]
@@ -93,7 +94,7 @@ namespace dexih.repository
             }
         }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatajob Datajob { get; set; }
 
         public ManagedTaskTrigger CreateManagedTaskTrigger()

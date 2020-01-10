@@ -1,15 +1,16 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
 
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihView : DexihHubNamedEntity
     {
         public DexihView()
@@ -17,45 +18,45 @@ namespace dexih.repository
             Parameters = new HashSet<DexihViewParameter>();
         }
         
-        [Key(7)] 
+        [DataMember(Order = 7)] 
         public EViewType ViewType { get; set; } = EViewType.Table;
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceTableKey { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceDatalinkKey { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihTable SourceTable { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalink SourceDatalink { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public EDataObjectType SourceType { get; set; }
 
-        [Key(11)] public bool AutoRefresh { get; set; } = true;
+        [DataMember(Order = 11)] public bool AutoRefresh { get; set; } = true;
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         [NotMapped]
         [CopyReference]
         public InputColumn[] InputValues { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         [CopyReference]
         public SelectQuery SelectQuery { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         [CopyReference]
         public ChartConfig ChartConfig { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public bool IsShared { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public ICollection<DexihViewParameter> Parameters { get; set; }
 
         

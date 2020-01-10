@@ -1,17 +1,18 @@
-using MessagePack;
+
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatalinkTest: DexihHubNamedEntity
     {
         public DexihDatalinkTest() => DexihDatalinkTestSteps = new HashSet<DexihDatalinkTestStep>();
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public long? AuditConnectionKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public ICollection<DexihDatalinkTestStep> DexihDatalinkTestSteps { get; set; }
         
         public override void ResetKeys()

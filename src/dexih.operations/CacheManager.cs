@@ -7,36 +7,37 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using dexih.operations.Extensions;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 using Microsoft.Extensions.Logging;
 
 namespace dexih.operations
 {
-    [MessagePackObject]
+    [DataContract]
     public class CacheManager
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public DexihHub Hub { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string BuildVersion { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public DateTime BuildDate { get; set; }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public string GoogleClientId { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string MicrosoftClientId { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public string GoogleMapsAPIKey { get; set; }
         
-        [Key(6)]
+        [DataMember(Order = 6)]
         public RemoteLibraries DefaultRemoteLibraries { get; set; }
 
         private readonly ILogger _logger;
@@ -59,13 +60,13 @@ namespace dexih.operations
 		}
 
         
-		[Key(7)]
+		[DataMember(Order = 7)]
         public long HubKey { get; set; }
         
 	    /// <summary>
         /// Key used to encrypt cache fields (such as passwords) when they are saved to repository or json file.
         /// </summary>
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string CacheEncryptionKey { get; set; }
 
         public async Task<DexihHub> InitHub(DexihRepositoryContext dbContext)

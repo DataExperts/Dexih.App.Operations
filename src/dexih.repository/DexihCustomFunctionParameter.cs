@@ -1,18 +1,19 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihCustomFunctionParameter : DexihParameterBase
     {
-        [Key(13)]
+        [DataMember(Order = 13)]
         [CopyParentCollectionKey(nameof(Key))]
         public long CustomFunctionKey { get; set; }
 
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
     }

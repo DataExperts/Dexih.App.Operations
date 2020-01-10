@@ -1,70 +1,71 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Identity;
-using MessagePack;
+
 
 namespace dexih.repository
 {
     // Add profile data for application users by adding properties to the ApplicationUser class
-    [MessagePackObject]
+    [DataContract]
     public class ApplicationUser : IdentityUser
     {
 	    
 
 	    [NotMapped]
-        [IgnoreMember]
+        [IgnoreDataMember]
         public EUserRole UserRole { get; set; } = EUserRole.None;
 
 	    [NotMapped]
-        [IgnoreMember]
+        [IgnoreDataMember]
         public bool IsAdmin => UserRole == EUserRole.Administrator;
 
         [NotMapped]
-        [IgnoreMember]
+        [IgnoreDataMember]
         public bool IsManager => UserRole == EUserRole.Manager;
 
         [NotMapped]
-        [IgnoreMember]
+        [IgnoreDataMember]
         public bool IsUser => UserRole == EUserRole.User;
 
         [NotMapped]
-        [IgnoreMember]
+        [IgnoreDataMember]
         public bool IsViewer => UserRole == EUserRole.Viewer;
 
-        [Key(0)]
+        [DataMember(Order = 0)]
 		public bool IsInvited { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public bool IsRegistered { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public bool IsEnabled { get; set; }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public string FirstName { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string LastName { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public bool Terms { get; set; }
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public bool Subscription { get; set; }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public int InviteQuota { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public int HubQuota { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string PrivateKey { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public string CertificateChain { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public DateTime? CertificateExpiry { get; set; }
         
 

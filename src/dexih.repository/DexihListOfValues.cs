@@ -1,51 +1,52 @@
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihListOfValues : DexihHubNamedEntity
     {
-        [Key(7)]
+        [DataMember(Order = 7)]
         public ELOVObjectType SourceType { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceTableKey { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceDatalinkKey { get; set; }
 
         [CopyReference]
-        [Key(11)]
+        [DataMember(Order = 11)]
         public SelectQuery SelectQuery { get; set; }
         
-        [Key(12)]
+        [DataMember(Order = 12)]
         public string KeyColumn { get; set; }
         
-        [Key(13)]
+        [DataMember(Order = 13)]
         public string NameColumn { get; set; }
         
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string DescriptionColumn { get; set; }
 
-        [Key(15), CopyReference]
+        [DataMember(Order = 15), CopyReference]
         public ICollection<ListOfValuesItem> StaticData { get; set; }
 
-        [Key(16)] 
+        [DataMember(Order = 16)] 
         public bool Cache { get; set; }
         
-        [Key(17)] 
+        [DataMember(Order = 17)] 
         public int CacheSeconds { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihTable SourceTable { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalink SourceDatalink { get; set; }
 
         public override void ResetKeys()

@@ -2,7 +2,7 @@
 //using System.Runtime.Serialization;
 //using Dexih.Utils.CopyProperties;
 //using Dexih.Utils.Crypto;
-//using MessagePack;
+//
 //
 //
 //namespace dexih.operations
@@ -10,7 +10,7 @@
 //    [DataContract]
 //    public class MessageValues: Dictionary<string, MessageValues>
 //    {
-//        [Key(0)]
+//        [DataMember(Order = 0)]
 //        public object Value { get; set; }
 //        
 //        public T ToObject<T>()

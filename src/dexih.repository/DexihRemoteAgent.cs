@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihRemoteAgent : DexihBaseEntity
     {        
         public DexihRemoteAgent()
@@ -16,23 +17,23 @@ namespace dexih.repository
             DexihRemoteAgentHubs = new HashSet<DexihRemoteAgentHub>();
         }
         
-        [Key(3)]
+        [DataMember(Order = 3)]
         [CopyCollectionKey((long)0, true)]
         public long RemoteAgentKey { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string Name { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public string UserId { get; set; }
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public bool RestrictIp { get; set; }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public bool AllowExternalConnect { get; set; }
         
-        [Key(8)]
+        [DataMember(Order = 8)]
         [NotMapped, CopyIgnore]
         public string[] IpAddresses
         {
@@ -63,19 +64,19 @@ namespace dexih.repository
         [JsonIgnore]
         public string IpAddressesString { get; set; }
         
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string RemoteAgentId { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public string HashedToken { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public string LastLoginIpAddress { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public DateTime? LastLoginDateTime { get; set; }
         
-        [Key(14)]
+        [DataMember(Order = 14)]
         public virtual ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
     }
 }

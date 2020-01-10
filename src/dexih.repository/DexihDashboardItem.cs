@@ -1,12 +1,13 @@
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDashboardItem: DexihHubNamedEntity
     {
         public DexihDashboardItem()
@@ -14,39 +15,39 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDashboardItemParameter>();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public int Cols { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public int Rows { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public int X { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public int Y { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public bool Header { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public bool Scrollable { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public long ViewKey { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihView View { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         [CopyParentCollectionKey(nameof(Key))]
         public long DashboardKey { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public ICollection<DexihDashboardItemParameter> Parameters { get; set; }
         
        
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDashboard Dashboard { get; set; }
 
         public override void ResetKeys()

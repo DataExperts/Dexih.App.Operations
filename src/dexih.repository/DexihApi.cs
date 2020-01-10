@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using dexih.functions.Query;
 using Dexih.Utils.CopyProperties;
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihApi: DexihHubNamedEntity
     {
         public DexihApi()
@@ -16,37 +17,37 @@ namespace dexih.repository
             Parameters = new HashSet<DexihApiParameter>();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public ESourceType SourceType { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceTableKey { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long? SourceDatalinkKey { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public bool AutoStart { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public bool CacheQueries { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public TimeSpan? CacheResetInterval { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public string LogDirectory { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         [CopyReference]
         public SelectQuery SelectQuery { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public ICollection<DexihApiParameter> Parameters { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public bool IsShared { get; set; }
 
         public override void ResetKeys()

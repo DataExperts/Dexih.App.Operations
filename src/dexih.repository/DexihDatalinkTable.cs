@@ -3,12 +3,13 @@ using Dexih.Utils.CopyProperties;
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-	[MessagePackObject]
+	[DataContract]
     public class DexihDatalinkTable: DexihHubNamedEntity
     {
 
@@ -22,42 +23,42 @@ namespace dexih.repository
 
 
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceTableKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 	    public long? SourceDatalinkKey { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public int? RowsStartAt { get; set; } = 1;
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public int? RowsEndAt { get; set; } = 1;
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public int? RowsIncrement { get; set; } = 1;
 
-        [Key(12)] 
+        [DataMember(Order = 12)] 
         public ESourceType SourceType { get; set; } = ESourceType.Table;
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public bool DisablePushDown { get; set; }
         
-        [Key(14)]
+        [DataMember(Order = 14)]
         public ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihTable SourceTable { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalink SourceDatalink { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalink> DexihDatalinkSourceTables { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
         public override void ResetKeys()

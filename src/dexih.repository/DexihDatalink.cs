@@ -4,14 +4,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 using Dexih.Utils.CopyProperties;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Query;
 using dexih.transforms;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatalink : DexihHubNamedEntity
     {
         
@@ -26,82 +27,82 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public long SourceDatalinkTableKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public long? AuditConnectionKey { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public EUpdateStrategy UpdateStrategy { get; set; } = EUpdateStrategy.Reload;
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public TransformWriterTarget.ETransformWriterMethod LoadStrategy { get; set; } =
             TransformWriterTarget.ETransformWriterMethod.Bulk;
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public EDatalinkType DatalinkType { get; set; }
 
-        [Key(12)] 
+        [DataMember(Order = 12)] 
         public int RowsPerCommit { get; set; } = 1000;
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public int RowsPerProgress { get; set; } = 1000;
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public bool RollbackOnFail { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public bool IsQuery { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public int MaxRows { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public bool AddDefaultRow { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public string ProfileTableName { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public bool IsShared { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public ICollection<DexihDatalinkProfile> DexihDatalinkProfiles { get; set; }
 
-        [Key(22)]
+        [DataMember(Order = 22)]
         public ICollection<DexihDatalinkTransform> DexihDatalinkTransforms { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
 
-        [Key(23)]
+        [DataMember(Order = 23)]
         public ICollection<DexihDatalinkTarget> DexihDatalinkTargets { get; set; }
 
-        [Key(24)]
+        [DataMember(Order = 24)]
         public ICollection<DexihDatalinkParameter> Parameters { get; set; }
 
 
         /// <summary>
         /// Reference to the source columns for the datalink.
         /// </summary>
-        [Key(25)]
+        [DataMember(Order = 25)]
         public DexihDatalinkTable SourceDatalinkTable { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihView> DexihViews { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
         
-	    [JsonIgnore, IgnoreMember, CopyReference]
+	    [JsonIgnore, IgnoreDataMember, CopyReference]
         public DexihConnection AuditConnection { get; set; }
 
         public override void ResetKeys()

@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Parameter;
 using dexih.transforms;
@@ -22,11 +23,11 @@ using dexih.transforms.Mapping;
 using Microsoft.Extensions.Logging;
 using static dexih.functions.Query.SelectColumn;
 using Dexih.Utils.DataType;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-	[MessagePackObject]
+	[DataContract]
 	public class DexihDatalinkTransformItem : DexihHubNamedEntity
 	{
 
@@ -35,124 +36,124 @@ namespace dexih.repository
 
 
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         [CopyParentCollectionKey]
 		public long DatalinkTransformKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public int Position { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public ETransformItemType TransformItemType { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public long? TargetDatalinkColumnKey { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public long? SourceDatalinkColumnKey { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public long? JoinDatalinkColumnKey { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public long? FilterDatalinkColumnKey { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string SourceValue { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public string JoinValue { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public string FilterValue { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public string FunctionClassName { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public string FunctionAssemblyName { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public string FunctionMethodName { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         public bool IsGeneric { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public ETypeCode? GenericTypeCode { get; set; }
 
-        [Key(22)]
+        [DataMember(Order = 22)]
         public EFunctionCaching FunctionCaching { get; set; }
 
-        [Key(23)]
+        [DataMember(Order = 23)]
         public long? CustomFunctionKey { get; set; }
 
-        [Key(24)]
+        [DataMember(Order = 24)]
         public ESortDirection? SortDirection { get; set; }
 
-        [Key(25)]
+        [DataMember(Order = 25)]
         public ECompare? FilterCompare { get; set; }
 
-        [Key(26)]
+        [DataMember(Order = 26)]
         public EAggregate? Aggregate { get; set; }
 
-        [Key(27)]
+        [DataMember(Order = 27)]
         public ESeriesGrain? SeriesGrain { get; set; }
 
-        [Key(28)]
+        [DataMember(Order = 28)]
         public bool SeriesFill { get; set; }
 
-        [Key(29)]
+        [DataMember(Order = 29)]
         public string SeriesStart { get; set; }
 
-        [Key(30)]
+        [DataMember(Order = 30)]
         public string SeriesFinish { get; set; }
 
-        [Key(31)]
+        [DataMember(Order = 31)]
         public string FunctionCode { get; set; }
 
-        [Key(32)]
+        [DataMember(Order = 32)]
         public string FunctionResultCode { get; set; }
 
-        [Key(33)] 
+        [DataMember(Order = 33)] 
         public EErrorAction OnError { get; set; } = EErrorAction.Abend;
 
-        [Key(34)]
+        [DataMember(Order = 34)]
         public EErrorAction OnNull { get; set; } = EErrorAction.Abend;
 
-        [Key(35)]
+        [DataMember(Order = 35)]
         public bool NotCondition { get; set; }
 
-        [Key(36)]
+        [DataMember(Order = 36)]
         public TransformFunction.EInvalidAction InvalidAction { get; set; } = TransformFunction.EInvalidAction.Abend;
 
-        [Key(37)]
+        [DataMember(Order = 37)]
         [NotMapped, CopyIgnore]
 		public EntityStatus EntityStatus { get; set; }
 
-        [Key(38)]
+        [DataMember(Order = 38)]
         public ICollection<DexihFunctionParameter> DexihFunctionParameters { get; set; }
 
-		[JsonIgnore, CopyIgnore, IgnoreMember]
+		[JsonIgnore, CopyIgnore, IgnoreDataMember]
 		public virtual DexihDatalinkTransform Dt { get; set; }
 
-        [Key(39)]
+        [DataMember(Order = 39)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn SourceDatalinkColumn { get; set; }
 
-        [Key(40)]
+        [DataMember(Order = 40)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn TargetDatalinkColumn { get; set; }
 
-        [Key(41)]
+        [DataMember(Order = 41)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn JoinDatalinkColumn { get; set; }
 
-        [Key(42)]
+        [DataMember(Order = 42)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihCustomFunction CustomFunction { get; set; }
 
         public override void ResetKeys()

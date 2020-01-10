@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
 using dexih.functions;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
@@ -19,32 +20,32 @@ namespace dexih.repository
     /// <summary>
     /// Class mapping of the AppSettings file used for the RemoteAgent settings.
     /// </summary>
-    [MessagePackObject]
+    [DataContract]
     public class RemoteSettings
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public AppSettingsSection AppSettings { get; set; } = new AppSettingsSection();
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public SystemSettingsSection SystemSettings { get; set; } = new SystemSettingsSection();
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public LoggingSection Logging { get; set; } = new LoggingSection();
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public RuntimeSection Runtime { get; set; } = new RuntimeSection();
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public NetworkSection Network { get; set; } = new NetworkSection();
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public PrivacySection Privacy { get; set; } = new PrivacySection();
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public PermissionsSection Permissions { get; set; } = new PermissionsSection();
 
         
-        [Key(7)]
+        [DataMember(Order = 7)]
         public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         /// <summary>
@@ -351,99 +352,99 @@ namespace dexih.repository
         }
     }
     
-    [MessagePackObject]
+    [DataContract]
     public class AppSettingsSection
     {
         /// <summary>
         /// Indicates the remote agent is running for the first time, which will prompt user to enter settings.
         /// </summary>
-        [Key(0)]
+        [DataMember(Order = 0)]
         public bool UserPrompt { get; set; } = true;
 
         /// <summary>
         /// Unique ID for the remote agent.
         /// </summary>
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string RemoteAgentId { get; set; }
 
         /// <summary>
         /// The user email being authenticated
         /// </summary>
-        [Key(2)]
+        [DataMember(Order = 2)]
         public string User { get; set; }
 
         /// <summary>
         /// The user token which authenticates the email
         /// </summary>
-        [Key(3)]
+        [DataMember(Order = 3)]
         public string UserToken { get; set; }
 
         /// <summary>
         /// The encryption key used for encrypting passwords, and encrypted data.
         /// </summary>
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string EncryptionKey { get; set; }
 
         /// <summary>
         /// The Ingregation Hub Web Server: http://dexih.com
         /// </summary>
-        [Key(5)]
+        [DataMember(Order = 5)]
         public string WebServer { get; set; } = "https://dexih.com";
 
         /// <summary>
         /// A name to represent this remote agent.
         /// </summary>
-        [Key(6)]
+        [DataMember(Order = 6)]
         public string Name { get; set; }
 
         /// <summary>
         /// Auto upgrade the remote agent when a new version is available.
         /// </summary>
-        [Key(7)]
+        [DataMember(Order = 7)]
         public bool AutoUpgrade { get; set; } = false;
 
         /// <summary>
         /// Allow pre-release versions to be included in the auto upgrade.
         /// </summary>
-        [Key(8)]
+        [DataMember(Order = 8)]
         public bool AllowPreReleases { get; set; } = false;
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string AutoStartPath { get; set; }
 
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class PermissionsSection
     {
         /// <summary>
         /// Allow agent to read/write files to the local filesystem
         /// </summary>
-        [Key(0)]
+        [DataMember(Order = 0)]
         public bool AllowLocalFiles { get; set; } = true;
 
         /// <summary>
         /// Allow agent to access files anywhere.
         /// </summary>
-        [Key(1)]
+        [DataMember(Order = 1)]
         public bool AllowAllPaths { get; set; } = false;
 
         /// <summary>
         /// If AllowAllPaths = false, a list of the file paths the remote agent can access.
         /// </summary>
-        [Key(2)]
+        [DataMember(Order = 2)]
         public string[] AllowedPaths { get; set; } = null;
 
         /// <summary>
         /// Allow agent to use any hub on the central web server.
         /// </summary>
-        [Key(3)]
+        [DataMember(Order = 3)]
         public bool AllowAllHubs { get; set; } = true;
 
         /// <summary>
         /// If AllowAllHubs = false, a list of the hubkeys that agent can access.
         /// </summary>
-        [Key(4)]
+        [DataMember(Order = 4)]
         public long[] AllowedHubs { get; set; } = null;
 
         public FilePermissions GetFilePermissions()
@@ -457,217 +458,217 @@ namespace dexih.repository
         }
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class NetworkSection
     {
         /// <summary>
         /// URL to upload/download from this agent.
         /// </summary>
-        [Key(0)]
+        [DataMember(Order = 0)]
         public string ExternalDownloadUrl { get; set; }
 
         /// <summary>
         /// Local IP to upload/download from this agent
         /// </summary>
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string LocalIpAddress { get; set; }
 
         /// <summary>
         /// Local port to upload/download  
         /// </summary>
-        [Key(2)]
+        [DataMember(Order = 2)]
         public int? LocalPort { get; set; }
 
         /// <summary>
         /// Override the default proxy server with a custom implementation.
         /// </summary>
-        [Key(3)]
+        [DataMember(Order = 3)]
         public string ProxyUrl { get; set; }
 
         /// <summary>
         /// Download port to use 
         /// </summary>
-        [Key(4)]
+        [DataMember(Order = 4)]
         public int? DownloadPort { get; set; } = 33944; //default port
 
         /// <summary>
         /// Enforces the server to allow only https connections
         /// </summary>
-        [Key(5)]
+        [DataMember(Order = 5)]
         public bool EnforceHttps { get; set; } = true;
 
         /// <summary>
         /// Automatically generate ssl certificates
         /// </summary>
-        [Key(6)]
+        [DataMember(Order = 6)]
         public bool AutoGenerateCertificate { get; set; } = true;
 
         /// <summary>
         /// Dynamic domain used with autogenerate certificates.
         /// </summary>
-        [Key(7)]
+        [DataMember(Order = 7)]
         public string DynamicDomain { get; set; } = "dexih.com";
 
         /// <summary>
         /// File name of the ssl certificate
         /// </summary>
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string CertificateFilename { get; set; }
 
 
         /// <summary>
         /// Password for the ssl certificate
         /// </summary>
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string CertificatePassword { get; set; }
 
         /// <summary>
         /// Automatically attempts to find a UPnP device to map the port externally.
         /// </summary>
-        [Key(10)]
+        [DataMember(Order = 10)]
         public bool EnableUPnP { get; set; } = true;
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class PrivacySection
     {
         /// <summary>
         /// Allow files and data to be downloaded through the web browser from this agent.
         /// </summary>
-        [Key(0)]
+        [DataMember(Order = 0)]
         public bool AllowDataDownload { get; set; } = true;
 
         /// <summary>
         /// Allow files and data to be uploaded through the web browser from this agent.
         /// </summary>
-        [Key(1)]
+        [DataMember(Order = 1)]
         public bool AllowDataUpload { get; set; } = true;
 
         /// <summary>
         /// Allow files to be accessed directly through the lan.
         /// </summary>
-        [Key(2)]
+        [DataMember(Order = 2)]
         public bool AllowLanAccess { get; set; } = true;
 
         /// <summary>
         /// Allow files and data to be uploaded externally through the internet (note, ports must be mapped externally for this to work).
         /// </summary>
-        [Key(3)]
+        [DataMember(Order = 3)]
         public bool AllowExternalAccess { get; set; } = true;
 
         /// <summary>
         /// Allow files and data to be uploaded through a proxy.
         /// </summary>
-        [Key(4)]
+        [DataMember(Order = 4)]
         public bool AllowProxy { get; set; } = true;
         
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class SystemSettingsSection
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public int MaxAcknowledgeWait { get; set; } = 5000;
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public int ResponseTimeout { get; set; } = 1000_000;
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public int CancelDelay { get; set; } = 1000;
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public int EncryptionIterations { get; set; } = 1000;
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public int MaxPreviewDuration { get; set; } = 10000;
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public int MaxConcurrentTasks { get; set; } = 50;
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public long MaxUploadSize { get; set; } = 1_000_000_000;
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public string SocketTransportType { get; set; } = "WebSockets";
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class LoggingSection
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public bool IncludeScopes { get; set; } = false;
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public LogLevelSection LogLevel { get; set; } = new LogLevelSection();
 
         /// <summary>
         /// File name to create a log file
         /// </summary>
-        [Key(2)]
+        [DataMember(Order = 2)]
         public string LogFilePath { get; set; }
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class LogLevelSection
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         // [JsonConverter(typeof(StringEnumConverter))]
         public LogLevel Default { get; set; } = LogLevel.Information;
 
         // [JsonConverter(typeof(StringEnumConverter))]
-        [Key(1)]
+        [DataMember(Order = 1)]
         public LogLevel System { get; set; } = LogLevel.Information;
 
         // [JsonConverter(typeof(StringEnumConverter))]
-        [Key(2)]
+        [DataMember(Order = 2)]
         public LogLevel Microsoft { get; set; } = LogLevel.Information;
 
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class RuntimeSection
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public string ConfigDirectory { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string AppSettingsPath { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public string Password { get; set; }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public string LocalIpAddress { get; set; }
         //        public string LocalPort { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string ExternalIpAddress { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public string DefaultProxyUrl { get; set; }
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public long RemoteAgentKey { get; set; }
         
-        [Key(7)]
+        [DataMember(Order = 7)]
         public string UserHash { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string Version { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string LatestVersion { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public string LatestDownloadUrl { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public bool GenerateUserToken { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public bool SaveSettings { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public bool DoUpgrade { get; set; } = false;
 
 //        public List<FunctionReference> Functions { get; set; }

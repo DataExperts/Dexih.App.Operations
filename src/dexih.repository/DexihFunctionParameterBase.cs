@@ -1,23 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
-    [Union(0, typeof(DexihFunctionArrayParameter))]
-    [Union(1, typeof(DexihFunctionParameter))]
+    [DataContract]
+    // [Union(0, typeof(DexihFunctionArrayParameter))]
+    // [Union(1, typeof(DexihFunctionParameter))]
     public class DexihFunctionParameterBase: DexihParameterBase
     {
-        [Key(13)]
+        [DataMember(Order = 13)]
         public long? DatalinkColumnKey { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string Value { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         [NotMapped, CopyIgnore]
         public string[] ListOfValues
         {
@@ -48,11 +49,11 @@ namespace dexih.repository
         [JsonIgnore]
         public string ListOfValuesString { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         // [CopyIgnore]
         public DexihDatalinkColumn DatalinkColumn { get; set; }
     }

@@ -1,24 +1,25 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatalinkDependency : DexihHubNamedEntity
     {
-        [Key(7)]
+        [DataMember(Order = 7)]
         [CopyParentCollectionKey]
         public long DatalinkStepKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public long DependentDatalinkStepKey { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
          public virtual DexihDatalinkStep DatalinkStep { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihDatalinkStep DependentDatalinkStep { get; set; }
 
         public override void ResetKeys()

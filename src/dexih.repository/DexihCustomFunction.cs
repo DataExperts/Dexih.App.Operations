@@ -1,13 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using Dexih.Utils.DataType;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihCustomFunction : DexihHubNamedEntity
     {
 
@@ -17,28 +18,28 @@ namespace dexih.repository
             DexihCustomFunctionParameters = new HashSet<DexihCustomFunctionParameter>();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public string MethodCode { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string ResultCode { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public ETypeCode? ReturnType { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public EFunctionType? FunctionType { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public bool IsGeneric { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public ETypeCode GenericTypeDefault { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public ICollection<DexihCustomFunctionParameter> DexihCustomFunctionParameters { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItemCustomFunction { get; set; }
 
         public override void ResetKeys()

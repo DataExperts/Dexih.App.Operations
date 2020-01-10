@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatalinkStep : DexihHubNamedEntity
     {
         public DexihDatalinkStep()
@@ -16,32 +17,32 @@ namespace dexih.repository
             Parameters = new HashSet<DexihDatalinkStepParameter>();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         [CopyParentCollectionKey]
         public long DatajobKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public long? DatalinkKey { get; set; }
         
-        [Key(9)]
+        [DataMember(Order = 9)]
         public int Position { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public ICollection<DexihDatalinkStepColumn> DexihDatalinkStepColumns { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public ICollection<DexihDatalinkDependency> DexihDatalinkDependencies { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public ICollection<DexihDatalinkStepParameter> Parameters { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalinkDependency> DexihDatalinkDependentSteps { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatajob Datajob { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalink Datalink { get; set; }
         
         public override void ResetKeys()

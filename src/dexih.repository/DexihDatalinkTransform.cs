@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
 using dexih.functions.Query;
@@ -13,69 +14,69 @@ using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;
 using Dexih.Utils.DataType;
 using Microsoft.Extensions.Logging;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatalinkTransform : DexihHubNamedEntity
     {
 		public DexihDatalinkTransform() => DexihDatalinkTransformItems = new HashSet<DexihDatalinkTransformItem>();
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         [CopyParentCollectionKey]
 		public long DatalinkKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public int Position { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public bool PassThroughColumns { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public long? JoinDatalinkTableKey { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public long? JoinSortDatalinkColumnKey { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public long? NodeDatalinkColumnKey { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public ETransformType TransformType { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string TransformClassName { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public string TransformAssemblyName { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public EDuplicateStrategy JoinDuplicateStrategy { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalink Datalink { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public DexihDatalinkTable JoinDatalinkTable { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         public DexihDatalinkColumn JoinSortDatalinkColumn { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
 
-        [Key(22)]
+        [DataMember(Order = 22)]
         public long MaxInputRows { get; set; } = 0;
 
-        [Key(23)]
+        [DataMember(Order = 23)]
         public long MaxOutputRows { get; set; } = 0;
 
         public override void ResetKeys()

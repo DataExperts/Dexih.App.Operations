@@ -1,16 +1,17 @@
-using MessagePack;
+using System.Runtime.Serialization;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class ListOfValuesItem
     {
         
-        [Key(0)]
+        [DataMember(Order = 0)]
         public string Key { get; set; }
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string Name { get; set; }
-        [Key(2)]
+        [DataMember(Order = 2)]
         public string Description { get; set; }
     }
     

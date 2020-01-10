@@ -3,17 +3,18 @@ using System.Collections.Generic;
 
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
 using dexih.transforms;
 using Dexih.Utils.DataType;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-	[MessagePackObject]
+	[DataContract]
     public class DexihTable : DexihHubNamedEntity
     {
         public DexihTable()
@@ -24,43 +25,43 @@ namespace dexih.repository
             EntityStatus = new EntityStatus();
         }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public long ConnectionKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string Schema {get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string BaseTableName { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public string LogicalName { get; set; }
 
-        [Key(11)] 
+        [DataMember(Order = 11)] 
         public Table.ETableType TableType { get; set; } = Table.ETableType.Table;
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public string SourceConnectionName { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public long? FileFormatKey { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string RejectedTableName { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public bool UseQuery { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public string QueryString { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public string RowPath { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         [NotMapped, CopyIgnore]
         public long[] SortColumnKeys
         {
@@ -90,47 +91,47 @@ namespace dexih.repository
 	        
         }
         
-        [JsonIgnore, IgnoreMember]
+        [JsonIgnore, IgnoreDataMember]
         public string SortColumnKeysString { get; set; }
         
-        [Key(20)]
+        [DataMember(Order = 20)]
         public bool AutoManageFiles { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public bool UseCustomFilePaths { get; set; }
 
-        [Key(22)]
+        [DataMember(Order = 22)]
         public string FileRootPath { get; set; }
 
-        [Key(23)]
+        [DataMember(Order = 23)]
         public string FileIncomingPath { get; set; }
 
-        [Key(24)]
+        [DataMember(Order = 24)]
         public string FileOutgoingPath { get; set; }
 
-        [Key(25)]
+        [DataMember(Order = 25)]
         public string FileProcessedPath { get; set; }
 
-        [Key(26)]
+        [DataMember(Order = 26)]
         public string FileRejectedPath { get; set; }
 
-        [Key(27)]
+        [DataMember(Order = 27)]
         public string FileMatchPattern { get; set; }
 
-        [Key(28)]
+        [DataMember(Order = 28)]
         public string RestfulUri { get; set; }
 
-        [Key(29)]
+        [DataMember(Order = 29)]
         [NotMapped]
 	    public int MaxImportLevels { get; set; }
 
-        [Key(30)]
+        [DataMember(Order = 30)]
         public bool IsVersioned { get; set; }
 
-        [Key(31)]
+        [DataMember(Order = 31)]
         public bool IsShared { get; set; }
 		
-		[NotMapped, JsonIgnore, CopyIgnore, IgnoreMember]
+		[NotMapped, JsonIgnore, CopyIgnore, IgnoreDataMember]
 		public List<string> OutputSortFields {
 			get {
 				var fields = new List<string>();
@@ -149,36 +150,36 @@ namespace dexih.repository
 			}
 		}
 
-        [Key(32)]
+        [DataMember(Order = 32)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [Key(33), NotMapped]
+        [DataMember(Order = 33), NotMapped]
         public string FileSample {get;set;}
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihView> DexihViews { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalinkTarget> DexihTargetTables { get; set; }
 
-	    [JsonIgnore, CopyIgnore, IgnoreMember]
+	    [JsonIgnore, CopyIgnore, IgnoreDataMember]
 	    public ICollection<DexihDatalinkTable> DexihDatalinkTables { get; set; }
 
-	    [JsonIgnore, CopyIgnore, IgnoreMember]
+	    [JsonIgnore, CopyIgnore, IgnoreDataMember]
 	    public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
 
 	    
-        [Key(34)]
+        [DataMember(Order = 34)]
         public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihConnection Connection { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihFileFormat FileFormat { get; set; }
 
-        [JsonIgnore, CopyIgnore, NotMapped, IgnoreMember]
+        [JsonIgnore, CopyIgnore, NotMapped, IgnoreDataMember]
         public override long ParentKey => ConnectionKey;
 
         public override void ResetKeys()

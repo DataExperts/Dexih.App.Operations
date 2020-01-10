@@ -1,57 +1,58 @@
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
 
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihDatalinkTestTable: DexihHubNamedEntity
     {
-        [Key(7)]
+        [DataMember(Order = 7)]
         [CopyParentCollectionKey]
         public long DatalinkTestStepKey { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public ETestTableAction Action { get; set; }
 
         /// <summary>
         /// The original table key for the table definitions.
         /// </summary>
-        [Key(9)]
+        [DataMember(Order = 9)]
         public long TableKey { get; set; }
 
         /// <summary>
         /// The connection key where the test data should be pulled from
         /// </summary>
-        [Key(10)]
+        [DataMember(Order = 10)]
         public long SourceConnectionKey { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public string SourceSchema { get; set; }
 
         /// <summary>
         /// The table name containing the test data.
         /// </summary>
-        [Key(12)]
+        [DataMember(Order = 12)]
         public string SourceTableName { get; set; }
 
         /// <summary>
         /// The connection key where the test data should be loaded
         /// </summary>
-        [Key(13)]
+        [DataMember(Order = 13)]
         public long TestConnectionKey { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string TestSchema { get; set; }
 
         /// <summary>
         /// The name of the table where the test data should be loaded.
         /// </summary>
-        [Key(15)]
+        [DataMember(Order = 15)]
         public string TestTableName { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihDatalinkTestStep DatalinkTestStep { get; set; }
         
         public override void ResetKeys()

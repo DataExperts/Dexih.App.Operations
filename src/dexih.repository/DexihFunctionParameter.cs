@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihFunctionParameter : DexihFunctionParameterBase
     {
         public DexihFunctionParameter()
@@ -13,14 +14,14 @@ namespace dexih.repository
             ArrayParameters = new HashSet<DexihFunctionArrayParameter>();
         }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         [CopyParentCollectionKey]
 		public long DatalinkTransformItemKey { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public virtual ICollection<DexihFunctionArrayParameter> ArrayParameters { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihDatalinkTransformItem DtItem { get; set; }
 
     }

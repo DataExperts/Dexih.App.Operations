@@ -1,13 +1,12 @@
 ﻿using Dexih.Utils.CopyProperties;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
-
-using MessagePack;
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihHub : DexihBaseEntity
     {
        
@@ -30,65 +29,65 @@ namespace dexih.repository
             DexihListOfValues = new HashSet<DexihListOfValues>();
         }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         [CopyCollectionKey((long)0, true)]
         public long HubKey { get; set; }
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string Name { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public string Description { get; set; }
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public string EncryptionKey { get; set; }
 
-        [Key(7)] 
+        [DataMember(Order = 7)] 
         public ESharedAccess SharedAccess { get; set; } = ESharedAccess.Public;
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public ICollection<DexihConnection> DexihConnections { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public ICollection<DexihTable> DexihTables { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public ICollection<DexihDatajob> DexihDatajobs { get; set; }
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public ICollection<DexihDatalink> DexihDatalinks { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public ICollection<DexihHubUser> DexihHubUsers { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public ICollection<DexihFileFormat> DexihFileFormats { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
 
-        [Key(16)]
+        [DataMember(Order = 16)]
         public ICollection<DexihView> DexihViews { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public ICollection<DexihDashboard> DexihDashboards { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public ICollection<DexihApi> DexihApis { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         public ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
         
-        [Key(22)]
+        [DataMember(Order = 22)]
         public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
 
         /// <summary>

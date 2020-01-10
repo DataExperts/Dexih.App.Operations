@@ -1,81 +1,82 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 using dexih.functions;
 using Dexih.Utils.DataType;
-using MessagePack;
+
 
 namespace dexih.repository
 {
     /// <summary>
     /// Base class for table columns.  Inherited by DexihTableColumn and DexihDatalinkColumn
     /// </summary>
-    [MessagePackObject]
-    [Union(0, typeof(DexihDatalinkColumn))]
-    [Union(1, typeof(DexihDatalinkStepColumn))]
-    [Union(2, typeof(DexihTableColumn))]
+    [DataContract]
+    // [Union(0, typeof(DexihDatalinkColumn))]
+    // [Union(1, typeof(DexihDatalinkStepColumn))]
+    // [Union(2, typeof(DexihTableColumn))]
     public class DexihColumnBase: DexihHubNamedEntity
     {
-        [Key(7)]
+        [DataMember(Order = 7)]
         public int Position { get; set; }
 
-        [Key(8)]
+        [DataMember(Order = 8)]
         public string LogicalName { get; set; }
 
-        [Key(9)]
+        [DataMember(Order = 9)]
         public string ColumnGroup { get; set; }
 
-        [Key(10)] 
+        [DataMember(Order = 10)] 
         public ETypeCode DataType { get; set; } = ETypeCode.String;
 
-        [Key(11)]
+        [DataMember(Order = 11)]
         public int? MaxLength { get; set; }
 
-        [Key(12)]
+        [DataMember(Order = 12)]
         public int? Precision { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public bool? IsUnicode { get; set; }
 
-        [Key(14)]
+        [DataMember(Order = 14)]
         public int? Scale { get; set; }
 
-        [Key(15)]
+        [DataMember(Order = 15)]
         public bool AllowDbNull { get; set; }
 
-        [Key(16)] 
+        [DataMember(Order = 16)] 
         public EDeltaType DeltaType { get; set; } = EDeltaType.TrackingField;
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public string DefaultValue { get; set; }
 
-        [Key(18)]
+        [DataMember(Order = 18)]
         public bool IsUnique { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public bool IsMandatory { get; set; }
 
-        [Key(20)]
+        [DataMember(Order = 20)]
         public bool IsIncrementalUpdate { get; set; }
 
-        [Key(21)]
+        [DataMember(Order = 21)]
         public bool IsInput { get; set; }
 
         /// <summary>
         /// The number of array dimensions (zero for non array).
         /// </summary>
-        [Key(22)]
+        [DataMember(Order = 22)]
         public int Rank { get; set; }
 
         public bool IsArray() => Rank > 0;
 
 
-        [Key(23)] public ESecurityFlag SecurityFlag { get; set; } = ESecurityFlag.None;
+        [DataMember(Order = 23)] public ESecurityFlag SecurityFlag { get; set; } = ESecurityFlag.None;
 
 
         /// <summary>
         /// Is the column one form the source (vs. a value added column).
         /// </summary>
         /// <returns></returns>
-        [NotMapped, IgnoreMember]
+        [NotMapped, IgnoreDataMember]
         public bool IsSourceColumn
         {
             get
@@ -95,7 +96,7 @@ namespace dexih.repository
         /// Columns which require no mapping and are generated automatically for auditing.
         /// </summary>
         /// <returns></returns>
-        [NotMapped, IgnoreMember]
+        [NotMapped, IgnoreDataMember]
         public bool IsGeneratedColumn
         {
             get

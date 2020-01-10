@@ -1,28 +1,29 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Security.Claims;
 using dexih.repository;
-using MessagePack;
+
 using Microsoft.AspNetCore.Identity;
 
 namespace dexih.operations
 {
-    [MessagePackObject]
+    [DataContract]
     public class HubUser
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public string FirstName { get; set; }
         
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string LastName { get; set; }
         
-        [Key(2)]
+        [DataMember(Order = 2)]
         public string Email { get; set; }
         
-        [Key(3)]
+        [DataMember(Order = 3)]
         public string Id { get; set; }
         
-        [Key(4)]
+        [DataMember(Order = 4)]
         public EPermission Permission { get; set; }
     }
     
@@ -30,84 +31,84 @@ namespace dexih.operations
     /// Similar to ApplicationUser class, but excludes password hash and other information we don't want
     /// included for security purposes.
     /// </summary>
-    [MessagePackObject]
+    [DataContract]
     public class UserModel
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public string Email { get; set; }
         
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string UserName { get; set; }
         
-        [Key(2)]
+        [DataMember(Order = 2)]
         public bool EmailConfirmed { get; set; }
 
-        [Key(3)]
+        [DataMember(Order = 3)]
         public int AccessFailedCount { get; set; }
         
-        [Key(4)]
+        [DataMember(Order = 4)]
         public string Id { get; set; }
         
-        [Key(5)]
+        [DataMember(Order = 5)]
         public bool LockoutEnabled { get; set; }
         
-        [Key(6)]
+        [DataMember(Order = 6)]
         public DateTimeOffset? LockoutEnd { get; set; }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public ICollection<UserLoginInfo> Logins { get; set; }
         
-        [Key(8)]
+        [DataMember(Order = 8)]
         public ICollection<string> Roles { get; set; }
         
-        [Key(9)]
+        [DataMember(Order = 9)]
         public ICollection<Claim> Claims { get; set; }
 
-        [Key(10)]
+        [DataMember(Order = 10)]
         public bool TwoFactorEnabled { get; set; }
         
-        [Key(11)]
+        [DataMember(Order = 11)]
         public string PhoneNumber { get; set; }
         
-        [Key(12)]
+        [DataMember(Order = 12)]
         public bool PhoneNumberConfirmed { get; set; }
 
-        [Key(13)]
+        [DataMember(Order = 13)]
         public string FirstName { get; set; }
         
-        [Key(14)]
+        [DataMember(Order = 14)]
         public string LastName { get; set; }
         
-        [Key(15)]
+        [DataMember(Order = 15)]
         public bool Terms { get; set; }
         
-        [Key(16)]
+        [DataMember(Order = 16)]
         public bool Subscription { get; set; }
 
-        [Key(17)]
+        [DataMember(Order = 17)]
         public int InviteQuota { get; set; }
         
-        [Key(18)]
+        [DataMember(Order = 18)]
         public int HubQuota { get; set; }
 
-        [Key(19)]
+        [DataMember(Order = 19)]
         public bool IsRegistered { get; set; }
         
-        [Key(20)]
+        [DataMember(Order = 20)]
         
         public bool IsInvited { get; set; }
         
-        [Key(21)]
+        [DataMember(Order = 21)]
         public bool IsEnabled { get; set; }
     }
 
-    [MessagePackObject]
+    [DataContract]
     public class ImportAction
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public ESharedObjectType ObjectType { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public EImportAction Action { get; set; }
     }
     

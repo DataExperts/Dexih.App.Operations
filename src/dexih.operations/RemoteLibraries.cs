@@ -1,21 +1,22 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
 using dexih.functions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
-using MessagePack;
+
 
 namespace dexih.operations
 {
-    [MessagePackObject]
+    [DataContract]
     public class RemoteLibraries
     {
-        [Key(0)]
+        [DataMember(Order = 0)]
         public List<FunctionReference> Functions { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public List<ConnectionReference> Connections { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public List<TransformReference> Transforms { get; set; }
     }
 }

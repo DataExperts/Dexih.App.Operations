@@ -1,10 +1,11 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihFunctionArrayParameter : DexihFunctionParameterBase
     {
 
@@ -12,11 +13,11 @@ namespace dexih.repository
         /// <summary>
         /// Points to the parent parameter, when it is an array.
         /// </summary>
-        [Key(18)]
+        [DataMember(Order = 18)]
         [CopyParentCollectionKey]
         public long FunctionParameterKey { get; set; }
 
-        [JsonIgnore, CopyIgnore, IgnoreMember] public virtual DexihFunctionParameter FunctionParameter { get; set; }
+        [JsonIgnore, CopyIgnore, IgnoreDataMember] public virtual DexihFunctionParameter FunctionParameter { get; set; }
 
     }
 }

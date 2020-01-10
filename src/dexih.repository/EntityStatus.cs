@@ -1,8 +1,9 @@
-﻿using MessagePack;
+﻿using System.Runtime.Serialization;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class EntityStatus
     {
         public EntityStatus()
@@ -14,13 +15,13 @@ namespace dexih.repository
 
 
 
-        [Key(0)]
+        [DataMember(Order = 0)]
         public EStatus LastStatus { get; set; }
 
-        [Key(1)]
+        [DataMember(Order = 1)]
         public string Message { get; set; }
 
-        [Key(2)]
+        [DataMember(Order = 2)]
         public bool IsBusy { get; set; }
     }
 }

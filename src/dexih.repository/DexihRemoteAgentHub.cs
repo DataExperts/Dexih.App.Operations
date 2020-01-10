@@ -1,27 +1,28 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
-using MessagePack;
+
 
 namespace dexih.repository
 {
-    [MessagePackObject]
+    [DataContract]
     public class DexihRemoteAgentHub : DexihHubEntity
     {
 
-        [Key(4)]
+        [DataMember(Order = 4)]
         [CopyCollectionKey((long)0, true)]
         public long RemoteAgentHubKey { get; set; }
 
-        [Key(5)]
+        [DataMember(Order = 5)]
         public long RemoteAgentKey { get; set; }
 
-        [Key(6)]
+        [DataMember(Order = 6)]
         public bool IsDefault { get; set; }
 
-        [Key(7)]
+        [DataMember(Order = 7)]
         public bool IsAuthorized { get; set; }
         
-        [JsonIgnore, CopyIgnore, IgnoreMember]
+        [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihRemoteAgent RemoteAgent { get; set; }
 
     }
