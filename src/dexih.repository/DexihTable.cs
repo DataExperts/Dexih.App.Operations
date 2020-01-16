@@ -49,19 +49,19 @@ namespace dexih.repository
         [DataMember(Order = 14)]
         public string RejectedTableName { get; set; }
 
-        [DataMember(Order = 15)]
-        public bool UseQuery { get; set; }
+        // [DataMember(Order = 15)]
+        // public bool UseQuery { get; set; }
 
-        [DataMember(Order = 16)]
+        [DataMember(Order = 15)]
         public string QueryString { get; set; }
 
-        [DataMember(Order = 17)]
+        [DataMember(Order = 16)]
         public string RowPath { get; set; }
 
-        [DataMember(Order = 18)]
+        [DataMember(Order = 17)]
         public ETypeCode FormatType { get; set; } = ETypeCode.Json;
 
-        [DataMember(Order = 19)]
+        [DataMember(Order = 18)]
         [NotMapped, CopyIgnore]
         public long[] SortColumnKeys
         {
@@ -94,43 +94,54 @@ namespace dexih.repository
         [JsonIgnore, IgnoreDataMember]
         public string SortColumnKeysString { get; set; }
         
-        [DataMember(Order = 20)]
+        [DataMember(Order = 19)]
         public bool AutoManageFiles { get; set; }
 
-        [DataMember(Order = 21)]
+        [DataMember(Order = 20)]
         public bool UseCustomFilePaths { get; set; }
 
-        [DataMember(Order = 22)]
+        [DataMember(Order = 21)]
         public string FileRootPath { get; set; }
 
-        [DataMember(Order = 23)]
+        [DataMember(Order = 22)]
         public string FileIncomingPath { get; set; }
 
-        [DataMember(Order = 24)]
+        [DataMember(Order = 23)]
         public string FileOutgoingPath { get; set; }
 
-        [DataMember(Order = 25)]
+        [DataMember(Order = 24)]
         public string FileProcessedPath { get; set; }
 
-        [DataMember(Order = 26)]
+        [DataMember(Order = 25)]
         public string FileRejectedPath { get; set; }
 
-        [DataMember(Order = 27)]
+        [DataMember(Order = 26)]
         public string FileMatchPattern { get; set; }
 
-        [DataMember(Order = 28)]
+        [DataMember(Order = 27)]
         public string RestfulUri { get; set; }
 
-        [DataMember(Order = 29)]
+        [DataMember(Order = 28)]
         [NotMapped]
 	    public int MaxImportLevels { get; set; }
 
-        [DataMember(Order = 30)]
+        [DataMember(Order = 29)]
         public bool IsVersioned { get; set; }
 
-        [DataMember(Order = 31)]
+        [DataMember(Order = 30)]
         public bool IsShared { get; set; }
 		
+        [DataMember(Order = 31)]
+        [NotMapped]
+        public EntityStatus EntityStatus { get; set; }
+
+        [DataMember(Order = 32), NotMapped]
+        public string FileSample {get;set;}
+        
+        [DataMember(Order = 33)]
+        public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
+
+        
 		[NotMapped, JsonIgnore, CopyIgnore, IgnoreDataMember]
 		public List<string> OutputSortFields {
 			get {
@@ -149,14 +160,7 @@ namespace dexih.repository
 				return fields.ToList();
 			}
 		}
-
-        [DataMember(Order = 32)]
-        [NotMapped]
-        public EntityStatus EntityStatus { get; set; }
-
-        [DataMember(Order = 33), NotMapped]
-        public string FileSample {get;set;}
-
+		
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihView> DexihViews { get; set; }
 
@@ -168,11 +172,7 @@ namespace dexih.repository
 
 	    [JsonIgnore, CopyIgnore, IgnoreDataMember]
 	    public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
-
 	    
-        [DataMember(Order = 34)]
-        public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
-
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihConnection Connection { get; set; }
 

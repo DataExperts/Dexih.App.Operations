@@ -1609,7 +1609,7 @@ namespace dexih.repository
                         v => v.ToString(),
                         v => (Table.ETableType) Enum.Parse(typeof(Table.ETableType), v));
 
-                entity.Property(e => e.UseQuery).HasColumnName("use_query");
+                // entity.Property(e => e.UseQuery).HasColumnName("use_query");
                 entity.Property(e => e.QueryString).HasColumnName("query_string");
 
                 entity.Property(e => e.FileFormatKey).HasColumnName("file_format_key");

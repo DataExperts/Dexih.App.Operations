@@ -58,7 +58,8 @@ namespace dexih.operations
             _logger = logger;
             
             // create a copy of the hub as the test run will update objects.
-            _hub = hub.CloneProperties<DexihHub>();
+            _hub = hub.Serialize().Deserialize<DexihHub>();
+            // _hub = hub.CloneProperties();
             
             _datalinkTest = datalinkTest;
             
@@ -169,7 +170,7 @@ namespace dexih.operations
                             var targetTable = dbDatalinkTargetTable.GetTable(_hub, targetConnection, _transformSettings);
 
                             var dbExpectedConnection =_hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
-                            var dbExpectedTable = dbDatalinkTargetTable.CloneProperties<DexihTable>();
+                            var dbExpectedTable = dbDatalinkTargetTable.CloneProperties();
                             dbExpectedTable.Name = step.ExpectedTableName;
                             dbExpectedTable.Schema = step.ExpectedSchema;
                             var expectedConnection = dbExpectedConnection.GetConnection(_transformSettings);
@@ -231,7 +232,7 @@ namespace dexih.operations
 
                         var dbSourceConnection =
                             _hub.DexihConnections.Single(c => c.IsValid && c.Key == testTable.SourceConnectionKey);
-                        var dbSourceTable = dbDatalinkTable.CloneProperties<DexihTable>();
+                        var dbSourceTable = dbDatalinkTable.CloneProperties();
                         dbSourceTable.Name = testTable.SourceTableName;
                         dbSourceTable.Schema = testTable.SourceSchema;
                         var testConnection = dbSourceConnection.GetConnection(_transformSettings);
@@ -376,7 +377,7 @@ namespace dexih.operations
                         };
                         
                         var dexihExpectedConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
-                        var dexihExpectedTable = table.CloneProperties<DexihTable>();
+                        var dexihExpectedTable = table.CloneProperties();
                         dexihExpectedTable.ConnectionKey = dexihExpectedConnection.Key;
                         dexihExpectedTable.Name = step.ExpectedTableName;
                         dexihExpectedTable.Schema = step.ExpectedSchema;
@@ -395,7 +396,7 @@ namespace dexih.operations
                         Table errorTable = null;
                         if (dexihErrorConnection != null)
                         {
-                            var dexihErrorTable = table.CloneProperties<DexihTable>();
+                            var dexihErrorTable = table.CloneProperties();
                             dexihErrorTable.ConnectionKey = dexihErrorConnection.Key;
                             dexihErrorTable.Name = step.ErrorTableName;
                             dexihErrorTable.Schema = step.ErrorSchema;
@@ -411,13 +412,13 @@ namespace dexih.operations
                                 EDeltaType.CreateAuditKey));
                             errorTable.Columns.Add(new TableColumn("error_operation", ETypeCode.CharArray,
                                 EDeltaType.DatabaseOperation) {MaxLength = 1});
-
+                            errorTable.Columns.Add(new TableColumn("mismatch_reason", ETypeCode.String,
+                                EDeltaType.UpdateReason) {AllowDbNull =  true});
                         }
 
                         // use the delta transform to compare expected and target tables.
                         var delta = new TransformDelta(targetTransform, expectedTransform,
-                            EUpdateStrategy.AppendUpdateDelete, 0, false);
-
+                            EUpdateStrategy.AppendUpdateDelete, 0, false, true);
                         await delta.Open(0, null, token);
 
                         testResult.RowsMismatching = 0;
@@ -425,6 +426,7 @@ namespace dexih.operations
                         testResult.RowsMissingFromTarget = 0;
 
                         var operationColumn = delta.CacheTable.Columns.GetOrdinal(EDeltaType.DatabaseOperation);
+                        var updateReasonColumn = delta.CacheTable.Columns.GetOrdinal(EDeltaType.UpdateReason);
                         
                         var errorCache = new TableCache();
 
@@ -462,6 +464,9 @@ namespace dexih.operations
                                             break;
                                         case EDeltaType.DatabaseOperation:
                                             row[i] = delta[operationColumn];
+                                            break;
+                                        case EDeltaType.UpdateReason:
+                                            row[i] = delta[updateReasonColumn];
                                             break;
                                         default:
                                             row[i] = delta[column.Name];

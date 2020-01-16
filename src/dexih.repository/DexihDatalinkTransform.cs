@@ -317,7 +317,7 @@ namespace dexih.repository
                                 DefaultValue = column.DefaultValue
                             };
                         var function = validation.GetValidationMapping(column.Name);
-                        transform.Mappings.Add(function);
+                        mappings.Add(function);
                     }
 
                     logger?.LogTrace($"Adding validation.  Elapsed: {timer.Elapsed}");

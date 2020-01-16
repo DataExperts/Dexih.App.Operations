@@ -143,7 +143,7 @@ namespace dexih.operations
 
             parentWriterResult?.ChildResults.Add(writerResult);
             
-            var writerTarget = new TransformWriterTarget(targetConnection, targetTable, writerResult, _transformWriterOptions, targetConnection, rejectTable, targetConnection, Datalink.ProfileTableName);
+            var writerTarget = new TransformWriterTarget(targetConnection, targetTable, writerResult, _transformWriterOptions, targetConnection, rejectTable, auditConnection, Datalink.ProfileTableName);
             return writerTarget;
         }
 
