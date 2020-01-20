@@ -356,7 +356,6 @@ namespace dexih.operations
 						.Where(c => hubKeys.Contains(c.HubKey) && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 					return hubs;
 				}, cancellationToken);
-				
 			}
 		}
 		
@@ -986,6 +985,10 @@ namespace dexih.operations
 				{
 					user.HubQuota--;
 					await UpdateUserAsync(user, cancellationToken);
+				}
+				
+				if (isNew)
+				{
 					await HubSetUserPermissions(dbHub.HubKey, new[] { user.Id }, EPermission.Owner, cancellationToken);
 				}
 

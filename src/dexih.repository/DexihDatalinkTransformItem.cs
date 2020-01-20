@@ -19,6 +19,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Parameter;
 using dexih.transforms;
+using dexih.transforms.Exceptions;
 using dexih.transforms.Mapping;
 using Microsoft.Extensions.Logging;
 using static dexih.functions.Query.SelectColumn;
@@ -520,10 +521,9 @@ $FunctionCode
             }
             else
             {
-	            code.Replace("$FunctionReturn", parameters.ReturnParameters[0].DataType.ToString());    
+	            code.Replace("$FunctionReturn", GetFunctionDataType(parameters.ReturnParameters[0].DataType));    
             }
             
-
             if (createConsoleSample)
             {
                 var testFunction = new StringBuilder();
@@ -683,6 +683,35 @@ $FunctionCode
             code.Replace("$Parameters", parameterString);
 
             return code.ToString();
+        }
+
+        private string GetFunctionDataType(ETypeCode typeCode)
+        {
+	        switch (typeCode)
+	        {
+		        case ETypeCode.Binary:
+			        return "byte[]";
+		        case ETypeCode.Text:
+			        return "string";
+		        case ETypeCode.CharArray:
+			        return "char[]";
+		        case ETypeCode.Geometry:
+			        return "NetTopologySuite.Geometries.Geometry";
+		        case ETypeCode.Enum:
+			        return "int";
+		        case ETypeCode.Json:
+			        return "System.Text.Json.JsonDocument";
+		        case ETypeCode.Node:
+			        return "dexih.transforms.Transform";
+		        case ETypeCode.Time:
+			        return "TimeSpan";
+		        case ETypeCode.Xml:
+			        return "System.Xml.XmlDocument";
+		        case ETypeCode.Unknown:
+			        return "object";
+		        default:
+			        return typeCode.ToString();
+	        }
         }
 
         private string AddRank(int rank)
