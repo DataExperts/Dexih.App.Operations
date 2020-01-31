@@ -2,10 +2,15 @@
 using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using static dexih.functions.TableColumn;
 using Microsoft.Extensions.Logging;
@@ -101,13 +106,18 @@ namespace dexih.operations
 			return user;
 		}
 
-		public async Task<ApplicationUser> GetUserFromEmailAsync(string email, CancellationToken cancellationToken)
+		public async Task<ApplicationUser> GetUserFromLoginAsync(string login, CancellationToken cancellationToken)
 		{
-			var user = await _userManager.FindByEmailAsync(email);
+			var user = await _userManager.FindByEmailAsync(login);
 
 			if (user == null)
 			{
-				return null;
+				user = await _userManager.FindByNameAsync(login);
+
+				if (user == null)
+				{
+					return null;
+				}
 			}
 
 			await AddUserRoleAsync(user, cancellationToken);
@@ -225,6 +235,222 @@ namespace dexih.operations
 			}
 		}
 
+		#endregion
+
+		#region Issues
+
+		public static async Task<JsonDocument> GitHubAction(string uri, object data, string token, CancellationToken cancellationToken)
+		{
+			var json = JsonSerializer.Serialize(data);
+			var jsonContent = new StringContent(json, Encoding.UTF8, "application/json");
+			
+			using var client = new HttpClient {BaseAddress = new Uri("https://api.github.com")};
+
+			client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DexihUI", "1.0"));
+			client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", token);
+
+			var response = await client.PostAsync(uri, jsonContent, cancellationToken);
+			
+			if (response.IsSuccessStatusCode)
+			{
+				var jsonDocument = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(),
+					cancellationToken: cancellationToken);
+				return jsonDocument;
+			}
+
+			throw new RepositoryException($"There was an issue creating the github issue: {response.ReasonPhrase}.");
+		}
+		
+		public async Task<DexihIssue> SaveIssueAsync(DexihIssue issue, string gitHubAccessToken, ApplicationUser user, CancellationToken cancellationToken)
+		{
+			var gitHubLink = "";
+
+			if (issue.Key > 0)
+			{
+				var existingIssue = DbContext.DexihIssues.Single(c => c.Key == issue.Key);
+				var issueCopy = issue.CloneProperties();
+				issueCopy.DexihIssueComments = null;
+				issueCopy.CopyProperties(existingIssue);
+			}
+			else
+			{
+				if (!issue.IsPrivate && !string.IsNullOrEmpty(gitHubAccessToken))
+				{
+					var body = new StringBuilder();
+					body.AppendLine("Name: " + issue.Name);
+					body.AppendLine("Category: " + issue.Category);
+					body.AppendLine("Type: " + issue.Type);
+					body.AppendLine("Severity: " + issue.Severity);
+					if (!string.IsNullOrEmpty(issue.Link))
+					{
+						body.AppendLine("Link: " + issue.Link);
+					}
+					body.AppendLine();
+					body.AppendLine(issue.Description);
+
+					var gitIssue = new
+					{
+						title = issue.Name,
+						body = body.ToString(),
+					};
+
+					var gitRepo = issue.Category switch
+					{
+						EIssueCategory.Api => "/repos/DataExperts/Dexih.App.UI/issues",
+						EIssueCategory.Other => "/repos/DataExperts/Dexih.App.UI/issues",
+						EIssueCategory.Web => "/repos/DataExperts/Dexih.App.UI/issues",
+						EIssueCategory.Security => "/repos/DataExperts/Dexih.App.UI/issues",
+						EIssueCategory.Saving => "/repos/DataExperts/Dexih.App.Operations/issues",
+						EIssueCategory.RemoteAgent => "/repos/DataExperts/Dexih.App.Remote/issues",
+						EIssueCategory.Datalink => "/repos/DataExperts/dexih.transforms/issues",
+						EIssueCategory.Datajob => "/repos/DataExperts/Dexih.App.Remote/issues",
+						EIssueCategory.View => "/repos/DataExperts/Dexih.App.Remote/issues",
+						EIssueCategory.Dashboard => "/repos/DataExperts/Dexih.App.Remote/issues",
+						_ => "/repos/DataExperts/Dexih.App.UI/issues"
+					};
+
+					var jsonDocument = await GitHubAction(gitRepo, gitIssue, gitHubAccessToken, cancellationToken);
+					gitHubLink = jsonDocument.RootElement.GetProperty("html_url").GetString();
+				}
+
+				issue.UserId = user.Id;
+				issue.GitHubLink = gitHubLink;
+				
+				DbContext.DexihIssues.Add(issue);
+			}
+
+			await DbContext.SaveChangesAsync(cancellationToken);
+
+			return issue;
+		}
+
+		public async Task AddIssueComment(ApplicationUser user, DexihIssueComment issueComment,
+			CancellationToken cancellationToken)
+		{
+			var canComment = false;
+			var issue = await DbContext.DexihIssues.SingleOrDefaultAsync(c => c.Key == issueComment.IssueKey, cancellationToken: cancellationToken);
+
+			if (user.IsAdmin)
+			{
+				canComment = true;
+			}
+			else
+			{
+				if (issue.UserId == user.Id)
+				{
+					canComment = true;
+				}
+			}
+			
+			issue.UpdateDate = DateTime.UtcNow;
+
+			if (!canComment)
+			{
+				throw new RepositoryException("The user cannot comment on the issue.  Only the issue originator or an administrator can comment.");
+			}
+
+			DbContext.DexihIssueComments.Add(issueComment);
+
+			await DbContext.SaveChangesAsync(cancellationToken);
+		}
+
+		public async Task<ICollection<ApplicationUser>> GetIssueUsers(DexihIssue issue, CancellationToken cancellationToken)
+		{
+			var users = new Dictionary<string, ApplicationUser>();
+			var user = await GetUserAsync(issue.UserId, cancellationToken);
+			if (user != null)
+			{
+				users.Add(user.Id, user);
+			}
+			
+			foreach(var comment in issue.DexihIssueComments)
+			{
+				if (!users.ContainsKey(comment.UserId))
+				{
+					var commentUser = await GetUserAsync(comment.UserId, cancellationToken);
+					if (commentUser != null)
+					{
+						users.Add(commentUser.Id, commentUser);
+					}
+				}
+			}
+
+			return users.Values;
+		}
+
+		public async Task<DexihIssue[]> GetUserIssues(ApplicationUser user, CancellationToken cancellationToken)
+		{
+			DexihIssue[] issues;
+			if (user.IsAdmin)
+			{
+				issues = await DbContext.DexihIssues.Where(c => c.IsValid).ToArrayAsync(cancellationToken);
+			}
+			else
+			{
+				issues = await DbContext.DexihIssues.Where(c => c.UserId == user.Id).ToArrayAsync(cancellationToken);	
+			}
+
+			if (issues == null)
+			{
+				return null; 
+			}
+
+			var users = new Dictionary<string, string>();
+			foreach (var issue in issues)
+			{
+				issue.UserName = await GetUserName(issue.UserId, users, cancellationToken);
+
+				foreach(var comment in issue.DexihIssueComments)
+				{
+					comment.UserName = await GetUserName(comment.UserId, users, cancellationToken);
+				}
+			}
+
+			return issues;
+		}
+		
+		public async Task<DexihIssue> GetIssue(ApplicationUser user, long issueKey, CancellationToken cancellationToken)
+		{
+			DexihIssue issue;
+			if (user.IsAdmin)
+			{
+				issue = await DbContext.DexihIssues
+					.Include(c => c.DexihIssueComments)
+					.SingleOrDefaultAsync(c => c.Key == issueKey && c.IsValid, cancellationToken);
+			}
+			else
+			{
+				issue = await DbContext.DexihIssues.Include(c => c.DexihIssueComments).SingleOrDefaultAsync(c => c.UserId == user.Id && c.Key == issueKey && c.IsValid, cancellationToken);
+			}
+
+			var users = new Dictionary<string, string>();
+			issue.UserName = await GetUserName(issue.UserId, users, cancellationToken);
+
+			foreach(var comment in issue.DexihIssueComments)
+			{
+				comment.UserName = await GetUserName(comment.UserId, users, cancellationToken);
+			}
+
+			return issue;
+		}
+
+		private async Task<string> GetUserName(string userId, Dictionary<string, string> users, CancellationToken cancellationToken)
+		{
+			if (users.TryGetValue(userId, out var userName))
+			{
+				return userName;
+			}
+
+			var user = await GetUserAsync(userId, cancellationToken);
+			if (user != null)
+			{
+				users.Add(user.Id, user.UserName);
+				return user.UserName;
+			}
+			return null;
+		}
+		
 		#endregion
 		
 		#region Hub Functions
@@ -888,7 +1114,7 @@ namespace dexih.operations
 			            {
 				            hubUsersList.Add(new HubUser()
 				            {
-					            Email = user.Email,
+					            UserName = user.UserName,
 					            FirstName = user.FirstName,
 					            LastName = user.LastName,
 					            Id = hubUser.UserId,
@@ -1166,7 +1392,6 @@ namespace dexih.operations
 		
 		#endregion
 		
-		
         #region Connection Functions
         public async Task<DexihConnection> SaveConnection(long hubKey, DexihConnection connection, CancellationToken cancellationToken)
 		{
@@ -1218,7 +1443,7 @@ namespace dexih.operations
 //				}
 
 				dbConnection.HubKey = hubKey;
-				dbConnection.UpdateDate = DateTime.Now;
+				dbConnection.UpdateDate = DateTime.UtcNow;
 				dbConnection.IsValid = true;
 
 				await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -1393,7 +1618,7 @@ namespace dexih.operations
 //							}
 
 							table.CopyProperties(dbTable, false);
-							dbTable.UpdateDate = DateTime.Now; // change update date to force table to become modified entity.
+							dbTable.UpdateDate = DateTime.UtcNow; // change update date to force table to become modified entity.
 							savedTables.Add(dbTable);
 						}
 					}
@@ -1415,7 +1640,7 @@ namespace dexih.operations
 						SetTableKeys(col.ChildColumns);
 					}
 
-					dbTable.UpdateDate = DateTime.Now;
+					dbTable.UpdateDate = DateTime.UtcNow;
 					dbTable.IsValid = true;
 					dbTable.HubKey = hubKey;
 					
@@ -1804,7 +2029,7 @@ namespace dexih.operations
 						}
 					}
 
-					existingDatalink.UpdateDate = DateTime.Now;
+					existingDatalink.UpdateDate = DateTime.UtcNow;
 					savedDatalinks.Add(existingDatalink);
 
 //                    if (datalink.DatalinkKey <= 0)
@@ -1849,7 +2074,7 @@ namespace dexih.operations
 //	                    newDatalink.ResetDatalinkColumns(existingColumns);
 //	                    // newDatalink = newDatalink.CloneProperties<DexihDatalink>();
 //	                    newDatalink.CopyProperties(existingDatalink);
-//	                    existingDatalink.UpdateDate = DateTime.Now;
+//	                    existingDatalink.UpdateDate = DateTime.UtcNow;
 //                        savedDatalinks.Add(existingDatalink);
 //                    }
 
@@ -2237,7 +2462,7 @@ namespace dexih.operations
 						else 
 						{
 							datajob.CopyProperties(originalDatajob);
-							originalDatajob.UpdateDate = DateTime.Now;
+							originalDatajob.UpdateDate = DateTime.UtcNow;
 							savedDatajobs.Add(originalDatajob);
 						}
 					}
@@ -2316,7 +2541,7 @@ namespace dexih.operations
 		            return null;
 	            }
 
-	            remoteAgent.LastLoginDateTime = DateTime.Now;
+	            remoteAgent.LastLoginDateTime = DateTime.UtcNow;
 				remoteAgent.LastLoginIpAddress = iPAddress;
 				await DbContext.SaveChangesAsync(cancellationToken);
 				return remoteAgent;
@@ -2373,7 +2598,7 @@ namespace dexih.operations
 	                }
                 }
 
-                dbRemoteAgent.UpdateDate = DateTime.Now;
+                dbRemoteAgent.UpdateDate = DateTime.UtcNow;
                 dbRemoteAgent.IsValid = true;
 
 	            await DbContext.SaveChangesAsync(cancellationToken);
@@ -2521,7 +2746,7 @@ namespace dexih.operations
 					DbContext.DexihRemoteAgentHubs.Add(dbRemoteAgent);
                 }
 
-                dbRemoteAgent.UpdateDate = DateTime.Now;
+                dbRemoteAgent.UpdateDate = DateTime.UtcNow;
                 dbRemoteAgent.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -2808,7 +3033,7 @@ namespace dexih.operations
 
 
 				dbColumnValidation.HubKey = hubKey;
-				dbColumnValidation.UpdateDate = DateTime.Now;
+				dbColumnValidation.UpdateDate = DateTime.UtcNow;
 				dbColumnValidation.IsValid = true;
 
 				await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -2881,7 +3106,7 @@ namespace dexih.operations
 
 
 				dbFunction.HubKey = hubKey;
-				dbFunction.UpdateDate = DateTime.Now;
+				dbFunction.UpdateDate = DateTime.UtcNow;
 				dbFunction.IsValid = true;
 
 //			 var modifiedEntries = DbContext.ChangeTracker
@@ -2958,7 +3183,7 @@ namespace dexih.operations
 					DbContext.DexihFileFormats.Add(dbFileFormat);
 				}
 
-				dbFileFormat.UpdateDate = DateTime.Now;
+				dbFileFormat.UpdateDate = DateTime.UtcNow;
 				dbFileFormat.IsValid = true;
 
 				await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3029,7 +3254,7 @@ namespace dexih.operations
                     DbContext.DexihHubVariables.Add(dbHubHubVariable);
                 }
 
-				dbHubHubVariable.UpdateDate = DateTime.Now;
+				dbHubHubVariable.UpdateDate = DateTime.UtcNow;
                 dbHubHubVariable.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3101,7 +3326,7 @@ namespace dexih.operations
                 }
 
 
-                dbView.UpdateDate = DateTime.Now;
+                dbView.UpdateDate = DateTime.UtcNow;
                 dbView.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3178,7 +3403,7 @@ namespace dexih.operations
                     DbContext.DexihDashboards.Add(dbDashboard);
                 }
 
-                dbDashboard.UpdateDate = DateTime.Now;
+                dbDashboard.UpdateDate = DateTime.UtcNow;
                 dbDashboard.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3248,7 +3473,7 @@ namespace dexih.operations
                     DbContext.DexihApis.Add(dbApi);
                 }
 
-                dbApi.UpdateDate = DateTime.Now;
+                dbApi.UpdateDate = DateTime.UtcNow;
                 dbApi.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3321,7 +3546,7 @@ namespace dexih.operations
                 }
 
 
-	            dbDatalinkTest.UpdateDate = DateTime.Now;	            
+	            dbDatalinkTest.UpdateDate = DateTime.UtcNow;	            
 	            dbDatalinkTest.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3392,7 +3617,7 @@ namespace dexih.operations
                     DbContext.DexihListOfValues.Add(dbListOfValues);
                 }
 
-                dbListOfValues.UpdateDate = DateTime.Now;
+                dbListOfValues.UpdateDate = DateTime.UtcNow;
                 dbListOfValues.IsValid = true;
 
                 await SaveHubChangesAsync(hubKey, cancellationToken);
@@ -3519,7 +3744,7 @@ namespace dexih.operations
 					        var newKey = keySequence--;
 					        keyMappings.Add(item.Key, newKey);
 					        item.Key = newKey;
-					        item.Name = item.Name + " - duplicate rename " + DateTime.Now;
+					        item.Name = item.Name + " - duplicate rename " + DateTime.UtcNow;
 					        importObjects.Add(item, EImportAction.New);
 					        break;
 				        case EImportAction.Leave:
@@ -4512,17 +4737,17 @@ namespace dexih.operations
 			foreach (var transform in deletedDatalinkTransforms)
 			{
 				transform.IsValid = false;
-				transform.UpdateDate = DateTime.Now;
+				transform.UpdateDate = DateTime.UtcNow;
 
 				foreach (var item in transform.DexihDatalinkTransformItems)
 				{
 					item.IsValid = false;
-					item.UpdateDate = DateTime.Now;
+					item.UpdateDate = DateTime.UtcNow;
 
 					foreach (var param in item.DexihFunctionParameters)
 					{
 						param.IsValid = false;
-						param.UpdateDate = DateTime.Now;
+						param.UpdateDate = DateTime.UtcNow;
 					}
 				}
 			}
@@ -4535,7 +4760,7 @@ namespace dexih.operations
 			foreach (var target in deletedTargets)
 			{
 				target.IsValid = false;
-				target.UpdateDate = DateTime.Now;
+				target.UpdateDate = DateTime.UtcNow;
 			}
 
 
@@ -4546,12 +4771,12 @@ namespace dexih.operations
 			foreach (var step in deletedSteps)
 			{
 				step.IsValid = false;
-				step.UpdateDate = DateTime.Now;
+				step.UpdateDate = DateTime.UtcNow;
 
 				foreach (var dep in step.DexihDatalinkDependencies)
 				{
 					dep.IsValid = false;
-					dep.UpdateDate = DateTime.Now;
+					dep.UpdateDate = DateTime.UtcNow;
 				}
 			}
 			
@@ -4563,7 +4788,7 @@ namespace dexih.operations
 			foreach (var trigger in deletedTriggers)
 			{
 				trigger.IsValid = false;
-				trigger.UpdateDate = DateTime.Now;
+				trigger.UpdateDate = DateTime.UtcNow;
 			}
 
 			// set unused datajob parameters to invalid
@@ -4574,7 +4799,7 @@ namespace dexih.operations
 			foreach (var parameter in deletedDatajobParameters)
 			{
 				parameter.IsValid = false;
-				parameter.UpdateDate = DateTime.Now;
+				parameter.UpdateDate = DateTime.UtcNow;
 			}
 			
 			// set datalink parameters to invalid
@@ -4585,7 +4810,7 @@ namespace dexih.operations
 			foreach (var parameter in deletedDatalinkParameters)
 			{
 				parameter.IsValid = false;
-				parameter.UpdateDate = DateTime.Now;
+				parameter.UpdateDate = DateTime.UtcNow;
 			}
 
 			// set unused view parameters to invalid
@@ -4596,7 +4821,7 @@ namespace dexih.operations
 			foreach (var parameter in deletedViewParameters)
 			{
 				parameter.IsValid = false;
-				parameter.UpdateDate = DateTime.Now;
+				parameter.UpdateDate = DateTime.UtcNow;
 			}
 			
 			// set unused dashboard parameters to invalid
@@ -4607,7 +4832,7 @@ namespace dexih.operations
 			foreach (var parameter in deletedDashboardParameters)
 			{
 				parameter.IsValid = false;
-				parameter.UpdateDate = DateTime.Now;
+				parameter.UpdateDate = DateTime.UtcNow;
 			}
 			
 			// set unused api parameters to invalid
@@ -4618,7 +4843,7 @@ namespace dexih.operations
 			foreach (var parameter in deletedApiParameters)
 			{
 				parameter.IsValid = false;
-				parameter.UpdateDate = DateTime.Now;
+				parameter.UpdateDate = DateTime.UtcNow;
 			}
 			
 			// get all columns from the repository that need to be removed.
@@ -4630,7 +4855,7 @@ namespace dexih.operations
 			foreach (var column in deletedColumns)
 			{
 				column.IsValid = false;
-				column.UpdateDate = DateTime.Now;
+				column.UpdateDate = DateTime.UtcNow;
 			}
 
 //			await DbContext.AddRangeAsync(hubVariables.Values, cancellationToken);

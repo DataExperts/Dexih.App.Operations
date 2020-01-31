@@ -134,14 +134,44 @@ namespace dexih.repository
             base.OnModelCreating(modelBuilder);
 
             //map the standard identity tables to the repository.
-            modelBuilder.Entity<ApplicationUser>().ToTable("dexih_Users");
-            modelBuilder.Entity<IdentityRole>().ToTable("dexih_Roles");
-            modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("dexih_RoleClaims");
-            modelBuilder.Entity<IdentityUserRole<string>>().ToTable("dexih_UserRoles");
-            modelBuilder.Entity<IdentityUserLogin<string>>().ToTable("dexih_UserLogins");
-            modelBuilder.Entity<IdentityUserClaim<string>>().ToTable("dexih_UserClaims");
-            modelBuilder.Entity<IdentityUserToken<string>>().ToTable("dexih_UserTokens");
-
+            modelBuilder.Entity<ApplicationUser>(entity =>
+            {
+                entity.ToTable("dexih_Users");
+                entity.Property(e => e.Id).HasMaxLength(36);
+            });
+            
+            modelBuilder.Entity<IdentityRole>(entity =>
+            {
+                entity.ToTable("dexih_Roles");
+                entity.Property(e => e.Id).HasMaxLength(36);
+            });
+            modelBuilder.Entity<IdentityRoleClaim<string>>(entity =>
+            {
+                entity.ToTable("dexih_RoleClaims");
+                entity.Property(e => e.RoleId).HasMaxLength(36);
+            });
+            modelBuilder.Entity<IdentityUserRole<string>>(entity =>
+            {
+                entity.ToTable("dexih_UserRoles");
+                entity.Property(e => e.UserId).HasMaxLength(36);
+                entity.Property(e => e.RoleId).HasMaxLength(36);
+            });
+            modelBuilder.Entity<IdentityUserLogin<string>>(entity =>
+            {
+                entity.ToTable("dexih_UserLogins");
+                entity.Property(e => e.UserId).HasMaxLength(36);
+            });
+            modelBuilder.Entity<IdentityUserClaim<string>>(entity =>
+            {
+                entity.ToTable("dexih_UserClaims");
+                entity.Property(e => e.UserId).HasMaxLength(36);
+            });
+            modelBuilder.Entity<IdentityUserToken<string>>(entity =>
+            {
+                entity.ToTable("dexih_UserTokens");
+                entity.Property(e => e.UserId).HasMaxLength(36);
+            });
+            
             modelBuilder.Entity<DexihApi>(entity =>
             {
                 entity.HasKey(e => e.Key).HasName("PK_dexih_api");
@@ -166,8 +196,8 @@ namespace dexih.repository
                 
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query")
                     .HasConversion(
-                        v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v, true));
+                        v => v == null ? null : v.Serialize(),
+                        v => v == null ? null : v.Deserialize<SelectQuery>(true));
 
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
 
@@ -1405,7 +1435,7 @@ namespace dexih.repository
                 entity.Property(e => e.AllowExternalConnect).HasColumnName("allow_external_connect");
                 entity.Property(e => e.IpAddressesString).HasColumnName("ip_addresses").HasMaxLength(8000);
 
-                entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
+                entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(36);
                 entity.Property(e => e.RemoteAgentId).IsRequired().HasColumnName("remote_agent_id").HasMaxLength(50);
                 entity.Property(e => e.RestrictIp).HasColumnName("restrict_ip");
                 
@@ -1516,6 +1546,55 @@ namespace dexih.repository
                     .HasForeignKey(d => d.HubKey);
             });
 
+            modelBuilder.Entity<DexihIssue>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_issue");
+
+                entity.ToTable("dexih_issues");
+
+                entity.Property(e => e.Key).HasColumnName("issue_key");
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
+                entity.Property(e => e.Description).HasColumnName("description").IsFixedLength(false);
+                entity.Property(e => e.Type).HasColumnName("type");
+                entity.Property(e => e.Category).HasColumnName("category");
+                entity.Property(e => e.Severity).HasColumnName("severity");
+                entity.Property(e => e.Link).HasColumnName("link").HasMaxLength(250);
+                entity.Property(e => e.Data).HasColumnName("data").IsFixedLength(false);
+                entity.Property(e => e.GitHubLink).HasColumnName("github_link").HasMaxLength(250);
+                entity.Property(e => e.IsPrivate).HasColumnName("is_private");
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(36);
+                entity.Property(e => e.IssueStatus).HasColumnName("issue_status");
+
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+            });
+            
+            modelBuilder.Entity<DexihIssueComment>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_issue_comment");
+
+                entity.ToTable("dexih_issue_comments");
+
+                entity.Property(e => e.IssueKey).HasColumnName("issue_key");
+                entity.Property(e => e.Key).HasColumnName("issue_comment_key");
+                entity.Property(e => e.Comment).HasColumnName("comment").IsFixedLength(false);
+                entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(36);
+
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+
+                entity.HasOne(d => d.Issue)
+                    .WithMany(p => p.DexihIssueComments)
+                    .HasForeignKey(d => d.IssueKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_issue_comments");
+            });
+            
             modelBuilder.Entity<DexihTableColumn>(entity =>
             {
                 entity.HasKey(e => e.Key)
@@ -1880,5 +1959,8 @@ namespace dexih.repository
         public DbSet<DexihViewParameter> DexihViewParameters { get; set; }
 	    public DbSet<DexihView> DexihViews { get; set; }
         public DbSet<DexihListOfValues> DexihListOfValues { get; set; }
+        
+        public DbSet<DexihIssue> DexihIssues { get; set; }
+        public DbSet<DexihIssueComment> DexihIssueComments { get; set; }
     }
 }

@@ -18,7 +18,7 @@ namespace dexih.operations
         public string LastName { get; set; }
         
         [DataMember(Order = 2)]
-        public string Email { get; set; }
+        public string UserName { get; set; }
         
         [DataMember(Order = 3)]
         public string Id { get; set; }

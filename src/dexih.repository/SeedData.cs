@@ -42,7 +42,7 @@ namespace dexih.repository
 
                     var user = new ApplicationUser
                     {
-                        UserName = "admin@dataexpertsgroup.com",
+                        UserName = "admin",
                         Email = "admin@dataexpertsgroup.com",
                         EmailConfirmed = true,
 						IsInvited = true,
@@ -56,12 +56,12 @@ namespace dexih.repository
                         InviteQuota = 9999
                     };
 
-                    var adminUser = await userManager.FindByNameAsync("admin@dataexpertsgroup.com");
+                    var adminUser = await userManager.FindByEmailAsync("admin@dataexpertsgroup.com");
                     if (adminUser == null)
                     {
                         await userManager.CreateAsync(user, "dexIH-1");
                         //configurationLogger.LogDebug("admin@dataexpertsgroup.com user created.");
-                        adminUser = await userManager.FindByNameAsync("admin@dataexpertsgroup.com");
+                        adminUser = await userManager.FindByEmailAsync("admin@dataexpertsgroup.com");
                     }
 
                     if (!(await userManager.IsInRoleAsync(adminUser, "ADMINISTRATOR")))

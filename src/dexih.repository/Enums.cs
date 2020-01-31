@@ -140,25 +140,29 @@ namespace dexih.repository
     }
 
     // [JsonConverter(typeof(StringEnumConverter))]
+    /// <summary>
+    /// Permission to Hub.
+    /// Note: Order is important from lowest access to highest access.
+    /// </summary>
     public enum EPermission
     {
         [Description("No access.")]
         None,
 
-        [Description("Owner (full permissions)")]
-        Owner,
-        
+        [Description("Suspended (banned from hub)")]
+        Suspended,
+
+        [Description("Publish Reader (only access shared)")]
+        PublishReader,
+
+        [Description("Reader (read only access)")]
+        FullReader,
+
         [Description("User (add/modify permission)")]
         User,
         
-        [Description("Reader (read only access)")]
-        FullReader,
-        
-        [Description("Publish Reader (only access shared)")]
-        PublishReader,
-        
-        [Description("Suspended (banned from hub)")]
-        Suspended,
+        [Description("Owner (full permissions)")]
+        Owner,
     }
 
     // [JsonConverter(typeof(StringEnumConverter))]
@@ -196,7 +200,8 @@ namespace dexih.repository
     }
 
     // [JsonConverter(typeof(StringEnumConverter))]
-    public enum EChartType {
+    public enum EChartType 
+    {
         BarVertical = 1,
         BarHorizontal,
         BarVertical2D,
@@ -224,4 +229,89 @@ namespace dexih.repository
         LinearGauge,
         Map
     }
+
+    public enum EIssueCategory
+    {
+        [Description("Other")]
+        Other = 0,
+        
+        [Description("Web Interface")]
+        Web,
+
+        [Description("Saving / loading / importing / exporting items")]
+        Saving,
+        
+        [Description("Remote Agent Configuration / Connections")]
+        RemoteAgent,
+        
+        [Description("Running / previewing datalink")]
+        Datalink,
+        
+        [Description("Scheduling / running datajob")]
+        Datajob,
+        
+        [Description("Using the API")]
+        Api, // issue using API
+        
+        [Description("Using a View")]
+        View, // issue with view
+        
+        [Description("Using a Dashboard")]
+        Dashboard, // issue with dashboard,
+        
+        [Description("Login, permissions, and other security issues")]
+        Security, // login or other security issue
+    }
+
+    public enum EIssueType
+    {
+        [Description("Other")]
+        Other = 0,
+
+        [Description("Bug")]
+        Bug,
+        
+        [Description("Feature Request")]
+        Request,
+        
+        [Description("Question")]
+        Question,
+        
+        [Description("General Feedback")]
+        Feedback,
+    }
+
+    public enum EIssueSeverity
+    {
+        [Description("Critical (currently unusable)")]
+        Critical,
+
+        [Description("Major (temporary workarounds exist)")]
+        Major,
+        
+        [Description("Minor (productivity imporovments)")]
+        Minor,
+        
+        [Description("Trivial (Nice to Have)")]
+        Trivial
+    }
+
+    public enum EIssueStatus
+    {
+        [Description("Open - Issue has been opened.")]
+        Open,
+
+        [Description("Under Review - Issue is under review by support team.")]
+        UnderReview,
+
+        [Description("In Progress - Issue is currently being worked on.")]
+        InProgress,
+        
+        [Description("Complete - Issue has been completed.")]
+        Complete,
+
+        [Description("Closed")]
+        Closed,
+    }
+    
 }
