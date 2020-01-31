@@ -111,6 +111,8 @@
           <e p="DexihHubs.cs" t="Include" />
           <e p="DexihHubUser.cs" t="Include" />
           <e p="DexihHubVariable.cs" t="Include" />
+          <e p="DexihIssue.cs" t="Include" />
+          <e p="DexihIssueComment.cs" t="Include" />
           <e p="DexihListOfValues.cs" t="Include" />
           <e p="DexihParameterBase.cs" t="Include" />
           <e p="DexihRemoteAgent.cs" t="Include" />
@@ -202,6 +204,7 @@
         <e p="CollectionExtensions.cs" t="Include" />
         <e p="DictionaryExtensions.cs" t="Include" />
         <e p="Extensions.cs" t="Include" />
+        <e p="JsonDateTimeConverter.cs" t="Include" />
         <e p="JsonDoubleConverter.cs" t="Include" />
         <e p="JsonExtensions.cs" t="Include" />
         <e p="JsonFloatConverter.cs" t="Include" />

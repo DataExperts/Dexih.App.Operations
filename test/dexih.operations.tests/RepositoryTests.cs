@@ -57,7 +57,7 @@ namespace dexih.operations.tests
         {
             var appUser = await CreateUser(EUserRole.Manager);
 
-            var retrievedUser = await _repositoryManager.GetUserFromEmailAsync(appUser.Email, CancellationToken.None);
+            var retrievedUser = await _repositoryManager.GetUserFromLoginAsync(appUser.Email, CancellationToken.None);
             Assert.Equal(appUser.FirstName, retrievedUser.FirstName);
             Assert.Equal(appUser.LastName, retrievedUser.LastName);
             Assert.Equal(appUser.Email, retrievedUser.Email);
@@ -87,7 +87,7 @@ namespace dexih.operations.tests
 
             // get users for the hub
             var hubUsers = await _repositoryManager.GetHubUsers(hub.HubKey, CancellationToken.None);
-            Assert.NotNull(hubUsers.SingleOrDefault(c => c.Email == user.Email));
+            Assert.NotNull(hubUsers.SingleOrDefault(c => c.UserName == user.UserName));
 
             // get hubs for the user
             var hubs = await _repositoryManager.GetUserHubs(user, CancellationToken.None);
@@ -106,7 +106,7 @@ namespace dexih.operations.tests
 
             // get users for the hub
             hubUsers = await _repositoryManager.GetHubUsers(hub.HubKey, CancellationToken.None);
-            Assert.NotNull(hubUsers.SingleOrDefault(c => c.Email == user.Email && c.Permission == EPermission.None));
+            Assert.NotNull(hubUsers.SingleOrDefault(c => c.UserName == user.UserName && c.Permission == EPermission.None));
 
             // get hubs for the user
             hubs = await _repositoryManager.GetUserHubs(user, CancellationToken.None);
