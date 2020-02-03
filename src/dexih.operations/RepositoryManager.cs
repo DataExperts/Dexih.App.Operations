@@ -126,7 +126,7 @@ namespace dexih.operations
 
 		public async Task<UserModel> GetUserModelAsync(string email, CancellationToken cancellationToken)
 		{
-			var user = await _userManager.FindByEmailAsync(email);
+			var user = await GetUserFromLoginAsync(email, cancellationToken);
 
 			if (user == null)
 			{
