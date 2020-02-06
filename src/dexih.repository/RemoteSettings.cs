@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -23,31 +24,25 @@ namespace dexih.repository
     [DataContract]
     public class RemoteSettings
     {
-        [DataMember(Order = 0)]
-        public AppSettingsSection AppSettings { get; set; } = new AppSettingsSection();
+        [DataMember(Order = 0)] public AppSettingsSection AppSettings { get; set; } = new AppSettingsSection();
 
-        [DataMember(Order = 1)]
-        public SystemSettingsSection SystemSettings { get; set; } = new SystemSettingsSection();
+        [DataMember(Order = 1)] public SystemSettingsSection SystemSettings { get; set; } = new SystemSettingsSection();
 
-        [DataMember(Order = 2)]
-        public LoggingSection Logging { get; set; } = new LoggingSection();
+        [DataMember(Order = 2)] public LoggingSection Logging { get; set; } = new LoggingSection();
 
-        [DataMember(Order = 3)]
-        public RuntimeSection Runtime { get; set; } = new RuntimeSection();
+        [DataMember(Order = 3)] public RuntimeSection Runtime { get; set; } = new RuntimeSection();
 
-        [DataMember(Order = 4)]
-        public NetworkSection Network { get; set; } = new NetworkSection();
+        [DataMember(Order = 4)] public NetworkSection Network { get; set; } = new NetworkSection();
 
-        [DataMember(Order = 5)]
-        public PrivacySection Privacy { get; set; } = new PrivacySection();
+        [DataMember(Order = 5)] public PrivacySection Privacy { get; set; } = new PrivacySection();
 
-        [DataMember(Order = 6)]
-        public PermissionsSection Permissions { get; set; } = new PermissionsSection();
+        [DataMember(Order = 6)] public PermissionsSection Permissions { get; set; } = new PermissionsSection();
 
+
+        [DataMember(Order = 7)] public NamingStandards NamingStandards { get; set; } = new NamingStandards();
+
+        [DataMember(Order = 8)] public PluginsSection Plugins { get; set; } = new PluginsSection();
         
-        [DataMember(Order = 7)]
-        public NamingStandards NamingStandards { get; set; } = new NamingStandards();
-
         /// <summary>
         /// Indicates if more user input is required.
         /// </summary>
@@ -55,14 +50,15 @@ namespace dexih.repository
         public bool RequiresUserInput()
         {
             if (AppSettings.UserPrompt) return true;
-            if (string.IsNullOrEmpty(AppSettings.User) || (string.IsNullOrEmpty(AppSettings.UserToken) && string.IsNullOrEmpty(Runtime.Password)))
+            if (string.IsNullOrEmpty(AppSettings.User) ||
+                (string.IsNullOrEmpty(AppSettings.UserToken) && string.IsNullOrEmpty(Runtime.Password)))
             {
                 return true;
             }
-            
+
             return false;
         }
-        
+
         public string CertificateFilePath()
         {
             if (string.IsNullOrEmpty(Network.CertificateFilename))
@@ -105,87 +101,85 @@ namespace dexih.repository
                 return false;
             }
 
-            if (string.CompareOrdinal( Runtime.LatestVersion, Runtime.Version) > 0)
+            if (string.CompareOrdinal(Runtime.LatestVersion, Runtime.Version) > 0)
             {
                 return true;
             }
 
             return false;
         }
-        
-               /// <summary>
+
+
+        /// <summary>
         /// Checks for a newer release, and downloads if there is.
         /// </summary>
         /// <returns>True is upgrade is required.</returns>
         public async Task<bool> CheckUpgrade()
         {
-            var localVersion = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-            Runtime.Version = localVersion;
-            
-                string downloadUrl = null;
-                string latestVersion = null;
+            string downloadUrl = null;
+            string latestVersion = null;
 
 
-                using (var httpClient = new HttpClient())
+            using (var httpClient = new HttpClient())
+            {
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
+                JsonElement jToken;
+                if (AppSettings.AllowPreReleases)
                 {
-                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
-                    JsonElement jToken;
-                    if (AppSettings.AllowPreReleases)
+                    // this api gets all releases.
+                    var response =
+                        await httpClient.GetAsync(
+                            "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases");
+                    var responseText = await response.Content.ReadAsStringAsync();
+                    var releases = JsonDocument.Parse(responseText);
+                    // the first release will be the latest.
+                    jToken = releases.RootElement[0];
+                }
+                else
+                {
+                    // this api gets the latest release, excluding pre-releases.
+                    var response =
+                        await httpClient.GetAsync(
+                            "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest");
+                    var responseText = await response.Content.ReadAsStringAsync();
+                    jToken = JsonDocument.Parse(responseText).RootElement;
+                }
+
+                latestVersion = jToken.GetProperty("tag_name").GetString();
+
+                foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
+                {
+                    var name = asset.GetProperty("name").ToString().ToLower();
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
                     {
-                        // this api gets all releases.
-                        var response =
-                            await httpClient.GetAsync(
-                                "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases");
-                        var responseText = await response.Content.ReadAsStringAsync();
-                        var releases = JsonDocument.Parse(responseText);
-                        // the first release will be the latest.
-                        jToken = releases.RootElement[0];
-                    }
-                    else
-                    {
-                        // this api gets the latest release, excluding pre-releases.
-                        var response =
-                            await httpClient.GetAsync(
-                                "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest");
-                        var responseText = await response.Content.ReadAsStringAsync();
-                        jToken = JsonDocument.Parse(responseText).RootElement;
-                    }
-
-                    latestVersion = jToken.GetProperty("tag_name").GetString();
-
-                    foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
-                    {
-                        var name = asset.GetProperty("name").ToString().ToLower();
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
-                        {
-                            downloadUrl =  asset.GetProperty("browser_download_url").GetString();
-                            break;
-                        }
-
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
-                        {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                            break;
-                        }
-
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
-                        {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                            break;
-                        }
+                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                        break;
                     }
 
-                    Runtime.LatestVersion = latestVersion;
-                    Runtime.LatestDownloadUrl = downloadUrl;
-
-                    if (string.CompareOrdinal(latestVersion, localVersion) > 0)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
                     {
-                        return true;
+                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                        break;
                     }
 
-                    return false;
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
+                    {
+                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                        break;
+                    }
+                }
 
-                    // Download and save the update
+                Runtime.LatestVersion = latestVersion;
+                Runtime.LatestDownloadUrl = downloadUrl;
+
+                if (string.CompareOrdinal(latestVersion, Runtime.Version) > 0)
+                {
+                    return true;
+                }
+
+                return false;
+
+                // Download and save the update
 //                        if (!string.IsNullOrEmpty(downloadUrl))
 //                        {
 //                            Logger.LogInformation($"Downloading latest remote agent release from {downloadUrl}.");
@@ -214,8 +208,7 @@ namespace dexih.repository
 //                            Directory.CreateDirectory(extractDirectory);
 //                            ZipFile.ExtractToDirectory(releaseFileName, extractDirectory);
 //                        }
-                }
-
+            }
         }
 
 
@@ -236,7 +229,8 @@ namespace dexih.repository
             if (Privacy.AllowLanAccess)
             {
                 var localIpAddress = string.IsNullOrEmpty(Network.LocalIpAddress)
-                    ? Runtime.LocalIpAddress : Network.LocalIpAddress;
+                    ? Runtime.LocalIpAddress
+                    : Network.LocalIpAddress;
                 var localPort = Network.LocalPort ?? Network.DownloadPort ?? 33944;
 
                 if (Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
@@ -268,7 +262,8 @@ namespace dexih.repository
                     bool encrypted = Network.ExternalDownloadUrl.StartsWith("https:://");
                     if (!Network.EnforceHttps || encrypted)
                     {
-                        urls.Add(new DownloadUrl() {
+                        urls.Add(new DownloadUrl()
+                        {
                             Url = Network.ExternalDownloadUrl,
                             DownloadUrlType = EDownloadUrlType.Direct,
                             IsEncrypted = encrypted
@@ -277,10 +272,12 @@ namespace dexih.repository
                 }
                 else
                 {
-                    if(Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
+                    if (Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
                     {
-                        urls.Add(new DownloadUrl() {
-                            Url = $"https://{Runtime.ExternalIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(Network.DownloadPort ?? 33944)}",
+                        urls.Add(new DownloadUrl()
+                        {
+                            Url =
+                                $"https://{Runtime.ExternalIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(Network.DownloadPort ?? 33944)}",
                             DownloadUrlType = EDownloadUrlType.Direct,
                             IsEncrypted = true
                         });
@@ -288,7 +285,8 @@ namespace dexih.repository
 
                     if (!Network.EnforceHttps)
                     {
-                        urls.Add(new DownloadUrl() {
+                        urls.Add(new DownloadUrl()
+                        {
                             Url = $"http://{Runtime.ExternalIpAddress}:{Network.DownloadPort ?? 33944}",
                             DownloadUrlType = EDownloadUrlType.Direct,
                             IsEncrypted = false
@@ -305,7 +303,8 @@ namespace dexih.repository
                 {
                     if (Network.EnforceHttps && proxy.Substring(0, 5) == "https")
                     {
-                        urls.Add(new DownloadUrl() {
+                        urls.Add(new DownloadUrl()
+                        {
                             Url = proxy,
                             DownloadUrlType = EDownloadUrlType.Proxy,
                             IsEncrypted = true
@@ -314,7 +313,8 @@ namespace dexih.repository
 
                     if (!Network.EnforceHttps)
                     {
-                        urls.Add(new DownloadUrl() {
+                        urls.Add(new DownloadUrl()
+                        {
                             Url = proxy,
                             DownloadUrlType = EDownloadUrlType.Proxy,
                             IsEncrypted = false
@@ -325,7 +325,7 @@ namespace dexih.repository
 
             return urls.ToArray();
         }
-        
+
         public EDataPrivacyStatus DataPrivacyStatus()
         {
             if (!Privacy.AllowDataDownload && !Privacy.AllowDataUpload)
@@ -350,8 +350,122 @@ namespace dexih.repository
 
             return EDataPrivacyStatus.NotAllowed;
         }
+
+        public async Task GetPlugins(ILogger logger = null)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                logger.LogInformation("Checking for missing plugins...");
+                
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
+                JsonElement jToken;
+                if (AppSettings.AllowPreReleases)
+                {
+                    // this api gets all releases.
+                    var response =
+                        await httpClient.GetAsync(
+                            "https://api.github.com/repos/DataExperts/dexih.transforms/releases");
+                    var responseText = await response.Content.ReadAsStringAsync();
+                    var releases = JsonDocument.Parse(responseText);
+                    // the first release will be the latest.
+                    jToken = releases.RootElement[0];
+                }
+                else
+                {
+                    // this api gets the latest release, excluding pre-releases.
+                    var response =
+                        await httpClient.GetAsync(
+                            "https://api.github.com/repos/DataExperts/dexih.transforms/releases/latest");
+                    var responseText = await response.Content.ReadAsStringAsync();
+                    jToken = JsonDocument.Parse(responseText).RootElement;
+                }
+
+                var latestVersion = jToken.GetProperty("tag_name").GetString();
+
+                foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
+                {
+                    var download = false;
+                    var name = asset.GetProperty("name").ToString().ToLower();
+                    var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "plugins", name);
+
+                    if (File.Exists(downloadPath))
+                    {
+                        continue;
+                    }
+
+                    if (Plugins.MLNet && name.StartsWith("dexih.functions.ml"))
+                    {
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
+                        {
+                            download = true;
+                        }
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
+                        {
+                            download = true;
+                        }
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
+                        {
+                            download = true;
+                        }
+                    }
+
+                    if (Plugins.DB2 && name.StartsWith("dexih.connections.db2"))
+                    {
+                        download = true;
+                    }
+
+                    if (Plugins.Excel && name.StartsWith("dexih.connections.excel"))
+                    {
+                        download = true;
+                    }
+
+                    if (Plugins.Mongo && name.StartsWith("dexih.connections.mongo"))
+                    {
+                        download = true;
+                    }
+
+                    if (Plugins.Oracle && name.StartsWith("dexih.connections.oracle"))
+                    {
+                        download = true;
+                    }
+                    
+                    if (download)
+                    {
+                        logger.LogInformation($"Downloading plugin {name}");
+                        var downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                        // Download and save the update
+                        if (!string.IsNullOrEmpty(downloadUrl))
+                        {
+                            using (var response = await httpClient.GetAsync(downloadUrl,
+                                HttpCompletionOption.ResponseHeadersRead))
+                            using (var streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                            {
+                                using (Stream streamToWriteTo = File.Open(downloadPath, FileMode.Create))
+                                {
+                                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
+                                }
+                            }
+
+                            logger.LogInformation($"Extracting plugin {name}");
+
+                            var extractDirectory = Path.Combine(Directory.GetCurrentDirectory(), "plugins", "standard");
+                            if (!Directory.Exists(extractDirectory))
+                            {
+                                Directory.CreateDirectory(extractDirectory);
+                            }
+
+                            ZipFile.ExtractToDirectory(downloadPath, extractDirectory, true);
+                        }
+                    }
+                }
+
+                logger.LogInformation($"Download plugins complete.");
+            }
+        }
     }
-    
+
     [DataContract]
     public class AppSettingsSection
     {
@@ -411,6 +525,26 @@ namespace dexih.repository
 
         [DataMember(Order = 9)]
         public string AutoStartPath { get; set; }
+        
+    }
+
+    [DataContract]
+    public class PluginsSection
+    {
+        [DataMember(Order = 0)]
+        public bool MLNet { get; set; } = false;
+
+        [DataMember(Order = 1)]
+        public bool Excel { get; set; } = false;
+
+        [DataMember(Order = 2)]
+        public bool Oracle { get; set; } = false;
+
+        [DataMember(Order = 3)]
+        public bool DB2 { get; set; } = false;
+
+        [DataMember(Order = 4)]
+        public bool Mongo { get; set; } = false;
 
     }
 
