@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -382,11 +384,28 @@ namespace dexih.repository
 
                 var latestVersion = jToken.GetProperty("tag_name").GetString();
 
+                var pluginDirectory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
+                if (Directory.Exists(pluginDirectory))
+                {
+                    Directory.CreateDirectory(pluginDirectory);
+                }
+
+                List<string> installed = new List<string>();
+
+                var installedUpdated = false;
+                var installedFile = Path.Combine(pluginDirectory, "installed.txt");
+
+                if (File.Exists(installedFile))
+                {
+                    installed.AddRange(await File.ReadAllLinesAsync(installedFile));
+                }
+
                 foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
                 {
                     var download = false;
                     var name = asset.GetProperty("name").ToString().ToLower();
-                    var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "plugins", name);
+                    
+                    var downloadPath = Path.Combine(pluginDirectory, name);
 
                     if (File.Exists(downloadPath))
                     {
@@ -433,6 +452,11 @@ namespace dexih.repository
                     
                     if (download)
                     {
+                        if (installed.Contains(name + "/" + latestVersion))
+                        {
+                            continue;
+                        }
+
                         logger.LogInformation($"Downloading plugin {name}");
                         var downloadUrl = asset.GetProperty("browser_download_url").GetString();
                         // Download and save the update
@@ -457,8 +481,18 @@ namespace dexih.repository
                             }
 
                             ZipFile.ExtractToDirectory(downloadPath, extractDirectory, true);
+
+                            installedUpdated = true;
+                            installed.Add(name + "/" + latestVersion);
+                            
+                            File.Delete(downloadPath);
                         }
                     }
+                }
+
+                if (installedUpdated)
+                {
+                    File.WriteAllLinesAsync(installedFile, installed);
                 }
 
                 logger.LogInformation($"Download plugins complete.");
