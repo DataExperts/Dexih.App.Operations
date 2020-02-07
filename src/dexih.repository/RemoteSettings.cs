@@ -119,9 +119,7 @@ namespace dexih.repository
         public async Task<bool> CheckUpgrade()
         {
             string downloadUrl = null;
-            string latestVersion = null;
-
-
+            
             using (var httpClient = new HttpClient())
             {
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
@@ -147,7 +145,7 @@ namespace dexih.repository
                     jToken = JsonDocument.Parse(responseText).RootElement;
                 }
 
-                latestVersion = jToken.GetProperty("tag_name").GetString();
+                var latestVersion = jToken.GetProperty("tag_name").GetString();
 
                 foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
                 {
