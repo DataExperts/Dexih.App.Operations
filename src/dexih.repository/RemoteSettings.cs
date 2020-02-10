@@ -116,7 +116,7 @@ namespace dexih.repository
         /// Checks for a newer release, and downloads if there is.
         /// </summary>
         /// <returns>True is upgrade is required.</returns>
-        public async Task<bool> CheckUpgrade()
+        public async Task<bool> CheckUpgrade(ILogger logger)
         {
             string downloadUrl = null;
             
@@ -127,9 +127,15 @@ namespace dexih.repository
                 if (AppSettings.AllowPreReleases)
                 {
                     // this api gets all releases.
+                    var url = "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases";
                     var response =
-                        await httpClient.GetAsync(
-                            "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases");
+                        await httpClient.GetAsync(url);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                        return false;
+                    }
                     var responseText = await response.Content.ReadAsStringAsync();
                     var releases = JsonDocument.Parse(responseText);
                     // the first release will be the latest.
@@ -138,9 +144,15 @@ namespace dexih.repository
                 else
                 {
                     // this api gets the latest release, excluding pre-releases.
-                    var response =
-                        await httpClient.GetAsync(
-                            "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest");
+                    var url = "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest";
+                    var response = await httpClient.GetAsync(url);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                        return false;
+                    }
+
                     var responseText = await response.Content.ReadAsStringAsync();
                     jToken = JsonDocument.Parse(responseText).RootElement;
                 }
@@ -361,10 +373,17 @@ namespace dexih.repository
                 JsonElement jToken;
                 if (AppSettings.AllowPreReleases)
                 {
+                    var url = "https://api.github.com/repos/DataExperts/dexih.transforms/releases";
                     // this api gets all releases.
                     var response =
-                        await httpClient.GetAsync(
-                            "https://api.github.com/repos/DataExperts/dexih.transforms/releases");
+                        await httpClient.GetAsync(url);
+
+                    if(!response.IsSuccessStatusCode)
+                    {
+                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                        return;
+                    }
+                    
                     var responseText = await response.Content.ReadAsStringAsync();
                     var releases = JsonDocument.Parse(responseText);
                     // the first release will be the latest.
@@ -373,9 +392,15 @@ namespace dexih.repository
                 else
                 {
                     // this api gets the latest release, excluding pre-releases.
-                    var response =
-                        await httpClient.GetAsync(
-                            "https://api.github.com/repos/DataExperts/dexih.transforms/releases/latest");
+                    var url = "https://api.github.com/repos/DataExperts/dexih.transforms/releases/latest";
+                    var response = await httpClient.GetAsync(url);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                        return;
+                    }
+
                     var responseText = await response.Content.ReadAsStringAsync();
                     jToken = JsonDocument.Parse(responseText).RootElement;
                 }
