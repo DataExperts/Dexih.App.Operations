@@ -128,8 +128,7 @@ namespace dexih.repository
                 {
                     // this api gets all releases.
                     var url = "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases";
-                    var response =
-                        await httpClient.GetAsync(url);
+                    var response = await httpClient.GetAsync(url);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -158,6 +157,8 @@ namespace dexih.repository
                 }
 
                 var latestVersion = jToken.GetProperty("tag_name").GetString();
+
+                logger.LogTrace($"Latest Version is {latestVersion}");
 
                 foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
                 {
@@ -515,7 +516,7 @@ namespace dexih.repository
 
                 if (installedUpdated)
                 {
-                    File.WriteAllLinesAsync(installedFile, installed);
+                    await File.WriteAllLinesAsync(installedFile, installed);
                 }
 
                 logger.LogInformation($"Download plugins complete.");
