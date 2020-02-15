@@ -142,8 +142,11 @@ namespace dexih.operations
             writerResult.OnProgressUpdate += Datalink_OnProgressUpdate;
 
             parentWriterResult?.ChildResults.Add(writerResult);
-            
-            var writerTarget = new TransformWriterTarget(targetConnection, targetTable, writerResult, _transformWriterOptions, targetConnection, rejectTable, auditConnection, Datalink.ProfileTableName);
+
+            var writerTarget = new TransformWriterTarget(targetConnection, targetTable, writerResult, _transformWriterOptions, targetConnection, rejectTable, auditConnection, Datalink.ProfileTableName) 
+            {
+                AddDefaultRow = Datalink.AddDefaultRow
+            };
             return writerTarget;
         }
 

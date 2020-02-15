@@ -120,13 +120,13 @@ namespace dexih.repository
         public EErrorAction OnError { get; set; } = EErrorAction.Abend;
 
         [DataMember(Order = 34)]
-        public EErrorAction OnNull { get; set; } = EErrorAction.Abend;
+        public EErrorAction OnNull { get; set; } = EErrorAction.Execute;
 
         [DataMember(Order = 35)]
         public bool NotCondition { get; set; }
 
         [DataMember(Order = 36)]
-        public TransformFunction.EInvalidAction InvalidAction { get; set; } = TransformFunction.EInvalidAction.Abend;
+        public EInvalidAction InvalidAction { get; set; } = EInvalidAction.Abend;
 
         [DataMember(Order = 37)]
         [NotMapped, CopyIgnore]

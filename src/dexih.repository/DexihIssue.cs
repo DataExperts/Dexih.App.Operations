@@ -34,20 +34,17 @@ namespace dexih.repository
 
         [DataMember(Order = 13)] 
         public bool IsPrivate { get; set; } = true;
-        
-        [DataMember(Order = 14)]
-        public long HubKey { get; set; }
 
-        [DataMember(Order = 15)]
+        [DataMember(Order = 14)]
         public string UserId { get; set; }
         
-        [DataMember(Order = 16)]
+        [DataMember(Order = 15)]
         public EIssueStatus IssueStatus { get; set; }
         
-        [DataMember(Order = 17)]
+        [DataMember(Order = 16)]
         public ICollection<DexihIssueComment> DexihIssueComments { get; set; }
         
-        [DataMember(Order = 19), NotMapped]
+        [DataMember(Order = 17), NotMapped]
         public string UserName { get; set; }
         
         public override void ResetKeys()

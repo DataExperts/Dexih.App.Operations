@@ -52,7 +52,9 @@ namespace dexih.operations
                 new TransformFunction(this, GetType().GetMethod(nameof(Run)), null, parameters, null)
                 {
                     FunctionName = ColumnValidation.Name,
-                    InitializeMethod = new TransformMethod(GetType().GetMethod(nameof(Initialize)))
+                    InitializeMethod = new TransformMethod(GetType().GetMethod(nameof(Initialize))),
+                    InvalidAction = ColumnValidation.InvalidAction,
+                    OnNull = EErrorAction.Execute,
                 };
             var mapping = new MapValidation(validationFunction, parameters);
             return mapping;
@@ -91,14 +93,14 @@ namespace dexih.operations
             if (validate.success)
             {
                 ValidationPassCount++;
-                return (true, null, "");
+                return (true, value, "");
             }
             else
             {
                 ValidationFailCount++;
                 object cleanedValue;
 
-                if (ColumnValidation.InvalidAction == TransformFunction.EInvalidAction.Clean || ColumnValidation.InvalidAction == TransformFunction.EInvalidAction.RejectClean)
+                if (ColumnValidation.InvalidAction == EInvalidAction.Clean || ColumnValidation.InvalidAction == EInvalidAction.RejectClean)
                 {
 
                     switch (ColumnValidation.CleanAction)

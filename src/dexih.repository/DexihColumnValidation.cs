@@ -100,7 +100,7 @@ namespace dexih.repository
         public bool LookupMultipleRecords { get; set; }
 
         [DataMember(Order = 20)]
-        public TransformFunction.EInvalidAction InvalidAction { get; set; }
+        public EInvalidAction InvalidAction { get; set; }
 
         [DataMember(Order = 21)]
         public ECleanAction CleanAction { get; set; }

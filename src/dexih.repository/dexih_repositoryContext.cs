@@ -259,7 +259,7 @@ namespace dexih.repository
                 entity.Property(e => e.InvalidAction).HasColumnName("invalid_action").HasMaxLength(50)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TransformFunction.EInvalidAction) Enum.Parse(typeof(TransformFunction.EInvalidAction), v));
+                        v => (EInvalidAction) Enum.Parse(typeof(EInvalidAction), v));
                 
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
@@ -1059,7 +1059,7 @@ namespace dexih.repository
                 entity.Property(e => e.InvalidAction).HasColumnName("invalid_action").HasMaxLength(20)
                     .HasConversion(
                         v => v.ToString(),
-                        v => (TransformFunction.EInvalidAction) Enum.Parse(typeof(TransformFunction.EInvalidAction), v));
+                        v => (EInvalidAction) Enum.Parse(typeof(EInvalidAction), v));
 
                 entity.Property(e => e.JoinDatalinkColumnKey).HasColumnName("join_datalink_column_key");
                 entity.Property(e => e.FilterDatalinkColumnKey).HasColumnName("filter_datalink_column_key");
