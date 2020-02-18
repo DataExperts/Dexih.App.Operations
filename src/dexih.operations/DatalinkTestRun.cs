@@ -362,7 +362,7 @@ namespace dexih.operations
                     datalinkRun.WriterTarget.WriterResult.ReferenceKey = step.Key;
 
                     // await datalinkRun.Initialize(cancellationToken);
-                    datalinkRun.Build(token);
+                    await datalinkRun.Build(token);
                     await datalinkRun.Run(token);
 
                     UpdateProgress(70);

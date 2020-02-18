@@ -162,12 +162,17 @@ namespace dexih.operations
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public void Build(CancellationToken cancellationToken)
+        public async Task Build(CancellationToken cancellationToken)
         {
             try
             {
                 // ResetEvents();
                 var transformManager = new TransformsManager(_transformSettings, _logger);
+                if(WriterTarget.WriterResult != null)
+                {
+                    await WriterTarget.WriterResult.Initialize(cancellationToken);
+                }
+
                 Reader = transformManager.CreateRunPlan(_hub, Datalink, _inputColumns, null, WriterTarget.WriterResult?.LastMaxIncrementalValue, _transformWriterOptions);
             }
             catch (Exception ex)
@@ -224,7 +229,7 @@ namespace dexih.operations
         public async Task StartAsync(ManagedTaskProgress progress, CancellationToken cancellationToken = default)
         {
             progress.Report(0, 0, "Compiling datalink...");
-            Build(cancellationToken);
+            await Build(cancellationToken);
 
             void ProgressUpdate(DatalinkRun datalinkRun2, TransformWriterResult writerResult)
             {

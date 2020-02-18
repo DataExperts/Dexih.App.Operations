@@ -272,7 +272,7 @@ namespace dexih.operations
                         throw new TransformManagerException($"Error getting the source transform.");
                     
                 }
-                
+
                 // compare the table in the transform to the source datalink columns.  If any are missing, add a mapping 
                 // transform to include them.
                 var transformColumns = sourceTransform.CacheTable.Columns;
@@ -289,6 +289,10 @@ namespace dexih.operations
                     {
                         var newColumn = column.GetTableColumn(inputColumns);
                         mappings.Add(new MapInputColumn(newColumn)); 
+                    } else
+                    {
+                        transformColumn.DeltaType = column.DeltaType;
+                        transformColumn.IsIncrementalUpdate = column.IsIncrementalUpdate;
                     }
                 }
 
@@ -325,18 +329,21 @@ namespace dexih.operations
 				var sourceTable = primaryTransformResult.sourceTable;
                 
                 //add a filter for the incremental column (if there is one)
-                var incrementalCol = sourceTable?.GetAutoIncrementColumn();
+                var incrementalCol = primaryTransform.CacheTable?.Columns.SingleOrDefault(c => c.IsIncrementalUpdate);
                 var updateStrategy = hubDatalink.UpdateStrategy;
+
+                if (transformWriterOptions.ResetIncremental)
+                {
+                    maxIncrementalValue = transformWriterOptions.ResetIncrementalValue;
+                }
 
                 if (maxDatalinkTransformKey == null && 
                     transformWriterOptions.IsEmptyTarget() == false && 
-                    updateStrategy != EUpdateStrategy.Reload && 
+                    (updateStrategy != EUpdateStrategy.Reload || updateStrategy != EUpdateStrategy.AppendUpdateDelete || updateStrategy != EUpdateStrategy.AppendUpdateDeletePreserve) && 
                     incrementalCol != null && 
-                    (updateStrategy != EUpdateStrategy.AppendUpdateDelete || updateStrategy != EUpdateStrategy.AppendUpdateDeletePreserve) && 
                     maxIncrementalValue != null && 
                     maxIncrementalValue.ToString() != "")
                 {
-
                     var mappings = new Mappings()
                     {
                         new MapFilter(incrementalCol, maxIncrementalValue, ECompare.GreaterThan)
