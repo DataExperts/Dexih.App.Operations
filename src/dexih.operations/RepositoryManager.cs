@@ -2416,10 +2416,10 @@ namespace dexih.operations
                     {
                         foreach(var dep in step.DexihDatalinkDependencies)
                         {
-                            if (dep.Key < 0)
-                            {
-                                dep.Key = 0;
-                            }
+                            //if (dep.Key < 0)
+                            //{
+                            //    dep.Key = 0;
+                            //}
                             
                             if (dep.DependentDatalinkStepKey <= 0)
                             {
