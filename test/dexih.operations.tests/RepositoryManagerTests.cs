@@ -335,7 +335,7 @@ namespace dexih.operations.tests
 					DataType = ETypeCode.String,
 					CleanValue = "default",
 					Description = "validation description",
-					InvalidAction = TransformFunction.EInvalidAction.Clean,
+					InvalidAction = EInvalidAction.Clean,
 					ListOfValues = new [] {"abc", "ndef", "nhij"},
 					ListOfNotValues = new [] {"jkl", "nnmo", "npqr"},
 					LookupIsValid = true,
@@ -364,7 +364,7 @@ namespace dexih.operations.tests
 				Assert.Equal(ETypeCode.String, validation3.DataType);
 				Assert.Equal("default", validation3.CleanValue);
 				Assert.Equal("validation description", validation3.Description);
-				Assert.Equal(TransformFunction.EInvalidAction.Clean, validation3.InvalidAction);
+				Assert.Equal(EInvalidAction.Clean, validation3.InvalidAction);
 				Assert.Equal(new [] {"abc", "ndef", "nhij"}, validation3.ListOfValues);
 				Assert.Equal(new [] {"jkl", "nnmo", "npqr"}, validation3.ListOfNotValues);
 				Assert.True(validation3.LookupIsValid);
