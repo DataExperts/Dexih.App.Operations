@@ -4353,7 +4353,7 @@ namespace dexih.operations
 					}
 
 					stepKeyMapping.Add(step.Key, step);
-					step.Key = 0;
+					//step.Key = 0;
 
 					step.DatalinkKey = UpdateDatalinkKey(step.DatalinkKey);
 				}
@@ -4363,10 +4363,10 @@ namespace dexih.operations
 				{
 					foreach (var dep in step.DexihDatalinkDependencies)
 					{
-						dep.Key = 0;
-						dep.DatalinkStepKey = 0;
-						dep.DependentDatalinkStepKey = 0;
 						dep.DependentDatalinkStep = stepKeyMapping.GetValueOrDefault(dep.DependentDatalinkStepKey);
+						// dep.Key = 0;
+						dep.DatalinkStepKey = 0;
+						// dep.DependentDatalinkStepKey = 0;
 					}
 
 					step.DexihDatalinkDependentSteps = null;

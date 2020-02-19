@@ -163,18 +163,18 @@ namespace dexih.operations
         public void UpdateCache(DexihHub hub)
         {
             UpdateCacheItems(hub.DexihHubVariables, HubVariables);
-            UpdateCacheItems(hub.DexihDatajobs, Datajobs);
-            UpdateCacheItems(hub.DexihDatalinks, Datalinks);
+            UpdateCacheItems(hub.DexihListOfValues, ListOfValues);
+            UpdateCacheItems(hub.DexihCustomFunctions, CustomFunctions);
+            UpdateCacheItems(hub.DexihFileFormats, FileFormats);
             UpdateCacheItems(hub.DexihConnections, Connections);
             UpdateCacheItems(hub.DexihTables, Tables);
             UpdateCacheItems(hub.DexihColumnValidations, ColumnValidations);
-            UpdateCacheItems(hub.DexihCustomFunctions, CustomFunctions);
-            UpdateCacheItems(hub.DexihFileFormats, FileFormats);
+            UpdateCacheItems(hub.DexihDatalinks, Datalinks);
+            UpdateCacheItems(hub.DexihDatajobs, Datajobs);
             UpdateCacheItems(hub.DexihDatalinkTests, DatalinkTests);
             UpdateCacheItems(hub.DexihViews, Views);
             UpdateCacheItems(hub.DexihApis, Apis);
             UpdateCacheItems(hub.DexihDashboards, Dashboards);
-            UpdateCacheItems(hub.DexihListOfValues, ListOfValues);
 
             UpdateRemoteAgentHubCacheItems(hub);
         }

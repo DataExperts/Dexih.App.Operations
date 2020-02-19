@@ -446,7 +446,7 @@ namespace dexih.operations
 							{
 								StartDatalink(datalinkStep);
 							}
-							break;
+							// break;
 						}
 					}
 				}
