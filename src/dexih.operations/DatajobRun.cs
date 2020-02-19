@@ -52,8 +52,6 @@ namespace dexih.operations
 
 			_transformWriterOptions = transformWriterOptions;
 
-			
-
 			if (datajob.AuditConnectionKey > 0)
 			{
 				var dbAuditConnection =
@@ -167,7 +165,70 @@ namespace dexih.operations
 				{
 					throw new DatajobRunException($"Failed to set status");
 				}
-				
+
+				if (_transformWriterOptions.TargetAction == TransformWriterOptions.ETargetAction.Truncate)
+				{
+					runStatus = WriterResult.SetRunStatus(ERunStatus.Started, "Truncating tables...", null);
+
+					var targetTables = new HashSet<DexihTable>();
+
+					foreach (var step in Datajob.DexihDatalinkSteps.Where(c => c.IsValid))
+					{
+						var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.IsValid && c.Key == step.DatalinkKey);
+						foreach(var target in datalink.DexihDatalinkTargets)
+						{
+							if(target.TableKey > 0)
+							{
+								var table = _hub.GetTableFromKey(target.TableKey);
+								if(table != null)
+								{
+									targetTables.Add(table);
+								}
+							}
+						}
+					}
+
+					// this loops through attempting to truncate tables one by one.
+					// is repeats when there are failures to accomodate for some table having foriegn keys
+					
+					var atLeastOneSuccess = true;
+					var atLeastOneFail = true;
+
+					while (atLeastOneSuccess && atLeastOneFail)
+					{
+						atLeastOneSuccess = false;
+						atLeastOneFail = false;
+
+						var newTagetTables = new HashSet<DexihTable>();
+
+						foreach (var dbTable in targetTables)
+						{
+							var dbConnection = _hub.DexihConnections.SingleOrDefault(c => c.Key == dbTable.ConnectionKey);
+							var connection = dbConnection.GetConnection(_transformSettings);
+							var table = dbTable.GetTable(_hub, connection, _transformSettings);
+							try
+							{
+								await connection.TruncateTable(table, cancellationToken);
+								atLeastOneSuccess = true;
+							}
+							catch
+							{
+								atLeastOneFail = true;
+								newTagetTables.Add(dbTable);
+							}
+						}
+
+						targetTables = newTagetTables;
+					}
+
+					if(targetTables.Count > 0)
+					{
+						var message = $"The job failed as the following tables could not be truncated: {string.Join(", ", targetTables.Select(c => c.Name))}";
+						WriterResult.SetRunStatus(ERunStatus.Abended, message, null);
+						return false;
+					}
+				}
+
 				var inputParameters = new InputParameters();
 				foreach (var parameter in Datajob.Parameters)
 				{

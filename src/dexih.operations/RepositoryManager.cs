@@ -767,7 +767,7 @@ namespace dexih.operations
 				{
 					if (!availableHubs.Select(c=>c.HubKey).Contains(hubKey))
 					{
-						throw new RepositoryException($"The user does not have access to the hub with the key ${hubKey}");
+						throw new RepositoryException($"The user does not have access to the hub with the key {hubKey}");
 					}
 				}
 			}
