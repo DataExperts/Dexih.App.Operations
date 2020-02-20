@@ -44,7 +44,7 @@ namespace dexih.repository
         [DataMember(Order = 7)] public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         [DataMember(Order = 8)] public PluginsSection Plugins { get; set; } = new PluginsSection();
-        
+
         /// <summary>
         /// Indicates if more user input is required.
         /// </summary>
@@ -116,83 +116,89 @@ namespace dexih.repository
         /// Checks for a newer release, and downloads if there is.
         /// </summary>
         /// <returns>True is upgrade is required.</returns>
-        public async Task<bool> CheckUpgrade(ILogger logger)
+        public async Task<bool> CheckUpgrade(ILogger logger, IHttpClientFactory clientFactory)
         {
             string downloadUrl = null;
-            
-            using (var httpClient = new HttpClient())
+
+            JsonElement jToken;
+            if (AppSettings.AllowPreReleases)
             {
-                httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
-                JsonElement jToken;
-                if (AppSettings.AllowPreReleases)
+                // this api gets all releases.
+                var url = "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("User-Agent", "Dexih Remote Agent");
+                var client = clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    // this api gets all releases.
-                    var url = "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases";
-                    var response = await httpClient.GetAsync(url);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
-                        return false;
-                    }
-                    var responseText = await response.Content.ReadAsStringAsync();
-                    var releases = JsonDocument.Parse(responseText);
-                    // the first release will be the latest.
-                    jToken = releases.RootElement[0];
-                }
-                else
-                {
-                    // this api gets the latest release, excluding pre-releases.
-                    var url = "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest";
-                    var response = await httpClient.GetAsync(url);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
-                        return false;
-                    }
-
-                    var responseText = await response.Content.ReadAsStringAsync();
-                    jToken = JsonDocument.Parse(responseText).RootElement;
+                    logger.LogError(
+                        $"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                    return false;
                 }
 
-                var latestVersion = jToken.GetProperty("tag_name").GetString();
+                var responseText = await response.Content.ReadAsStringAsync();
+                var releases = JsonDocument.Parse(responseText);
+                // the first release will be the latest.
+                jToken = releases.RootElement[0];
+            }
+            else
+            {
+                // this api gets the latest release, excluding pre-releases.
+                var url = "https://api.github.com/repos/DataExperts/Dexih.App.Remote/releases/latest";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("User-Agent", "Dexih Remote Agent");
+                var client = clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
 
-                logger.LogTrace($"Latest Version is {latestVersion}");
-
-                foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
+                if (!response.IsSuccessStatusCode)
                 {
-                    var name = asset.GetProperty("name").ToString().ToLower();
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
-                    {
-                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                        break;
-                    }
-
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
-                    {
-                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                        break;
-                    }
-
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
-                    {
-                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                        break;
-                    }
+                    logger.LogError(
+                        $"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                    return false;
                 }
 
-                Runtime.LatestVersion = latestVersion;
-                Runtime.LatestDownloadUrl = downloadUrl;
+                var responseText = await response.Content.ReadAsStringAsync();
+                jToken = JsonDocument.Parse(responseText).RootElement;
+            }
 
-                if (string.CompareOrdinal(latestVersion, Runtime.Version) > 0)
+            var latestVersion = jToken.GetProperty("tag_name").GetString();
+
+            logger.LogTrace($"Latest Version is {latestVersion}");
+
+            foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
+            {
+                var name = asset.GetProperty("name").ToString().ToLower();
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
                 {
-                    return true;
+                    downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                    break;
                 }
 
-                return false;
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
+                {
+                    downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                    break;
+                }
 
-                // Download and save the update
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
+                {
+                    downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                    break;
+                }
+            }
+
+            Runtime.LatestVersion = latestVersion;
+            Runtime.LatestDownloadUrl = downloadUrl;
+
+            if (string.CompareOrdinal(latestVersion, Runtime.Version) > 0)
+            {
+                return true;
+            }
+
+            return false;
+
+            // Download and save the update
 //                        if (!string.IsNullOrEmpty(downloadUrl))
 //                        {
 //                            Logger.LogInformation($"Downloading latest remote agent release from {downloadUrl}.");
@@ -221,7 +227,6 @@ namespace dexih.repository
 //                            Directory.CreateDirectory(extractDirectory);
 //                            ZipFile.ExtractToDirectory(releaseFileName, extractDirectory);
 //                        }
-            }
         }
 
 
@@ -364,163 +369,167 @@ namespace dexih.repository
             return EDataPrivacyStatus.NotAllowed;
         }
 
-        public async Task GetPlugins(ILogger logger = null)
+        public async Task GetPlugins(ILogger logger, IHttpClientFactory httpClientFactory)
         {
-            using (var httpClient = new HttpClient())
+            logger.LogInformation("Checking for missing plugins...");
+
+            JsonElement jToken;
+            if (AppSettings.AllowPreReleases)
             {
-                logger.LogInformation("Checking for missing plugins...");
-                
-                httpClient.DefaultRequestHeaders.Add("User-Agent", "Dexih Remote Agent");
-                JsonElement jToken;
-                if (AppSettings.AllowPreReleases)
-                {
-                    var url = "https://api.github.com/repos/DataExperts/dexih.transforms/releases";
-                    // this api gets all releases.
-                    var response =
-                        await httpClient.GetAsync(url);
+                var url = "https://api.github.com/repos/DataExperts/dexih.transforms/releases";
+                var httpClient = httpClientFactory.CreateClient();
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("User-Agent", "Dexih Remote Agent");
+                // this api gets all releases.
+                var response = await httpClient.SendAsync(request);
 
-                    if(!response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
+                {
+                    logger.LogError(
+                        $"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                    return;
+                }
+
+                var responseText = await response.Content.ReadAsStringAsync();
+                var releases = JsonDocument.Parse(responseText);
+                // the first release will be the latest.
+                jToken = releases.RootElement[0];
+            }
+            else
+            {
+                // this api gets the latest release, excluding pre-releases.
+                var url = "https://api.github.com/repos/DataExperts/dexih.transforms/releases/latest";
+                var httpClient = httpClientFactory.CreateClient();
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("User-Agent", "Dexih Remote Agent");
+                var response = await httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    logger.LogError(
+                        $"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
+                    return;
+                }
+
+                var responseText = await response.Content.ReadAsStringAsync();
+                jToken = JsonDocument.Parse(responseText).RootElement;
+            }
+
+            var latestVersion = jToken.GetProperty("tag_name").GetString();
+
+            var pluginDirectory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
+            if (Directory.Exists(pluginDirectory))
+            {
+                Directory.CreateDirectory(pluginDirectory);
+            }
+
+            List<string> installed = new List<string>();
+
+            var installedUpdated = false;
+            var installedFile = Path.Combine(pluginDirectory, "installed.txt");
+
+            if (File.Exists(installedFile))
+            {
+                installed.AddRange(await File.ReadAllLinesAsync(installedFile));
+            }
+
+            foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
+            {
+                var download = false;
+                var name = asset.GetProperty("name").ToString().ToLower();
+
+                var downloadPath = Path.Combine(pluginDirectory, name);
+
+                if (File.Exists(downloadPath))
+                {
+                    continue;
+                }
+
+                if (Plugins.MLNet && name.StartsWith("dexih.functions.ml"))
+                {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
                     {
-                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
-                        return;
+                        download = true;
                     }
-                    
-                    var responseText = await response.Content.ReadAsStringAsync();
-                    var releases = JsonDocument.Parse(responseText);
-                    // the first release will be the latest.
-                    jToken = releases.RootElement[0];
-                }
-                else
-                {
-                    // this api gets the latest release, excluding pre-releases.
-                    var url = "https://api.github.com/repos/DataExperts/dexih.transforms/releases/latest";
-                    var response = await httpClient.GetAsync(url);
 
-                    if (!response.IsSuccessStatusCode)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
                     {
-                        logger.LogError($"There was an error connecting to {url}.  The error reason was: {response.ReasonPhrase}.");
-                        return;
+                        download = true;
                     }
 
-                    var responseText = await response.Content.ReadAsStringAsync();
-                    jToken = JsonDocument.Parse(responseText).RootElement;
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
+                    {
+                        download = true;
+                    }
                 }
 
-                var latestVersion = jToken.GetProperty("tag_name").GetString();
-
-                var pluginDirectory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
-                if (Directory.Exists(pluginDirectory))
+                if (Plugins.DB2 && name.StartsWith("dexih.connections.db2"))
                 {
-                    Directory.CreateDirectory(pluginDirectory);
+                    download = true;
                 }
 
-                List<string> installed = new List<string>();
-
-                var installedUpdated = false;
-                var installedFile = Path.Combine(pluginDirectory, "installed.txt");
-
-                if (File.Exists(installedFile))
+                if (Plugins.Excel && name.StartsWith("dexih.connections.excel"))
                 {
-                    installed.AddRange(await File.ReadAllLinesAsync(installedFile));
+                    download = true;
                 }
 
-                foreach (var asset in jToken.GetProperty("assets").EnumerateArray())
+                if (Plugins.Mongo && name.StartsWith("dexih.connections.mongo"))
                 {
-                    var download = false;
-                    var name = asset.GetProperty("name").ToString().ToLower();
-                    
-                    var downloadPath = Path.Combine(pluginDirectory, name);
+                    download = true;
+                }
 
-                    if (File.Exists(downloadPath))
+                if (Plugins.Oracle && name.StartsWith("dexih.connections.oracle"))
+                {
+                    download = true;
+                }
+
+                if (download)
+                {
+                    if (installed.Contains(name + "/" + latestVersion))
                     {
                         continue;
                     }
 
-                    if (Plugins.MLNet && name.StartsWith("dexih.functions.ml"))
+                    logger.LogInformation($"Downloading plugin {name}");
+                    var downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                    // Download and save the update
+                    if (!string.IsNullOrEmpty(downloadUrl))
                     {
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.Contains("windows"))
+                        var httpClient = httpClientFactory.CreateClient();
+                        var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                        request.Headers.Add("User-Agent", "Dexih Remote Agent");
+                        var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                        
+                        using (var streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                        using (Stream streamToWriteTo = File.Open(downloadPath, FileMode.Create))
                         {
-                            download = true;
+                            await streamToReadFrom.CopyToAsync(streamToWriteTo);
                         }
 
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && name.Contains("osx"))
+                        logger.LogInformation($"Extracting plugin {name}");
+
+                        var extractDirectory = Path.Combine(Directory.GetCurrentDirectory(), "plugins", "standard");
+                        if (!Directory.Exists(extractDirectory))
                         {
-                            download = true;
+                            Directory.CreateDirectory(extractDirectory);
                         }
 
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.Contains("linux"))
-                        {
-                            download = true;
-                        }
-                    }
+                        ZipFile.ExtractToDirectory(downloadPath, extractDirectory, true);
 
-                    if (Plugins.DB2 && name.StartsWith("dexih.connections.db2"))
-                    {
-                        download = true;
-                    }
+                        installedUpdated = true;
+                        installed.Add(name + "/" + latestVersion);
 
-                    if (Plugins.Excel && name.StartsWith("dexih.connections.excel"))
-                    {
-                        download = true;
-                    }
-
-                    if (Plugins.Mongo && name.StartsWith("dexih.connections.mongo"))
-                    {
-                        download = true;
-                    }
-
-                    if (Plugins.Oracle && name.StartsWith("dexih.connections.oracle"))
-                    {
-                        download = true;
-                    }
-                    
-                    if (download)
-                    {
-                        if (installed.Contains(name + "/" + latestVersion))
-                        {
-                            continue;
-                        }
-
-                        logger.LogInformation($"Downloading plugin {name}");
-                        var downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                        // Download and save the update
-                        if (!string.IsNullOrEmpty(downloadUrl))
-                        {
-                            using (var response = await httpClient.GetAsync(downloadUrl,
-                                HttpCompletionOption.ResponseHeadersRead))
-                            using (var streamToReadFrom = await response.Content.ReadAsStreamAsync())
-                            {
-                                using (Stream streamToWriteTo = File.Open(downloadPath, FileMode.Create))
-                                {
-                                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
-                                }
-                            }
-
-                            logger.LogInformation($"Extracting plugin {name}");
-
-                            var extractDirectory = Path.Combine(Directory.GetCurrentDirectory(), "plugins", "standard");
-                            if (!Directory.Exists(extractDirectory))
-                            {
-                                Directory.CreateDirectory(extractDirectory);
-                            }
-
-                            ZipFile.ExtractToDirectory(downloadPath, extractDirectory, true);
-
-                            installedUpdated = true;
-                            installed.Add(name + "/" + latestVersion);
-                            
-                            File.Delete(downloadPath);
-                        }
+                        File.Delete(downloadPath);
                     }
                 }
-
-                if (installedUpdated)
-                {
-                    await File.WriteAllLinesAsync(installedFile, installed);
-                }
-
-                logger.LogInformation($"Download plugins complete.");
             }
+
+            if (installedUpdated)
+            {
+                await File.WriteAllLinesAsync(installedFile, installed);
+            }
+
+            logger.LogInformation($"Download plugins complete.");
         }
     }
 

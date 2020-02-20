@@ -125,9 +125,7 @@ namespace dexih.repository
 //            }
 //            return ConnectionStringRaw;
         }
-
-
-
+        
         public Connection GetConnection(TransformSettings transformSettings)
         {
             try
@@ -140,6 +138,8 @@ namespace dexih.repository
                 }
 
                 var connection = connectionReference.GetConnection();
+                connection.ClientFactory = transformSettings.ClientFactory;
+                
                 this.CopyProperties(connection, true);
 
 

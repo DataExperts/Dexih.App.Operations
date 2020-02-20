@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Text;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 
 namespace dexih.repository
@@ -21,6 +23,9 @@ namespace dexih.repository
         [DataMember(Order = 2)]
         public RemoteSettings RemoteSettings { get; set; }
 
+        [JsonIgnore]
+        public IHttpClientFactory ClientFactory { get; set; }
+        
         public bool HasVariables()
         {
             return HubVariables?.Length > 0 || InputParameters?.Length > 0;

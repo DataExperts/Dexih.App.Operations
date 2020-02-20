@@ -42,7 +42,7 @@ namespace dexih.operations
 		private const string ViewerRole = "VIEWER";
 
 		private const string RemoteAgentProvider = "dexih-remote"; // name of the token provider used to recognise remote agent calls 
-
+		private readonly Uri GitHubUri = new Uri("https://api.github.com");
 
 		private readonly ILogger _logger;
 		private readonly UserManager<ApplicationUser> _userManager;
@@ -50,11 +50,13 @@ namespace dexih.operations
 		public DexihRepositoryContext DbContext { get; set; }
 
 		private readonly ICacheService _cacheService;
+		private readonly IHttpClientFactory _clientFactory;
 
 		public RepositoryManager(DexihRepositoryContext dbContext,
 			 UserManager<ApplicationUser> userManager,
 			 ICacheService cacheService,
-             ILoggerFactory loggerFactory)
+             ILoggerFactory loggerFactory,
+			IHttpClientFactory clientFactory)
 		{
 			_logger = loggerFactory.CreateLogger("RepositoryManager");
 			_userManager = userManager;
@@ -239,19 +241,22 @@ namespace dexih.operations
 
 		#region Issues
 
-		public static async Task<JsonDocument> GitHubAction(string uri, object data, string token, CancellationToken cancellationToken)
+		public async Task<JsonDocument> GitHubAction(string uri, object data, string token, CancellationToken cancellationToken)
 		{
 			var json = JsonSerializer.Serialize(data);
 			var jsonContent = new StringContent(json, Encoding.UTF8, "application/json");
-			
-			using var client = new HttpClient {BaseAddress = new Uri("https://api.github.com")};
 
-			client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DexihUI", "1.0"));
-			client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", token);
-
-			var response = await client.PostAsync(uri, jsonContent, cancellationToken);
+			var request = new HttpRequestMessage(HttpMethod.Post, new Uri(GitHubUri, uri))
+			{
+				Content = jsonContent
+			};
+			request.Headers.UserAgent.Add(new ProductInfoHeaderValue("DexihUI", "1.0"));
+			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+			request.Headers.Authorization = new AuthenticationHeaderValue("Token", token);
 			
+			var client = _clientFactory.CreateClient();
+			var response = await client.SendAsync(request, cancellationToken);
+
 			if (response.IsSuccessStatusCode)
 			{
 				var jsonDocument = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(),

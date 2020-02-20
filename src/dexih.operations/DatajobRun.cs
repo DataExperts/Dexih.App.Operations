@@ -255,7 +255,8 @@ namespace dexih.operations
 					{
 						HubVariables = _transformSettings.HubVariables,
 						RemoteSettings = _transformSettings.RemoteSettings,
-						InputParameters = step.Parameters.ToArray<InputParameterBase>()
+						InputParameters = step.Parameters.ToArray<InputParameterBase>(),
+						ClientFactory = _transformSettings.ClientFactory
 					};
 					
 					var inputColumns = step.DexihDatalinkStepColumns.Select(c => c.ToInputColumn()).ToArray();
