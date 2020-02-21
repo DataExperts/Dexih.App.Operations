@@ -55,28 +55,31 @@ namespace dexih.repository
         public EDuplicateStrategy JoinDuplicateStrategy { get; set; }
 
         [DataMember(Order = 17)]
+        public EJoinNotFoundStrategy JoinNotFoundStrategy { get; set; }
+
+        [DataMember(Order = 18)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [DataMember(Order = 18)]
+        [DataMember(Order = 19)]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalink Datalink { get; set; }
 
-        [DataMember(Order = 19)]
+        [DataMember(Order = 20)]
         public DexihDatalinkTable JoinDatalinkTable { get; set; }
 
-        [DataMember(Order = 20)]
+        [DataMember(Order = 21)]
         public DexihDatalinkColumn JoinSortDatalinkColumn { get; set; }
 
-        [DataMember(Order = 21)]
+        [DataMember(Order = 22)]
         public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
 
-        [DataMember(Order = 22)]
+        [DataMember(Order = 23)]
         public long MaxInputRows { get; set; } = 0;
 
-        [DataMember(Order = 23)]
+        [DataMember(Order = 24)]
         public long MaxOutputRows { get; set; } = 0;
 
         public override void ResetKeys()
@@ -226,7 +229,7 @@ namespace dexih.repository
                             break;
                         case ETransformItemType.JoinPair:
                             
-                            mappings.Add(new MapJoin(item.SourceValue, sourceColumn, item.JoinValue, joinColumn));
+                            mappings.Add(new MapJoin(item.SourceValue, sourceColumn, item.JoinValue, joinColumn, item.FilterCompare??ECompare.IsEqual));
                             break;
                         case ETransformItemType.FilterPair:
                             mappings.Add(new MapFilter()
@@ -296,6 +299,7 @@ namespace dexih.repository
 
                 // transform.PassThroughColumns = PassThroughColumns;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;
+                transform.JoinNotFoundStrategy = JoinNotFoundStrategy;
                 
                 var joinSortColumn = JoinSortDatalinkColumn?.GetTableColumn(null);
                 transform.JoinSortField = joinSortColumn;

@@ -44,9 +44,12 @@ namespace dexih.repository
         public ESourceType SourceType { get; set; } = ESourceType.Table;
 
         [DataMember(Order = 13)]
-        public bool DisablePushDown { get; set; }
-        
+        public bool DisableVersioning { get; set; } = true;
+
         [DataMember(Order = 14)]
+        public bool DisablePushDown { get; set; }
+
+        [DataMember(Order = 15)]
         public ICollection<DexihDatalinkColumn> DexihDatalinkColumns { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
@@ -88,6 +91,11 @@ namespace dexih.repository
 	        {
 		        table = (Table) sourceTable.CloneProperties(false);
 	        }
+
+            if(DisableVersioning)
+            {
+                table.IsVersioned = false;
+            }
 
             foreach (var dbColumn in DexihDatalinkColumns.Where(c => c.IsValid).OrderBy(c => c.Position))
             {

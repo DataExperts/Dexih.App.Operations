@@ -695,6 +695,7 @@ namespace dexih.repository
                 entity.Property(e => e.RowsIncrement).HasColumnName("rows_increment");
 
                 entity.Property(e => e.DisablePushDown).HasColumnName("disable_push_down");
+                entity.Property(e => e.DisableVersioning).HasColumnName("disable_versioning");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1192,6 +1193,11 @@ namespace dexih.repository
                     .HasConversion(
                         v => v.ToString(),
                         v => (EDuplicateStrategy) Enum.Parse(typeof(EDuplicateStrategy), v));
+
+                entity.Property(e => e.JoinNotFoundStrategy).HasColumnName("join_not_found_strategy").HasMaxLength(50)
+                .HasConversion(
+                    v => v.ToString(),
+                    v => (EJoinNotFoundStrategy)Enum.Parse(typeof(EJoinNotFoundStrategy), v));
 
                 entity.Property(e => e.JoinSortDatalinkColumnKey).HasColumnName("join_sort_column_key");
                 

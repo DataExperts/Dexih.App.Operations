@@ -244,6 +244,7 @@ namespace dexih.operations
 
                         var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
                         sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
+                        if(hubDatalinkTable.DisableVersioning) { sourceTable.IsVersioned = false; }
                         sourceTransform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
                         sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
 
