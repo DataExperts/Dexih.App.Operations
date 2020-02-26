@@ -328,10 +328,18 @@ namespace dexih.operations
 				var primaryTransformResult = GetSourceTransform(hub, hubDatalink.SourceDatalinkTable, inputColumns, transformWriterOptions);
 				var primaryTransform = primaryTransformResult.sourceTransform;
 				var sourceTable = primaryTransformResult.sourceTable;
-                
-                //add a filter for the incremental column (if there is one)
-                var incrementalCol = primaryTransform.CacheTable?.Columns.SingleOrDefault(c => c.IsIncrementalUpdate);
+
                 var updateStrategy = hubDatalink.UpdateStrategy;
+
+                //add a filter for the incremental column (if there is one)
+                TableColumn incrementalCol = null;
+                if(updateStrategy == EUpdateStrategy.AppendUpdateDeletePreserve || updateStrategy == EUpdateStrategy.AppendUpdatePreserve)
+                {
+                    incrementalCol = primaryTransform.CacheTable?.GetColumn(EDeltaType.ValidFromDate);
+                } else
+                {
+                    incrementalCol = primaryTransform.CacheTable?.Columns.SingleOrDefault(c => c.IsIncrementalUpdate);
+                }
 
                 if (transformWriterOptions.ResetIncremental)
                 {
@@ -368,7 +376,7 @@ namespace dexih.operations
                 _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}.  Added incremental filter.  Elapsed: {timer.Elapsed}");
                 
                 //loop through the transforms to create the chain.
-                foreach (var datalinkTransform in hubDatalink.DexihDatalinkTransforms.OrderBy(c => c.Position))
+                foreach (var datalinkTransform in hubDatalink.DexihDatalinkTransforms.OrderBy(c => c.Position).Where(c => c.IsValid))
                 {
                     //if this is an empty transform, then ignore it.
                     if (datalinkTransform.DexihDatalinkTransformItems.Count == 0)

@@ -542,16 +542,16 @@ $FunctionCode
 	            
                 testFunction.Append("CustomFunction(");
 	            var p = DexihFunctionParameters.OrderBy(c => c.Position)
-		            .Where(c => c.Direction == EParameterDirection.Input).Select(c => c.Name)
+		            .Where(c => c.IsValid && c.Direction == EParameterDirection.Input).Select(c => c.Name)
 		            .ToList();
-	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Output).Select(c => "out " + c.Name));
+	            p.AddRange(DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.IsValid && c.Direction == EParameterDirection.Output).Select(c => "out " + c.Name));
 	            
 	            testFunction.Append(string.Join(", ", p));
                 testFunction.Append(");");
                 code.Replace("$TestFunction", testFunction.ToString());
 
                 var inputParameters = new StringBuilder();
-                foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Input))
+                foreach (var inputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.IsValid && c.Direction == EParameterDirection.Input))
                 {
                     inputParameters.Append("\t\t" + inputParameter.DataType + AddRank(inputParameter.Rank) + " " + inputParameter.Name + " = ");
 
@@ -639,7 +639,7 @@ $FunctionCode
 	                writeResults.AppendLine("\t\tConsole.WriteLine(\"No return value specified.\");");
                 }
 
-                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Output))
+                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.IsValid && c.Direction == EParameterDirection.Output))
                 {
                     outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.Name + ";");
                     testFunction.Append("out " + outputParameter.Name + ", ");
@@ -650,7 +650,7 @@ $FunctionCode
                 code.Replace("$WriteResults", writeResults.ToString());
 
 
-                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.Direction == EParameterDirection.Output))
+                foreach (var outputParameter in DexihFunctionParameters.OrderBy(c => c.Position).Where(c => c.IsValid && c.Direction == EParameterDirection.Output))
                 {
                     outputParameters.AppendLine("\t\t" + outputParameter.DataType + " " + outputParameter.Name + ";");
                     testFunction.Append("out " + outputParameter.Name + ", ");
@@ -667,12 +667,12 @@ $FunctionCode
 
 
 			var parameterString = "";
-			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == EParameterDirection.Input))
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=> c.IsValid && c.Direction == EParameterDirection.Input))
 			{
 				parameterString += t.DataType + (t.AllowNull ? "?" : "")  + AddRank(t.Rank) + " " + t.Name + ",";
 			}
 
-			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=>c.Direction == EParameterDirection.Output))
+			foreach (var t in DexihFunctionParameters.OrderBy(c => c.Position).Where(c=> c.IsValid && c.Direction == EParameterDirection.Output))
 			{
 				parameterString += "out " + t.DataType + (t.AllowNull ? "?" : "") + AddRank(t.Rank) + " " + t.Name + ",";
 			}

@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using System.Net.Http;
 
 namespace dexih.operations.tests
 {
@@ -57,7 +58,7 @@ namespace dexih.operations.tests
             var memoryCache = new MemoryDistributedCache(new OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
             var cacheService = new CacheService(memoryCache);
 
-            var database = new RepositoryManager( context, userManager,cacheService, _loggerFactory);
+            var database = new RepositoryManager( context, userManager,cacheService, _loggerFactory, null);
             var hub = new DexihHub()
             {
                 Name = "test",

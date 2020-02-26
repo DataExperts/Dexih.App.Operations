@@ -76,7 +76,7 @@ namespace dexih.repository
 			if (ChildColumns != null && ChildColumns.Count > 0)
 			{
 				tableColumn.ChildColumns = new TableColumns();
-				foreach (var childColumn in ChildColumns.OrderBy(c => c.Position))
+				foreach (var childColumn in ChildColumns.OrderBy(c => c.Position).Where(c => c.IsValid))
 				{
 					tableColumn.ChildColumns.Add(childColumn.GetTableColumn(inputColumns));
 				}

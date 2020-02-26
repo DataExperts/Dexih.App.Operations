@@ -97,7 +97,7 @@ namespace dexih.repository
                 table.IsVersioned = false;
             }
 
-            foreach (var dbColumn in DexihDatalinkColumns.Where(c => c.IsValid).OrderBy(c => c.Position))
+            foreach (var dbColumn in DexihDatalinkColumns.Where(c => c.IsValid).OrderBy(c => c.Position).Where(c => c.IsValid))
             {
 				table.Columns.Add(dbColumn.GetTableColumn(inputColumns));
             }

@@ -297,7 +297,7 @@ namespace dexih.repository
                 }
             }
 
-            foreach (var datalinkTransform in DexihDatalinkTransforms.OrderBy(c => c.Position))
+            foreach (var datalinkTransform in DexihDatalinkTransforms.OrderBy(c => c.Position).Where(c => c.IsValid))
             {
                 // track any join columns for the transform.
                 if (datalinkTransform.JoinDatalinkTable != null)

@@ -144,7 +144,7 @@ namespace dexih.operations
                 
                 var percent = 0;
 
-                foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
+                foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position).Where(c => c.IsValid))
                 {
                     percent += 100 / _datalinkTest.DexihDatalinkTestSteps.Count;
 
@@ -290,7 +290,7 @@ namespace dexih.operations
                 var passed = 0;
                 var failed = 0;
 
-                foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position))
+                foreach (var step in _datalinkTest.DexihDatalinkTestSteps.OrderBy(c => c.Position).Where(c => c.IsValid))
                 {
                     var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.IsValid && c.Key == step.DatalinkKey);
 
@@ -417,7 +417,7 @@ namespace dexih.operations
                         }
 
                         // use the delta transform to compare expected and target tables.
-                        var delta = new TransformDelta(targetTransform, expectedTransform,
+                        using var delta = new TransformDelta(targetTransform, expectedTransform,
                             EUpdateStrategy.AppendUpdateDelete, 0, false, true);
                         await delta.Open(0, null, token);
 

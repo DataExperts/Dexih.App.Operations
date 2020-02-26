@@ -63,6 +63,7 @@ namespace dexih.operations
 
 			DbContext = dbContext;
 			_cacheService = cacheService;
+			_clientFactory = clientFactory;
 		}
 		
 		public void Dispose()
@@ -2304,7 +2305,7 @@ namespace dexih.operations
 					};
 
 					// create a copy of the source table columns, and convert to dexihdatalinkColumn type.
-					foreach (var column in sourceTable.DexihTableColumns.OrderBy(c => c.Position))
+					foreach (var column in sourceTable.DexihTableColumns.OrderBy(c => c.Position).Where(c => c.IsValid))
 					{
 						var newColumn = new DexihDatalinkColumn();
 						column.CopyProperties(newColumn, true);
@@ -4273,7 +4274,7 @@ namespace dexih.operations
 					datalinkTransform.JoinSortDatalinkColumnKey = DatalinkColumnMapping(datalinkTransform.JoinSortDatalinkColumn);
 					datalinkTransform.JoinSortDatalinkColumn = null;
 					
-					foreach (var item in datalinkTransform.DexihDatalinkTransformItems.OrderBy(c => c.Position))
+					foreach (var item in datalinkTransform.DexihDatalinkTransformItems.OrderBy(c => c.Position).Where(c => c.IsValid))
 					{
 						item.Key = 0;
 						item.HubKey = hubKey;

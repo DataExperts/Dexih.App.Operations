@@ -119,7 +119,7 @@ namespace dexih.operations.tests
             var seedData = new SeedData();
             seedData.UpdateReferenceData(roleManager, userManager).Wait();
             
-            return new RepositoryManager(repositoryContext, userManager, cacheService, new LoggerFactory());
+            return new RepositoryManager(repositoryContext, userManager, cacheService, new LoggerFactory(), null);
                         
         }
 

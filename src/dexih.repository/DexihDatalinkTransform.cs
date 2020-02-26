@@ -181,7 +181,7 @@ namespace dexih.repository
 
                 var mappings = new Mappings(PassThroughColumns);
 
-                foreach (var item in DexihDatalinkTransformItems.OrderBy(c => c.Position))
+                foreach (var item in DexihDatalinkTransformItems.OrderBy(c => c.Position).Where(c => c.IsValid))
                 {
                     logger?.LogTrace($"GetTransform {Name}, get item.  Elapsed: {timer.Elapsed}");
 
