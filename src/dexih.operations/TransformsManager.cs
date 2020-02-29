@@ -8,6 +8,7 @@ using System.Linq;
 using dexih.functions.Parameter;
 using Dexih.Utils.CopyProperties;
 using dexih.transforms.Exceptions;
+using dexih.transforms.File;
 using dexih.transforms.Mapping;
 using Dexih.Utils.DataType;
 using Microsoft.Extensions.Logging;

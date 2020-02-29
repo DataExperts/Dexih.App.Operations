@@ -9,6 +9,7 @@ using dexih.functions;
 using Dexih.Utils.CopyProperties;
 using static dexih.transforms.Connection;
 using dexih.transforms;
+using dexih.transforms.File;
 using Dexih.Utils.DataType;
 
 
