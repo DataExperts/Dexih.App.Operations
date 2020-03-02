@@ -418,7 +418,7 @@ namespace dexih.repository
             var latestVersion = jToken.GetProperty("tag_name").GetString();
 
             var pluginDirectory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
-            if (Directory.Exists(pluginDirectory))
+            if (!Directory.Exists(pluginDirectory))
             {
                 Directory.CreateDirectory(pluginDirectory);
             }

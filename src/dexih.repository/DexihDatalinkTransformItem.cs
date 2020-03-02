@@ -341,8 +341,9 @@ namespace dexih.repository
 
 							ms.Seek(0, SeekOrigin.Begin);
 
-							var loader = new AssemblyLoader();
-							var assembly = loader.LoadFromStream(ms);
+							// var loader = new AssemblyLoader();
+							// var assembly = loader.LoadFromStream(ms);
+							var assembly = Assembly.Load(ms.ToArray());
 
 							function = new TransformFunction();
 
