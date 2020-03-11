@@ -226,7 +226,7 @@ namespace dexih.operations
                     $"The datalink {dbDatalink.Name} failed to open for reading.");
             }
 
-            transform.SetCacheMethod(ECacheMethod.DemandCache);
+            // transform.SetCacheMethod(ECacheMethod.DemandCache);
             transform.SetEncryptionMethod(EEncryptionMethod.MaskSecureFields, "");
 
             return (transform, dbDatalink.Name);
