@@ -192,8 +192,7 @@ namespace dexih.operations
                         $"The connection {connection.Name} with table {table.Name} failed to open for reading.");
                 }
 
-                transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields,
-                    Cache.CacheEncryptionKey);
+                transform.SetEncryptionMethod(EEncryptionMethod.EncryptDecryptSecureFields, Cache.CacheEncryptionKey);
 
                 return (transform, table.Name);
             }

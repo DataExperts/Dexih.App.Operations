@@ -536,7 +536,7 @@ namespace dexih.operations
 		{
 			var hubReturn = _cacheService.GetOrCreateAsync(CacheKeys.Hub((hubKey)), TimeSpan.FromHours(1), async () =>
 			{
-				var cache = new CacheManager(hubKey, await GetHubEncryptionKey(hubKey, cancellationToken), _logger);
+				var cache = new CacheManager(hubKey, "", _logger);
 				var hub = await cache.LoadHub(DbContext);
 				return hub;
 			}, cancellationToken);
