@@ -161,6 +161,12 @@ namespace dexih.operations
             {
                 var dbConnection =
                     Cache.Hub.DexihConnections.SingleOrDefault(c => c.Key == dbTable.ConnectionKey);
+
+                if (dbConnection == null)
+                {
+                    throw new DownloadDataException($"The connection for the table {dbTable.Name} with connectionKey {dbTable.ConnectionKey} could not be found.");
+                }
+                
                 var connection = dbConnection.GetConnection(TransformSettings);
                 var table = dbTable.GetTable(Cache.Hub, connection, inputColumns,
                     TransformSettings);

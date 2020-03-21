@@ -162,14 +162,29 @@ namespace dexih.operations
                         foreach (var target in datalink.DexihDatalinkTargets)
                         {
                             var dbDatalinkTargetTable = _hub.GetTableFromKey(target.TableKey);
-                            var dbDatalinkTargetConnection =
-                                _hub.DexihConnections.Single(
-                                    c => c.IsValid && c.Key == dbDatalinkTargetTable.ConnectionKey);
+
+                            if (dbDatalinkTargetTable == null)
+                            {
+                                throw new DatalinkTestRunException($"The table {target.Name} could not be found.");
+                            }
+
+                            var dbDatalinkTargetConnection = _hub.DexihConnections.SingleOrDefault(c => c.IsValid && c.Key == dbDatalinkTargetTable.ConnectionKey);
+
+                            if (dbDatalinkTargetConnection == null)
+                            {
+                                throw new DatalinkTestRunException($"The connection for the table {target.Name} with the connection key {dbDatalinkTargetTable.Key} could not be found.");
+                            }
                             
                             var targetConnection = dbDatalinkTargetConnection.GetConnection(_transformSettings);
                             var targetTable = dbDatalinkTargetTable.GetTable(_hub, targetConnection, _transformSettings);
 
-                            var dbExpectedConnection =_hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
+                            var dbExpectedConnection =_hub.DexihConnections.SingleOrDefault(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
+
+                            if (dbExpectedConnection == null)
+                            {
+                                throw new DatalinkTestRunException($"The connection for the step {step.Name} with the connection key {step.ExpectedConnectionKey} could not be found.");
+                            }
+                            
                             var dbExpectedTable = dbDatalinkTargetTable.CloneProperties();
                             dbExpectedTable.Name = step.ExpectedTableName;
                             dbExpectedTable.Schema = step.ExpectedSchema;
@@ -195,8 +210,7 @@ namespace dexih.operations
                     else
                     {
                         // if there is no target table, then copy the outputs of the datalink.
-                        var dbExpectedConnection =
-                            _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
+                        var dbExpectedConnection = _hub.DexihConnections.Single(c => c.IsValid && c.Key == step.ExpectedConnectionKey);
                         var dbExpectedTable = datalink.GetOutputTable();
                         var expectedTable = dbExpectedTable.GetTable(null, null);
                         expectedTable.Name = step.ExpectedTableName;

@@ -220,6 +220,13 @@ namespace dexih.repository
 			        case EConnectionCategory.File:
 				        table = new FlatFile();
 				        var fileFormat = hub.DexihFileFormats.SingleOrDefault(f => f.IsValid && f.Key == FileFormatKey);
+
+				        if (fileFormat == null)
+				        {
+					        throw new RepositoryException(
+						        $"The file format for the table {Name} with key {FileFormatKey} could not be found.");
+				        }
+
 				        ((FlatFile)table).FileConfiguration =  fileFormat?.GetFileFormat();
 				        break;
 			        case EConnectionCategory.WebService:

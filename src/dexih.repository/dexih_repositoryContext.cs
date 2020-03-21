@@ -20,9 +20,9 @@ namespace dexih.repository
 	{
 		public EDatabaseType DatabaseType { get; set; }
         public IHostingEnvironment Environment { get; set; }
+        // public long HubKey { get; set; } = 0;
 
-
-		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 		{
 #if DEBUG
             optionsBuilder.EnableSensitiveDataLogging(true);
@@ -208,6 +208,9 @@ namespace dexih.repository
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihApis)
                     .HasForeignKey(d => d.HubKey);
+
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihApiParameter>(entity =>
@@ -238,6 +241,10 @@ namespace dexih.repository
                     .HasForeignKey(d => d.ApiKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_api_parameters");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
+
             });
                         
             modelBuilder.Entity<DexihColumnValidation>(entity =>
@@ -304,6 +311,10 @@ namespace dexih.repository
                     .HasForeignKey(d => d.LookupColumnKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_column_validation_lookup_column");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
+
             });
 
             modelBuilder.Entity<DexihConnection>(entity =>
@@ -342,6 +353,9 @@ namespace dexih.repository
                 entity.Property(e => e.Password).HasColumnName("password").HasMaxLength(250);
                 entity.Property(e => e.UsePasswordVariable).HasColumnName("use_password_var");
 
+                entity.Property(e => e.ConnectionTimeout).HasColumnName("connection_timeout");
+                entity.Property(e => e.CommandTimeout).HasColumnName("command_timeout");
+
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
@@ -351,6 +365,8 @@ namespace dexih.repository
                     .HasForeignKey(d => d.HubKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_connections_dexih_hubs");
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihCustomFunction>(entity =>
@@ -388,6 +404,8 @@ namespace dexih.repository
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihCustomFunctions)
                     .HasForeignKey(d => d.HubKey);
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihCustomFunctionParameter>(entity =>
@@ -425,6 +443,8 @@ namespace dexih.repository
                     .HasForeignKey(d => d.CustomFunctionKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_customfunction_customfunction_parameter");
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDashboardItem>(entity =>
@@ -458,6 +478,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DashboardKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_dashboard_items_dexih_dashboards");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDashboardParameter>(entity =>
@@ -488,6 +511,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DashboardKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_dashboard_parameters_dexih_dashboards");
+
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDashboardItemParameter>(entity =>
@@ -518,6 +544,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DashboardItemKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_dashboard_item_parameter_dexih_dash_item");
+
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDashboard>(entity =>
@@ -546,6 +575,9 @@ namespace dexih.repository
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihDashboards)
                     .HasForeignKey(d => d.HubKey);
+
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatajob>(entity =>
@@ -582,6 +614,9 @@ namespace dexih.repository
                     .WithMany(p => p.DexihDatajobAuditConnections)
                     .HasForeignKey(d => d.AuditConnectionKey)
                     .HasConstraintName("FK_dexih_datajobs_audit_connection");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDatajobParameter>(entity =>
@@ -612,6 +647,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatajobKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datajob_parameters_dexih_datajob_parameters");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatalinkColumn>(entity =>
@@ -672,6 +710,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_table_child_columns");
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatalinkTable>(entity =>
@@ -713,6 +753,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_source_datalinks");
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatalinkDependency>(entity =>
@@ -742,6 +784,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkStepKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_deps_dl_step");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDatalinkParameter>(entity =>
@@ -772,6 +817,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_parameters_dexih_datalinks");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatalinkProfile>(entity =>
@@ -800,6 +848,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_profiles_dexih_datalinks");
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
  
@@ -834,6 +884,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_step_dexih_datalinks");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });        
             
             modelBuilder.Entity<DexihDatalinkStepParameter>(entity =>
@@ -864,6 +917,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkStepKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_step_parameters_dexih_datalinks_steps");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDatalinkStepColumn>(entity =>
@@ -914,6 +970,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalinkstep_columns_dexih_datalinksteps");
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDatalinkTarget>(entity =>
@@ -950,6 +1008,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_target_table");
                 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDatalinkTest>(entity =>
@@ -970,6 +1030,9 @@ namespace dexih.repository
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihDatalinkTests)
                     .HasForeignKey(d => d.HubKey);
+
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDatalinkTestStep>(entity =>
@@ -1009,6 +1072,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_test_datalink_test_step");
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihDatalinkTestTable>(entity =>
@@ -1044,6 +1109,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatalinkTestStepKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_test_step_datalink_test_table");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatalinkTransformItem>(entity =>
@@ -1160,6 +1228,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_transform_items_dexih_custom_functions");
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatalinkTransform>(entity =>
@@ -1232,6 +1302,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.NodeDatalinkColumnKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalink_transforms_datalink_node_column");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihDatalink>(entity =>
@@ -1296,6 +1369,10 @@ namespace dexih.repository
                     .HasForeignKey(d => d.AuditConnectionKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_datalinks_audit_connection");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
+
             });
 
             modelBuilder.Entity<DexihFileFormat>(entity =>
@@ -1337,6 +1414,9 @@ namespace dexih.repository
 				entity.HasOne(d => d.Hub)
 					  .WithMany(p => p.DexihFileFormats)
                     .HasForeignKey(d => d.HubKey);
+
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihFunctionParameter>(entity =>
@@ -1386,6 +1466,9 @@ namespace dexih.repository
                     .WithMany(p => p.DexihFunctionParameterColumn)
                     .HasForeignKey(d => d.DatalinkColumnKey)
                     .HasConstraintName("FK_dexih_function_parameters_dexih_table_columns");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihFunctionArrayParameter>(entity =>
@@ -1426,6 +1509,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_function_array_parameter");
                 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
 
             });
 
@@ -1453,7 +1538,8 @@ namespace dexih.repository
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                
+               
+                entity.HasQueryFilter(e => e.IsValid);
             });
 
             modelBuilder.Entity<DexihRemoteAgentHub>(entity =>
@@ -1480,6 +1566,8 @@ namespace dexih.repository
                     .WithMany(p => p.DexihRemoteAgentHubs)
                     .HasForeignKey(d => d.RemoteAgentKey);
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihHubUser>(entity =>
@@ -1505,6 +1593,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.HubKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_user_hub_dexih_hubs");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihHub>(entity =>
@@ -1527,6 +1618,7 @@ namespace dexih.repository
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
+                entity.HasQueryFilter(e => e.IsValid);
             });
 
             modelBuilder.Entity<DexihHubVariable>(entity =>
@@ -1549,7 +1641,10 @@ namespace dexih.repository
 
                 entity.HasOne(d => d.Hub)
                       .WithMany(p => p.DexihHubVariables)
-                    .HasForeignKey(d => d.HubKey);
+                      .HasForeignKey(d => d.HubKey);
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihIssue>(entity =>
@@ -1576,6 +1671,9 @@ namespace dexih.repository
                 entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihIssueComment>(entity =>
@@ -1599,6 +1697,8 @@ namespace dexih.repository
                     .HasForeignKey(d => d.IssueKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_issue_comments");
+                
+                entity.HasQueryFilter(e => e.IsValid);
             });
             
             modelBuilder.Entity<DexihTableColumn>(entity =>
@@ -1668,6 +1768,8 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_table_child_columns");
                 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
 
             });
 
@@ -1739,6 +1841,8 @@ namespace dexih.repository
                     .WithMany(p => p.DexihTables)
                     .HasForeignKey(d => d.HubKey);
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihTrigger>(entity =>
@@ -1770,6 +1874,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.DatajobKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_triggers_dexih_datajobs");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihView>(entity =>
@@ -1833,6 +1940,8 @@ namespace dexih.repository
                     .WithMany(p => p.DexihViews)
                     .HasForeignKey(d => d.HubKey);
 
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
             modelBuilder.Entity<DexihViewParameter>(entity =>
@@ -1863,6 +1972,9 @@ namespace dexih.repository
                     .HasForeignKey(d => d.ViewKey)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_views_parameters");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
             modelBuilder.Entity<DexihListOfValues>(entity =>
@@ -1916,6 +2028,9 @@ namespace dexih.repository
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihListOfValues)
                     .HasForeignKey(d => d.HubKey);
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             
            

@@ -336,7 +336,12 @@ namespace dexih.operations
 		{
 			var canComment = false;
 			var issue = await DbContext.DexihIssues.SingleOrDefaultAsync(c => c.Key == issueComment.IssueKey, cancellationToken: cancellationToken);
-
+			
+			if (issue == null)
+			{
+				throw new RepositoryManagerException($"The issue with the key {issueComment.IssueKey} was not found.");
+			}
+			
 			if (user.IsAdmin)
 			{
 				canComment = true;
@@ -429,7 +434,12 @@ namespace dexih.operations
 			{
 				issue = await DbContext.DexihIssues.Include(c => c.DexihIssueComments).SingleOrDefaultAsync(c => c.UserId == user.Id && c.Key == issueKey && c.IsValid, cancellationToken);
 			}
-
+			
+			if (issue == null)
+			{
+				throw new CacheManagerException($"The issue with the key {issueKey} was not found.");
+			}
+			
 			var users = new Dictionary<string, string>();
 			issue.UserName = await GetUserName(issue.UserId, users, cancellationToken);
 
@@ -1144,22 +1154,44 @@ namespace dexih.operations
 		{
 			if (user.IsAdmin)
 			{
-				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
+				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
+				
+				if (hub == null)
+				{
+					throw new RepositoryManagerException($"A hub with key {hubKey} is not found.");
+				}
+
+				return hub;
 			}
 			else
 			{
-				var hub = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid, cancellationToken: cancellationToken);
-				if (hub == null)
+				var hubUser = await DbContext.DexihHubUser.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.UserId == user.Id && c.IsValid, cancellationToken: cancellationToken);
+				
+				if (hubUser == null)
 				{
 					throw new RepositoryManagerException($"A hub with key {hubKey} is not available to the current user.");
 				}
-				return await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
+				
+				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.IsValid, cancellationToken: cancellationToken);
+				
+				if (hub == null)
+				{
+					throw new RepositoryManagerException($"A hub with key {hubKey} is not found.");
+				}
+				
+				return hub;
 			}
 		}
 
 		public async Task<string> GetHubEncryptionKey(long hubKey, CancellationToken cancellationToken)
 		{
-			var hub = await DbContext.DexihHubs.SingleAsync(c => c.HubKey == hubKey, cancellationToken: cancellationToken);
+			var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey, cancellationToken: cancellationToken);
+			
+			if (hub == null)
+			{
+				throw new RepositoryManagerException($"A hub with key {hubKey} is not found.");
+			}
+			
 			return hub.EncryptionKey;
 		}
 
@@ -1853,6 +1885,11 @@ namespace dexih.operations
 				var dashboardIem = await DbContext.DexihDashboardItems.SingleOrDefaultAsync(
 					c => c.HubKey == hubKey && c.Key == dashboardItemKey && c.IsValid, cancellationToken: cancellationToken);
 
+				if (dashboardIem == null)
+				{
+					throw new RepositoryManagerException($"The dashboard item with key {dashboardItemKey} does not exist."); 	
+				}
+				
 				if (isShared)
 				{
 					var dashboard = await DbContext.DexihDashboards.SingleOrDefaultAsync(c =>
@@ -1870,8 +1907,15 @@ namespace dexih.operations
 					}
 				}
 
-				return await DbContext.DexihViews.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == dashboardIem.ViewKey && c.IsValid, cancellationToken: cancellationToken);
-				
+				var view = await DbContext.DexihViews.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.Key == dashboardIem.ViewKey && c.IsValid, cancellationToken: cancellationToken);
+
+				if (view == null)
+				{
+					throw new RepositoryManagerException($"The dashboard item {dashboardIem.Name} has a view with the key {dashboardIem.ViewKey} which was not found.");
+				}
+
+				return view;
+
 			}
 			catch (Exception ex)
 			{
@@ -2239,7 +2283,7 @@ namespace dexih.operations
                 long tempColumnKeys = -1;
 
 				var sourceTables = await DbContext.DexihTables.Where(c => c.HubKey == hubKey && sourceTableKeys.Contains(c.Key) && c.IsValid).ToDictionaryAsync(c => c.Key, cancellationToken: cancellationToken);
-				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && c.TableKey != null && sourceTables.Keys.Contains(c.TableKey.Value) && c.IsValid).Include(c => c.ChildColumns).LoadAsync();
+				await DbContext.DexihTableColumns.Where(c=> c.HubKey == hubKey && c.TableKey != null && sourceTables.Keys.Contains(c.TableKey.Value) && c.IsValid).Include(c => c.ChildColumns).LoadAsync(cancellationToken: cancellationToken);
 				var targetTable = targetTableKey == null ? null : await DbContext.DexihTables.SingleOrDefaultAsync(c => c.IsValid && c.HubKey == hubKey && c.Key == targetTableKey, cancellationToken: cancellationToken);
 				var targetCon = targetConnectionKey == null ? null : await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.IsValid && c.HubKey == hubKey && c.Key == targetConnectionKey, cancellationToken: cancellationToken);
 
@@ -3092,7 +3136,7 @@ namespace dexih.operations
 				//if there is a connectionKey, retrieve the record from the database, and copy the properties across.
 				if (function.Key > 0)
 				{
-					dbFunction = await DbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == function.Key);
+					dbFunction = await DbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == function.Key, cancellationToken: cancellationToken);
 					
 					if (dbFunction != null)
 					{

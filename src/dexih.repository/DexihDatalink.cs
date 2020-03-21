@@ -225,7 +225,7 @@ namespace dexih.repository
                     {
                         foreach (var column in table.DexihDatalinkColumns)
                         {
-                            if (concatTable.DexihDatalinkColumns.SingleOrDefault(c => c.IsValid && c.Name == column.Name) == null)
+                            if (!concatTable.DexihDatalinkColumns.Any(c => c.IsValid && c.Name == column.Name))
                             {
                                 concatTable.DexihDatalinkColumns.Add(column);
                             }
@@ -234,7 +234,7 @@ namespace dexih.repository
 
                     foreach (var column in joinTable.DexihDatalinkColumns)
                     {
-                        if (concatTable.DexihDatalinkColumns.SingleOrDefault(c => c.IsValid && c.Name == column.Name) == null)
+                        if (!concatTable.DexihDatalinkColumns.Any(c => c.IsValid && c.Name == column.Name))
                         {
                             concatTable.DexihDatalinkColumns.Add(column);
                         }

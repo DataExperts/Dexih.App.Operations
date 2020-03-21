@@ -87,6 +87,7 @@ namespace dexih.operations
                 throw new DatalinkRunException("There are multiple targets set for the top level.  Remove the extra targets, or set the nodeLevel.");
             }
 
+            // primaryTarget can be null, this is handled in the NewTransformWriterTarget function
             var primaryTarget = Datalink.DexihDatalinkTargets.SingleOrDefault(c => c.IsValid && c.NodeDatalinkColumnKey == null);
             WriterTarget = NewTransformWriterTarget(primaryTarget, null, auditConnection);
 

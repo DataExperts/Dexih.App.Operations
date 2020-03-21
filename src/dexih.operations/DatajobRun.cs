@@ -175,6 +175,12 @@ namespace dexih.operations
 					foreach (var step in Datajob.DexihDatalinkSteps.Where(c => c.IsValid))
 					{
 						var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.IsValid && c.Key == step.DatalinkKey);
+
+						if (datalink == null)
+						{
+							throw new DatajobRunException($"The datalink in the step {step.Name} with the datalink key {step.DatalinkKey} cound not be found.");
+						}
+						
 						foreach(var target in datalink.DexihDatalinkTargets)
 						{
 							if(target.TableKey > 0)
@@ -204,6 +210,11 @@ namespace dexih.operations
 						foreach (var dbTable in targetTables)
 						{
 							var dbConnection = _hub.DexihConnections.SingleOrDefault(c => c.Key == dbTable.ConnectionKey);
+
+							if (dbConnection == null)
+							{
+								throw new DatajobRunException($"The connection for the table {dbTable.Name} with the connection key {dbTable.ConnectionKey} could not be found.");
+							}
 							var connection = dbConnection.GetConnection(_transformSettings);
 							var table = dbTable.GetTable(_hub, connection, _transformSettings);
 							try
@@ -240,7 +251,6 @@ namespace dexih.operations
 				{
 					var datalink = _hub.DexihDatalinks.SingleOrDefault(c => c.IsValid &&  c.Key == step.DatalinkKey);
 					
-
 					if (datalink == null)
 					{
 						throw new DatajobRunException($"The step {step.Name} contains a datalink with the key {step.DatalinkKey} which can not be found.");

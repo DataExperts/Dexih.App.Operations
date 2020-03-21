@@ -64,6 +64,8 @@ namespace dexih.operations
 				dbTable.FileSample = flatFile.FileSample;
 			}
 
+            var key = -1;
+            
 			if(table is WebService restFunction)
 			{
 			    dbTable.RestfulUri = restFunction.RestfulUri;
@@ -78,7 +80,7 @@ namespace dexih.operations
                     var dbColumn = originalTable.DexihTableColumns.SingleOrDefault(c => c.Name == column.Name);
                     if (dbColumn == null)
                     {
-                        dbColumn = new DexihTableColumn {Key = 0};
+                        dbColumn = new DexihTableColumn {Key = key--};
                         originalTable.DexihTableColumns.Add(dbColumn);
                     }
 
@@ -102,7 +104,7 @@ namespace dexih.operations
                 var position = 1;
                 foreach (var column in table.Columns)
                 {
-                    var dbColumn = new DexihTableColumn {Key = 0};
+                    var dbColumn = new DexihTableColumn {Key = key--};
                     dbTable.DexihTableColumns.Add(dbColumn);
 
                     column.CopyProperties(dbColumn);

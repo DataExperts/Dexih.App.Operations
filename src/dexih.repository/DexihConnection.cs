@@ -65,6 +65,12 @@ namespace dexih.repository
         [DataMember(Order = 20)]
         public bool EmbedTableKey { get; set; }
 
+        [DataMember(Order = 21)] 
+        public int ConnectionTimeout { get; set; } = 30;
+
+        [DataMember(Order = 22)] 
+        public int CommandTimeout { get; set; } = 60;
+
         //these store the raw (unencrypted values) and are not saved to the database.
 //        [DataMember(Order = 21)]
 //        [NotMapped]
@@ -141,8 +147,7 @@ namespace dexih.repository
                 connection.ClientFactory = transformSettings.ClientFactory;
                 
                 this.CopyProperties(connection, true);
-
-
+                
                 if (!UsePasswordVariable)
                 {
                     connection.Password = GetPassword(transformSettings.RemoteSettings.AppSettings.EncryptionKey,

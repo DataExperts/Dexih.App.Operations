@@ -89,32 +89,32 @@ namespace dexih.operations
 				var stopWatch = Stopwatch.StartNew();
 				
                 await InitHub(dbContext);
-
+    
 				if (Hub == null)
 				{
                     throw new CacheManagerException($"The hub with the key {HubKey} could not be found in the repository.");
 				}
-				
-                var variables = dbContext.DexihHubVariables
+		    
+				var variables = dbContext.DexihHubVariables
                     .Where(c => c.IsValid && c.HubKey == HubKey);
-
+    
                 Hub.DexihHubVariables = await variables.ToHashSetAsync();
-                
+    
                 Hub.DexihConnections = await dbContext.DexihConnections
 					.Where(c => c.IsValid && c.HubKey == HubKey).ToHashSetAsync();
-
+                
                 await dbContext.DexihTableColumns
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
 	                .LoadAsync();
-
+                
                 Hub.DexihTables = await dbContext.DexihTables
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
 	                .ToHashSetAsync();
-
+                
                 // load the datalinks
                 var datalinks = dbContext.DexihDatalinks
                     .Where(c => c.IsValid && c.HubKey == HubKey);
-
+    
                 await dbContext.DexihDatalinkParameters
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
 	                .LoadAsync();
@@ -122,30 +122,30 @@ namespace dexih.operations
                 await dbContext.DexihDatalinkTargets
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
 	                .LoadAsync();
-
+    
 				await dbContext.DexihDatalinkTransforms
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .LoadAsync();
-
+    
 				await dbContext.DexihDatalinkTransformItems
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .OrderBy(c => c.Dt.Datalink.HubKey).ThenBy(c => c.Dt.Key).ThenBy(c => c.Key)
 					.LoadAsync();
-
+    
 				await dbContext.DexihFunctionParameters
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .OrderBy(c => c.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.DtItem.Dt.Key).ThenBy(c => c.DtItem.Key).ThenBy(c => c.Position)
 					.LoadAsync();
-
+    
 				await dbContext.DexihFunctionArrayParameters
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.OrderBy(c => c.FunctionParameter.DtItem.Dt.Datalink.HubKey).ThenBy(c => c.FunctionParameter.DtItem.Dt.Key).ThenBy(c => c.FunctionParameter.DtItem.Key).ThenBy(c => c.Position)
 					.LoadAsync();
-
+    
 				await dbContext.DexihDatalinkTables
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
-
+    
 				await dbContext.DexihDatalinkColumns
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
@@ -153,13 +153,13 @@ namespace dexih.operations
 				await dbContext.DexihDatalinkProfiles
 					.Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.HubKey == HubKey)
 					.LoadAsync();
-
+    
                 Hub.DexihDatalinks = await datalinks.ToHashSetAsync();
-
+    
 				// load the datajobs with all dependent schedules/datalink steps.
 				var datajobs = dbContext.DexihDatajobs
 					.Where(c => c.IsValid && c.HubKey == HubKey);
-
+    
 				await dbContext.DexihDatajobParameters
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
@@ -175,50 +175,50 @@ namespace dexih.operations
 				await dbContext.DexihDatalinkStepColumns
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
-
+    
 				await dbContext.DexihDatalinkDependencies
                     .Where(c => c.IsValid && c.HubKey == HubKey)
                     .LoadAsync();
-
+    
 				await dbContext.DexihTriggers
 					.Where(c => c.IsValid && c.Datajob.IsValid && c.Datajob.HubKey == HubKey)
 					.LoadAsync();
-
+    
 				Hub.DexihDatalinkTests = await dbContext.DexihDatalinkTests
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.ToHashSetAsync();
-
+    
 				await dbContext.DexihDatalinkTestSteps
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
-
+    
 				await dbContext.DexihDatalinkTestTables
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
 				
 				Hub.DexihDatajobs = await datajobs.ToHashSetAsync();
-
+    
 				var dashboards = dbContext.DexihDashboards
 					.Where(c => c.IsValid && c.HubKey == HubKey);
 				
 				await dbContext.DexihDashboardItems
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
-
+    
 				await dbContext.DexihDashboardParameters
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
-
+    
 				await dbContext.DexihDashboardItemParameters
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
 				
 				Hub.DexihDashboards = await dashboards.ToHashSetAsync();
-
+    
 				await dbContext.DexihViewParameters
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
-
+    
 				Hub.DexihViews = await dbContext.DexihViews.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 				
 				await dbContext.DexihApiParameters
@@ -226,13 +226,13 @@ namespace dexih.operations
 					.LoadAsync();
 				
 				Hub.DexihApis = await dbContext.DexihApis.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
-
+    
 				await dbContext.DexihCustomFunctionParameters
 					.Where(c => c.IsValid && c.HubKey == HubKey)
 					.LoadAsync();
 				
-				Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
-
+				Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+				
 				Hub.DexihFileFormats = await dbContext.DexihFileFormats.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
 				Hub.DexihColumnValidations = await dbContext.DexihColumnValidations.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
@@ -378,7 +378,7 @@ namespace dexih.operations
 			    .Collection(a => a.Parameters)
 			    .Query()
 			    .Where(c => c.IsValid && view.Key == c.ViewKey)
-			    .AsNoTracking().LoadAsync();
+			    .LoadAsync();
 
 		    await LoadParametersDependencies(view.Parameters, dbContext);
 
@@ -427,11 +427,10 @@ namespace dexih.operations
 	    public async Task LoadDashboardDependencies(DexihDashboard dashboard, DexihRepositoryContext dbContext)
 	    {
 		    await dbContext.Entry(dashboard).Collection(a => a.Parameters).Query().Where(c => c.IsValid && dashboard.Key == c.DashboardKey)
-			    .AsNoTracking().LoadAsync();
+			    .LoadAsync();
 
 		    await LoadParametersDependencies(dashboard.Parameters, dbContext);
-
-		    await dbContext.Entry(dashboard).Collection(a => a.DexihDashboardItems).Query().Include(c => c.Parameters).Where(c => c.IsValid && dashboard.Key == c.DashboardKey).AsNoTracking().LoadAsync();
+		    await dbContext.Entry(dashboard).Collection(a => a.DexihDashboardItems).Query().Include(c => c.Parameters).Where(c => c.IsValid && dashboard.Key == c.DashboardKey).LoadAsync();
 		    await AddViews(dashboard.DexihDashboardItems.Select(c => c.ViewKey), dbContext);
 	    }
 	    
@@ -511,7 +510,10 @@ namespace dexih.operations
                             var customFunction = Hub.DexihCustomFunctions.SingleOrDefault(c => c.IsValid && c.Key == item.CustomFunctionKey);
                             if (customFunction == null)
                             {
-                                customFunction = await dbContext.DexihCustomFunctions.Include(c=>c.DexihCustomFunctionParameters).SingleOrDefaultAsync(c => c.Key == item.CustomFunctionKey && c.IsValid);
+                                customFunction = await dbContext.DexihCustomFunctions
+	                                .Include(c=>c.DexihCustomFunctionParameters)
+	                                .SingleOrDefaultAsync(c => c.Key == item.CustomFunctionKey && c.IsValid);
+                                
                                 Hub.DexihCustomFunctions.Add(customFunction);
                             }
                         }
@@ -582,6 +584,12 @@ namespace dexih.operations
 						if (customFunction == null)
 						{
 							customFunction = hub.DexihCustomFunctions.SingleOrDefault(c => c.IsValid && c.Key == item.CustomFunctionKey && c.IsValid);
+
+							if (customFunction == null)
+							{
+								throw new CacheManagerException($"The custom function with the key {item.CustomFunctionKey} was not found.");
+							}
+
 							Hub.DexihCustomFunctions.Add(customFunction);
 						}
 					}
@@ -638,6 +646,12 @@ namespace dexih.operations
             if(columnValidation.LookupColumnKey != null)
             {
                 var column = await dbContext.DexihTableColumns.SingleOrDefaultAsync(c => c.IsValid && c.Key == columnValidation.LookupColumnKey);
+
+                if (column == null)
+                {
+	                throw new CacheManagerException($"The load column validation dependencies failed as the column with the key {columnValidation.LookupColumnKey} was not found.");
+                }
+                
                 await AddTables(new[] { column.TableKey.Value }, dbContext);
             }
         }
@@ -659,6 +673,12 @@ namespace dexih.operations
                 if(connection == null)
                 {
                     connection = await dbContext.DexihConnections.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == connectionKey && c.IsValid);
+
+                    if (connection == null)
+                    {
+	                    throw new CacheManagerException($"The connection with the key {connectionKey} was not found.");
+                    }
+
                     Hub.DexihConnections.Add(connection);
                 }
 
@@ -808,6 +828,12 @@ namespace dexih.operations
 			    if(fileFormat == null)
 			    {
 				    fileFormat = hub.DexihFileFormats.SingleOrDefault(c => c.Key == fileFormatKey && c.IsValid);
+
+				    if (fileFormat == null)
+				    {
+					    throw new CacheManagerException($"The file format with the key {fileFormatKey} was not found.");
+				    }
+
 				    Hub.DexihFileFormats.Add(fileFormat);
 			    }
 		    }
@@ -821,6 +847,12 @@ namespace dexih.operations
 			    if(fileFormat == null)
 			    {
 				    fileFormat = await dbContext.DexihFileFormats.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == fileFormatKey && c.IsValid);
+				    
+				    if (fileFormat == null)
+				    {
+					    throw new CacheManagerException($"The file format with the key {fileFormatKey} was not found.");
+				    }
+				    
 				    Hub.DexihFileFormats.Add(fileFormat);
 			    }
 		    }
@@ -891,6 +923,11 @@ namespace dexih.operations
                 if(existingJob == null)
                 {
                     var job = await dbContext.DexihDatajobs.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == datajobKey && c.IsValid);
+                    if (job == null)
+                    {
+	                    throw new CacheManagerException($"The job with the key {datajobKey} was not found.");
+                    }
+                    
                     Hub.DexihDatajobs.Add(job);
 	                await LoadDatajobDependencies(job, true, dbContext);
                 }
@@ -905,6 +942,11 @@ namespace dexih.operations
 			    if(existingJob == null)
 			    {
 				    var job = hub.DexihDatajobs.SingleOrDefault(c => c.Key == datajobKey && c.IsValid);
+
+				    if (job == null)
+				    {
+					    throw new CacheManagerException($"The job with the key {datajobKey} was not found.");
+				    }
 				    Hub.DexihDatajobs.Add(job);
 				    LoadDatajobDependencies(job, hub);
 			    }
@@ -920,6 +962,12 @@ namespace dexih.operations
 			    if(columnValidation == null)
 			    {
 				    columnValidation = await dbContext.DexihColumnValidations.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == columnValidationKey && c.IsValid);
+				    
+				    if (columnValidation == null)
+				    {
+					    throw new CacheManagerException($"The column validation with the key {columnValidationKey} was not found.");
+				    }
+				    
 				    Hub.DexihColumnValidations.Add(columnValidation);
 				    await LoadColumnValidationDependencies(columnValidation, dbContext);
 			    }
@@ -934,6 +982,12 @@ namespace dexih.operations
 			    if(columnValidation == null)
 			    {
 				    columnValidation = hub.DexihColumnValidations.SingleOrDefault(c => c.Key == columnValidationKey && c.IsValid);
+
+				    if (columnValidation == null)
+				    {
+					    throw new CacheManagerException($"The column validation with the key {columnValidationKey} was not found.");
+				    }
+				    
 				    Hub.DexihColumnValidations.Add(columnValidation);
 				    LoadColumnValidationDependencies(columnValidation, hub);
 			    }
@@ -948,6 +1002,12 @@ namespace dexih.operations
                 if(customFunction == null)
                 {
                     customFunction = await dbContext.DexihCustomFunctions.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == customFunctionKey && c.IsValid);
+                    
+                    if (customFunction == null)
+                    {
+	                    throw new CacheManagerException($"The custom function with the key {customFunctionKey} was not found.");
+                    }
+                    
                     Hub.DexihCustomFunctions.Add(customFunction);
                 }
             }
@@ -961,6 +1021,12 @@ namespace dexih.operations
 			    if(customFunction == null)
 			    {
 				    customFunction = hub.DexihCustomFunctions.SingleOrDefault(c => c.Key == customFunctionKey && c.IsValid);
+
+				    if (customFunction == null)
+				    {
+					    throw new CacheManagerException($"The custom function with the key {customFunctionKey} was not found.");
+				    }
+				    
 				    Hub.DexihCustomFunctions.Add(customFunction);
 			    }
 		    }
@@ -974,6 +1040,12 @@ namespace dexih.operations
 			    if(view == null)
 			    {
 				    view = hub.DexihViews.SingleOrDefault(c => c.Key == viewKey && c.IsValid);
+
+				    if (view == null)
+				    {
+					    throw new CacheManagerException($"The view with the key {viewKey} was not found.");
+				    }
+				    
 				    Hub.DexihViews.Add(view);
 				    
 				    LoadViewDependencies(view, hub);
@@ -989,6 +1061,12 @@ namespace dexih.operations
 			    if(view == null)
 			    {
 				    view = await dbContext.DexihViews.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == viewKey && c.IsValid);
+				    
+				    if (view == null)
+				    {
+					    throw new CacheManagerException($"The view with the key {viewKey} was not found.");
+				    }
+				    
 				    await LoadViewDependencies(view, dbContext);
 				    Hub.DexihViews.Add(view);
 			    }
@@ -1003,6 +1081,12 @@ namespace dexih.operations
 			    if(dashboard == null)
 			    {
 				    dashboard = hub.DexihDashboards.SingleOrDefault(c => c.Key == dashboardKey && c.IsValid);
+
+				    if (dashboard == null)
+				    {
+					    throw new CacheManagerException($"The dashboard with the key {dashboardKey} was not found.");
+				    }
+				    
 				    Hub.DexihDashboards.Add(dashboard);
 
 				    LoadDashboardDependencies(dashboard, hub);
@@ -1018,6 +1102,12 @@ namespace dexih.operations
 			    if(dashboard == null)
 			    {
 				    dashboard = await dbContext.DexihDashboards.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == dashboardKey && c.IsValid);
+				    
+				    if (dashboard == null)
+				    {
+					    throw new CacheManagerException($"The dashboard with the key {dashboardKey} was not found.");
+				    }
+				    
 				    Hub.DexihDashboards.Add(dashboard);
 				    await LoadDashboardDependencies(dashboard, dbContext);
 			    }
@@ -1051,6 +1141,12 @@ namespace dexih.operations
 			    if(listOfValues == null)
 			    {
 				    listOfValues = await dbContext.DexihListOfValues.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == key && c.IsValid);
+				    
+				    if (listOfValues == null)
+				    {
+					    throw new CacheManagerException($"The list of values with the key {key} was not found.");
+				    }
+				    
 				    await LoadListOfValuesDependencies(listOfValues, dbContext);
 				    Hub.DexihListOfValues.Add(listOfValues);
 			    }
@@ -1065,6 +1161,12 @@ namespace dexih.operations
 			    if(api == null)
 			    {
 				    api = hub.DexihApis.SingleOrDefault(c => c.Key == apiKey && c.IsValid);
+				    
+				    if (api == null)
+				    {
+					    throw new CacheManagerException($"The api with the key {apiKey} was not found.");
+				    }
+
 				    Hub.DexihApis.Add(api);
 				    
 				    if(api.SourceTableKey != null && api.SourceTableKey > 0) AddTables(new [] {api.SourceTableKey.Value}, hub);
@@ -1081,6 +1183,12 @@ namespace dexih.operations
 			    if(api == null)
 			    {
 				    api = await dbContext.DexihApis.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == apiKey && c.IsValid);
+
+				    if (api == null)
+				    {
+					    throw new CacheManagerException($"The api with the key {apiKey} was not found.");
+				    }
+				    
 				    Hub.DexihApis.Add(api);
 				    
 				    if(api.SourceTableKey != null) await AddTables(new [] {api.SourceTableKey.Value}, dbContext);
@@ -1325,6 +1433,11 @@ namespace dexih.operations
 		    var datalinkTest = await dbContext.DexihDatalinkTests.Include(c => c.DexihDatalinkTestSteps)
 			    .ThenInclude(d => d.DexihDatalinkTestTables).SingleOrDefaultAsync(c=>c.Key == datalinkTestKey);
 
+		    if (datalinkTest == null)
+		    {
+			    throw new CacheManagerException($"The datalink test with the key {datalinkTestKey} was not found.");
+		    }
+		    
 		    return datalinkTest;
 	    }
     }

@@ -253,23 +253,15 @@ namespace dexih.repository
 
                 if (Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
                 {
-                    urls.Add(new DownloadUrl()
-                    {
-                        Url =
-                            $"https://{localIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(localPort)}",
-                        DownloadUrlType = EDownloadUrlType.Direct,
-                        IsEncrypted = true
-                    });
+                    urls.Add(new DownloadUrl(
+                        $"https://{localIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(localPort)}",
+                        EDownloadUrlType.Direct,
+                        true));
                 }
 
                 if (!Network.EnforceHttps)
                 {
-                    urls.Add(new DownloadUrl()
-                    {
-                        Url = $"http://{localIpAddress}:{localPort}",
-                        DownloadUrlType = EDownloadUrlType.Direct,
-                        IsEncrypted = false
-                    });
+                    urls.Add(new DownloadUrl($"http://{localIpAddress}:{localPort}", EDownloadUrlType.Direct, false));
                 }
             }
 
@@ -280,35 +272,22 @@ namespace dexih.repository
                     bool encrypted = Network.ExternalDownloadUrl.StartsWith("https:://");
                     if (!Network.EnforceHttps || encrypted)
                     {
-                        urls.Add(new DownloadUrl()
-                        {
-                            Url = Network.ExternalDownloadUrl,
-                            DownloadUrlType = EDownloadUrlType.Direct,
-                            IsEncrypted = encrypted
-                        });
+                        urls.Add(new DownloadUrl(Network.ExternalDownloadUrl, EDownloadUrlType.Direct, encrypted));
                     }
                 }
                 else
                 {
                     if (Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
                     {
-                        urls.Add(new DownloadUrl()
-                        {
-                            Url =
-                                $"https://{Runtime.ExternalIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(Network.DownloadPort ?? 33944)}",
-                            DownloadUrlType = EDownloadUrlType.Direct,
-                            IsEncrypted = true
-                        });
+                        urls.Add(new DownloadUrl(
+                            $"https://{Runtime.ExternalIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(Network.DownloadPort ?? 33944)}",
+                            EDownloadUrlType.Direct, true));
                     }
 
                     if (!Network.EnforceHttps)
                     {
-                        urls.Add(new DownloadUrl()
-                        {
-                            Url = $"http://{Runtime.ExternalIpAddress}:{Network.DownloadPort ?? 33944}",
-                            DownloadUrlType = EDownloadUrlType.Direct,
-                            IsEncrypted = false
-                        });
+                        urls.Add(new DownloadUrl($"http://{Runtime.ExternalIpAddress}:{Network.DownloadPort ?? 33944}",
+                            EDownloadUrlType.Direct, false));
                     }
                 }
             }
@@ -321,22 +300,12 @@ namespace dexih.repository
                 {
                     if (Network.EnforceHttps && proxy.Substring(0, 5) == "https")
                     {
-                        urls.Add(new DownloadUrl()
-                        {
-                            Url = proxy,
-                            DownloadUrlType = EDownloadUrlType.Proxy,
-                            IsEncrypted = true
-                        });
+                        urls.Add(new DownloadUrl(proxy, EDownloadUrlType.Proxy, true));
                     }
 
                     if (!Network.EnforceHttps)
                     {
-                        urls.Add(new DownloadUrl()
-                        {
-                            Url = proxy,
-                            DownloadUrlType = EDownloadUrlType.Proxy,
-                            IsEncrypted = false
-                        });
+                        urls.Add(new DownloadUrl(proxy, EDownloadUrlType.Proxy, false));
                     }
                 }
             }
