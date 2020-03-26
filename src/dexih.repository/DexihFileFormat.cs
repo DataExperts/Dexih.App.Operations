@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using CsvHelper.Configuration;
 using dexih.transforms.File;
 using Dexih.Utils.CopyProperties;
 
@@ -88,8 +90,75 @@ namespace dexih.repository
         /// <returns></returns>
         public FileConfiguration GetFileFormat()
         {
-            var fileFormat = new FileConfiguration();
+            var fileFormat = new FileConfiguration()
+            {
+                Comment = Comment,
+                Delimiter = Delimiter,
+                Quote = Quote,
+                AllowComments = AllowComments,
+                BufferSize = BufferSize,
+                IgnoreQuotes = IgnoreQuotes,
+                HasHeaderRecord = HasHeaderRecord,
+                MatchHeaderRecord = MatchHeaderRecord,
+                SkipHeaderRows = SkipHeaderRows,
+                IgnoreBlankLines = SkipEmptyRecords,
+                DetectColumnCountChanges = DetectColumnCountChanges,
+                SetWhiteSpaceCellsToNull = SetWhiteSpaceCellsToNull,
+                TrimOptions = TrimFields ? TrimOptions.Trim : TrimOptions.None,
+            };
+
+            if (IgnoreHeaderWhiteSpace || TrimHeaders)
+            {
+                fileFormat.PrepareHeaderForMatch = (header, i) =>
+                {
+                    if (string.IsNullOrEmpty(header))
+                    {
+                        return null;
+                    }
+                    string value = header;
+                    if (IgnoreHeaderWhiteSpace)
+                    {
+                        value = Regex.Replace(value, @"\s", string.Empty);
+                    }
+
+                    if (TrimHeaders)
+                    {
+                        value = value.Trim();
+                    }
+                    return Regex.Replace(header, @"\s", string.Empty);
+                };
+            }
+
+            if (IgnoreReadingExceptions)
+            {
+                fileFormat.ReadingExceptionOccurred = exception => { return true; };
+            }
+
+            if (QuoteAllFields)
+            {
+                fileFormat.ShouldQuote = (s, context) => true;
+            }
+
+            if (QuoteNoFields)
+            {
+                fileFormat.ShouldQuote = (s, context) => false;
+            }
+
+            if (WillThrowOnMissingField)
+            {
+                fileFormat.MissingFieldFound = (strings, i, arg3) =>
+                {
+                    throw new RepositoryException($"The field {arg3.Field} was missing");
+                };
+            }
+
             this.CopyProperties(fileFormat, false);
+
+            if (TrimFields)
+            {
+                fileFormat.TrimOptions = TrimOptions.Trim;
+            }
+
             return fileFormat;
         }
     }
