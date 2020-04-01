@@ -73,12 +73,10 @@ namespace dexih.operations
 
 		#region User Functions
 
-
-
-		public Task<ApplicationUser> GetUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
+		public Task<ApplicationUser> GetUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken, bool throwNullUser = true)
 		{
 			var id = _userManager.GetUserId(principal);
-			return GetUserAsync(id, cancellationToken);
+			return GetUserAsync(id, cancellationToken, throwNullUser);
 		}
 
 		public Task<ApplicationUser> FindByEmailAsync(string email)
@@ -96,12 +94,19 @@ namespace dexih.operations
 			else user.UserRole = EUserRole.None;
 		}
 		
-		public async Task<ApplicationUser> GetUserAsync(string id, CancellationToken cancellationToken)
+		public async Task<ApplicationUser> GetUserAsync(string id, CancellationToken cancellationToken, bool throwNullUser = true)
 		{
 			var user = await _userManager.FindByIdAsync(id);
 			if (user == null)
 			{
-				throw new RepositoryManagerException($"The user could not be found.");
+				if (throwNullUser)
+				{
+					throw new RepositoryManagerException($"The user could not be found.");
+				}
+				else
+				{
+					return null;
+				}
 			}
 
 			await AddUserRoleAsync(user, cancellationToken);
@@ -608,7 +613,11 @@ namespace dexih.operations
 		public async Task<DexihHub[]> GetSharedHubs(ApplicationUser user, CancellationToken cancellationToken)
 		{
 			// determine the hubs which can be shared data can be accessed from
-			if (user.IsAdmin)
+			if (user == null)
+			{
+				return await DbContext.DexihHubs.Where(c => c.SharedAccess == ESharedAccess.Public && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
+			}
+			else if (user.IsAdmin)
 			{
 				// admin user has access to all hubs
 				return await DbContext.DexihHubs.Where(c => c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
@@ -649,7 +658,12 @@ namespace dexih.operations
 		public async Task<bool> CanAccessSharedObjects(ApplicationUser user, long hubKey, CancellationToken cancellationToken)
 		{
 			// determine the hubs which can be shared data can be accessed from
-			if (user.IsAdmin)
+			if (user == null)
+			{
+				var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => c.HubKey == hubKey && c.SharedAccess == ESharedAccess.Public && c.IsValid, cancellationToken: cancellationToken);
+				return hub != null;
+			}
+			else if (user.IsAdmin)
 			{
 				return true;
 			}

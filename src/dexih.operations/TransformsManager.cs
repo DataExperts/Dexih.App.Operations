@@ -223,7 +223,7 @@ namespace dexih.operations
                             throw new TransformManagerException($"The source datalink with the key {hubDatalinkTable.SourceDatalinkKey} was not found");
                         }
 
-                        (sourceTransform, sourceTable) = CreateRunPlan(hub, datalink, inputColumns, null, false, transformWriterOptions);
+                        (sourceTransform, sourceTable) = CreateRunPlan(hub, datalink, inputColumns, null, false, null);
                         sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
                         break;
                     case ESourceType.Table:

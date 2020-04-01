@@ -250,6 +250,16 @@ namespace dexih.repository
                         case ETransformItemType.BuiltInFunction:
                         case ETransformItemType.CustomFunction:
                             var func = item.CreateFunctionMethod(hub, globalSettings, false, logger);
+                            func.function.FunctionType = TransformType switch
+                            {
+                                ETransformType.Aggregate => EFunctionType.Aggregate,
+                                ETransformType.Series => EFunctionType.Series,
+                                ETransformType.Filter => EFunctionType.Condition,
+                                ETransformType.Group => EFunctionType.Aggregate,
+                                ETransformType.Rows => EFunctionType.Rows,
+                                _ => EFunctionType.Map
+                            };
+
                             if (TransformType == ETransformType.Validation)
                             {
                                 mappings.Add(new MapValidation(func.function, func.parameters));
@@ -261,12 +271,26 @@ namespace dexih.repository
                             
                             break;
                         case ETransformItemType.Sort:
+                            if (sourceColumn == null)
+                            {
+                                throw new RepositoryException($"The sort item in transform {Name} does not have a column specified.");
+                            }
+                            
                             mappings.Add(new MapSort(sourceColumn, item.SortDirection ?? ESortDirection.Ascending));
                             break;
                         case ETransformItemType.Column:
                             mappings.Add(new MapGroup(sourceColumn));
                             break;
                         case ETransformItemType.Series:
+                            if (sourceColumn == null)
+                            {
+                                throw new RepositoryException($"The series transform {Name} does not have a series column specified.");
+                            }
+
+                            if (item.SeriesGrain == null)
+                            {
+                                throw new RepositoryException($"The series transform {Name} does not have a series grain specified.");
+                            }
                             mappings.Add(new MapSeries(
                                 sourceColumn, 
                                 item.SeriesGrain??ESeriesGrain.Day, 

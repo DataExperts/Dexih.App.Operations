@@ -351,6 +351,8 @@ namespace dexih.repository
 							function.ObjectReference = Activator.CreateInstance(mappingFunction);
 							function.FunctionMethod = new TransformMethod(mappingFunction.GetMethod("CustomFunction"));
 							function.ResetMethod = new TransformMethod(mappingFunction.GetMethod("Reset"));
+							
+							function.FunctionType = EFunctionType.Aggregate;
 							// function.ReturnType = ReturnType;
 						}
 					}
@@ -522,7 +524,8 @@ $FunctionCode
             }
             else
             {
-	            code.Replace("$FunctionReturn", GetFunctionDataType(parameters.ReturnParameters[0].DataType));    
+	            var parameter = DexihFunctionParameters.First(c => c.Direction == EParameterDirection.ReturnValue);
+	            code.Replace("$FunctionReturn", GetFunctionDataType(parameter.DataType) + (parameter.AllowNull ? "?" : ""));    
             }
             
             if (createConsoleSample)
