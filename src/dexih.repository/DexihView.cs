@@ -21,13 +21,23 @@ namespace dexih.repository
         [DataMember(Order = 7)] 
         public EViewType ViewType { get; set; } = EViewType.Table;
 
+        private long? _sourceTableKey;
+        private long? _sourceDatalinkKey;
+
         [DataMember(Order = 8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long? SourceTableKey { get; set; }
+        public long? SourceTableKey {
+            get => SourceType == EDataObjectType.Table ? _sourceTableKey : null;
+            set => _sourceTableKey = value;
+        }
 
         [DataMember(Order = 9)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long? SourceDatalinkKey { get; set; }
+        public long? SourceDatalinkKey
+        {
+            get => SourceType == EDataObjectType.Datalink ? _sourceDatalinkKey : null;
+            set => _sourceDatalinkKey = value;
+        }
 
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihTable SourceTable { get; set; }

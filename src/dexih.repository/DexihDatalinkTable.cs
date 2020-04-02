@@ -20,16 +20,24 @@ namespace dexih.repository
             DexihDatalinkColumns = new HashSet<DexihDatalinkColumn>();
             DexihDatalinkTransforms = new HashSet<DexihDatalinkTransform>();
         }
-
-
+        
+        private long? _sourceTableKey;
+        private long? _sourceDatalinkKey;
 
         [DataMember(Order = 7)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-	    public long? SourceTableKey { get; set; }
+	    public long? SourceTableKey {
+	        get => SourceType == ESourceType.Table ? _sourceTableKey : null;
+	        set => _sourceTableKey = value;
+        }
 
         [DataMember(Order = 8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-	    public long? SourceDatalinkKey { get; set; }
+        public long? SourceDatalinkKey
+        {
+	        get => SourceType == ESourceType.Datalink ? _sourceDatalinkKey : null;
+	        set => _sourceDatalinkKey = value;
+        }
 
         [DataMember(Order = 9)]
         public int? RowsStartAt { get; set; } = 1;

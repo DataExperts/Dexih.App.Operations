@@ -20,13 +20,23 @@ namespace dexih.repository
         [DataMember(Order = 7)]
         public ESourceType SourceType { get; set; }
 
+        private long? _sourceTableKey;
+        private long? _sourceDatalinkKey;
+
         [DataMember(Order = 8)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long? SourceTableKey { get; set; }
+        public long? SourceTableKey {
+            get => SourceType == ESourceType.Table ? _sourceTableKey : null;
+            set => _sourceTableKey = value;
+        }
 
         [DataMember(Order = 9)]
         // [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long? SourceDatalinkKey { get; set; }
+        public long? SourceDatalinkKey
+        {
+            get => SourceType == ESourceType.Datalink ? _sourceDatalinkKey : null;
+            set => _sourceDatalinkKey = value;
+        }
 
         [DataMember(Order = 10)]
         public bool AutoStart { get; set; }

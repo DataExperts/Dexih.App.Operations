@@ -12,6 +12,7 @@ using dexih.transforms.Mapping;
 using Dexih.Utils.DataType;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 
 namespace dexih.repository
@@ -186,18 +187,13 @@ namespace dexih.repository
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.SourceType).IsRequired().HasColumnName("source_type").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ESourceType) Enum.Parse(typeof(ESourceType), v));
+                    .HasConversion(new EnumToStringConverter<ESourceType>());
                 entity.Property(e => e.LogDirectory).HasColumnName("log_directory").HasMaxLength(250);
                 entity.Property(e => e.AutoStart).HasColumnName("auto_start");
                 entity.Property(e => e.CacheQueries).IsRequired().HasColumnName("cache_queries");
                 entity.Property(e => e.CacheResetInterval).HasColumnName("cache_reset_interval");
-                
-                entity.Property(e => e.SelectQuery).HasColumnName("select_query")
-                    .HasConversion(
-                        v => v == null ? null : v.Serialize(),
-                        v => v == null ? null : v.Deserialize<SelectQuery>(true));
+
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
 
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
 
@@ -259,22 +255,16 @@ namespace dexih.repository
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
 
                 entity.Property(e => e.CleanAction).HasColumnName("clean_action").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ECleanAction) Enum.Parse(typeof(ECleanAction), v));
+                    .HasConversion(new EnumToStringConverter<ECleanAction>());
                 
                 entity.Property(e => e.InvalidAction).HasColumnName("invalid_action").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EInvalidAction) Enum.Parse(typeof(EInvalidAction), v));
+                    .HasConversion(new EnumToStringConverter<EInvalidAction>());
                 
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
                 
                 entity.Property(e => e.CleanValue).HasColumnName("clean_value").HasMaxLength(250);
 
@@ -330,9 +320,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
                 entity.Property(e => e.Purpose).HasColumnName("purpose").HasMaxLength(10)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EConnectionPurpose) Enum.Parse(typeof(EConnectionPurpose), v));
+                    .HasConversion(new EnumToStringConverter<EConnectionPurpose>());
 
                 entity.Property(e => e.ConnectionAssemblyName).HasColumnName("connection_assembly_name");
                 entity.Property(e => e.ConnectionClassName).HasColumnName("connection_class_name");
@@ -383,19 +371,14 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
-                entity.Property(e => e.GenericTypeDefault).HasColumnName("generic_type_default").HasMaxLength(20).HasConversion(
-                    v => v.ToString(),
-                    v => (ETypeCode)Enum.Parse(typeof(ETypeCode), v));
+                entity.Property(e => e.GenericTypeDefault).HasColumnName("generic_type_default").HasMaxLength(20)
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
 
                 entity.Property(e => e.FunctionType).HasColumnName("function_type").HasMaxLength(30)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EFunctionType) Enum.Parse(typeof(EFunctionType), v));
+                    .HasConversion(new EnumToStringConverter<EFunctionType>());
                 
                 entity.Property(e => e.ReturnType).HasColumnName("return_type").HasMaxLength(30)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -421,15 +404,11 @@ namespace dexih.repository
                 // entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(250);
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
                 entity.Property(e => e.AllowNull).HasColumnName("allow_null");
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EParameterDirection) Enum.Parse(typeof(EParameterDirection), v));
+                    .HasConversion(new EnumToStringConverter<EParameterDirection>());
 
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.Rank).HasColumnName("rank");
@@ -592,9 +571,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
                 entity.Property(e => e.FailAction).HasColumnName("fail_action").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EFailAction) Enum.Parse(typeof(EFailAction), v));
+                    .HasConversion(new EnumToStringConverter<EFailAction>());
 
                 entity.Property(e => e.AuditConnectionKey).HasColumnName("audit_connection_key");
                 // entity.Property(e => e.ExternalTrigger).HasColumnName("external_trigger");
@@ -665,14 +642,10 @@ namespace dexih.repository
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
 
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EDeltaType) Enum.Parse(typeof(EDeltaType), v));
+                    .HasConversion(new EnumToStringConverter<EDeltaType>());
                 
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
@@ -687,9 +660,7 @@ namespace dexih.repository
                 entity.Property(e => e.Precision).HasColumnName("precision");
                 entity.Property(e => e.Scale).HasColumnName("scale");
                 entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ESecurityFlag) Enum.Parse(typeof(ESecurityFlag), v));
+                    .HasConversion(new EnumToStringConverter<ESecurityFlag>());
 
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
                 entity.Property(e => e.Rank).HasColumnName("rank");
@@ -726,9 +697,7 @@ namespace dexih.repository
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
                 entity.Property(e => e.SourceType).HasColumnName("source_type").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ESourceType) Enum.Parse(typeof(ESourceType), v));
+                    .HasConversion(new EnumToStringConverter<ESourceType>());
 
                 entity.Property(e => e.RowsStartAt).HasColumnName("rows_start_at");
                 entity.Property(e => e.RowsEndAt).HasColumnName("rows_end_at");
@@ -934,13 +903,9 @@ namespace dexih.repository
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EDeltaType) Enum.Parse(typeof(EDeltaType), v));
+                    .HasConversion(new EnumToStringConverter<EDeltaType>());
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
@@ -954,9 +919,7 @@ namespace dexih.repository
                 entity.Property(e => e.Precision).HasColumnName("precision");
                 entity.Property(e => e.Scale).HasColumnName("scale");
                 entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ESecurityFlag) Enum.Parse(typeof(ESecurityFlag), v));
+                    .HasConversion(new EnumToStringConverter<ESecurityFlag>());
 
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
                 entity.Property(e => e.Rank).HasColumnName("rank");
@@ -1096,9 +1059,7 @@ namespace dexih.repository
                 entity.Property(e => e.TestSchema).HasColumnName("test_schema").HasMaxLength(50);
 
                 entity.Property(e => e.Action).HasColumnName("action").HasMaxLength(20)
-                    .HasConversion(
-                    v => v.ToString(),
-                    v => (ETestTableAction) Enum.Parse(typeof(ETestTableAction), v));
+                    .HasConversion(new EnumToStringConverter<ETestTableAction>());
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1126,9 +1087,7 @@ namespace dexih.repository
                 entity.Property(e => e.FunctionCode).HasColumnName("function_code").HasMaxLength(8000);
                 entity.Property(e => e.FunctionResultCode).HasColumnName("function_result_code").HasMaxLength(8000);
                 entity.Property(e => e.InvalidAction).HasColumnName("invalid_action").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EInvalidAction) Enum.Parse(typeof(EInvalidAction), v));
+                    .HasConversion(new EnumToStringConverter<EInvalidAction>());
 
                 entity.Property(e => e.JoinDatalinkColumnKey).HasColumnName("join_datalink_column_key");
                 entity.Property(e => e.FilterDatalinkColumnKey).HasColumnName("filter_datalink_column_key");
@@ -1136,33 +1095,19 @@ namespace dexih.repository
                 entity.Property(e => e.JoinValue).HasColumnName("join_value").HasMaxLength(1000);
                 entity.Property(e => e.FilterValue).HasColumnName("filter_value").HasMaxLength(1000);
                 entity.Property(e => e.FilterCompare).HasColumnName("filter_compare").HasMaxLength(50)
-                    .HasConversion(
-                        v => v == null ? null : v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? null : (ECompare?) Enum.Parse(typeof(ECompare), v));
+                    .HasConversion(new EnumToStringConverter<ECompare>());
                 entity.Property(e => e.Aggregate).HasColumnName("aggregate").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? EAggregate.Sum : (EAggregate) Enum.Parse(typeof(EAggregate), v));
+                    .HasConversion(new EnumToStringConverter<EAggregate>());
                 entity.Property(e => e.OnError).HasColumnName("on_error").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? EErrorAction.Abend : (EErrorAction) Enum.Parse(typeof(EErrorAction), v));
+                    .HasConversion(new EnumToStringConverter<EErrorAction>());
                 entity.Property(e => e.OnNull).HasColumnName("on_null").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? EErrorAction.Abend : (EErrorAction) Enum.Parse(typeof(EErrorAction), v));
+                    .HasConversion(new EnumToStringConverter<EErrorAction>());
                 entity.Property(e => e.SortDirection).HasColumnName("sort_direction").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => String.IsNullOrEmpty(v) ? ESortDirection.Descending : (ESortDirection) Enum.Parse(typeof(ESortDirection), v));
+                    .HasConversion(new EnumToStringConverter<ESortDirection>());
                 entity.Property(e => e.SeriesGrain).HasColumnName("series_grain").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ESeriesGrain) Enum.Parse(typeof(ESeriesGrain), v));
+                    .HasConversion(new EnumToStringConverter<ESeriesGrain>());
                 entity.Property(e => e.TransformItemType).HasColumnName("transform_item_type").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETransformItemType) Enum.Parse(typeof(ETransformItemType), v));
+                    .HasConversion(new EnumToStringConverter<ETransformItemType>());
 
                 entity.Property(e => e.NotCondition).HasColumnName("not_condition");
                 entity.Property(e => e.Position).HasColumnName("position");
@@ -1174,16 +1119,11 @@ namespace dexih.repository
                 entity.Property(e => e.FunctionMethodName).HasColumnName("function_method_name");
                 entity.Property(e => e.FunctionAssemblyName).HasColumnName("function_assembly_name");
                 entity.Property(e => e.FunctionCaching).HasColumnName("function_caching").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EFunctionCaching) Enum.Parse(typeof(EFunctionCaching), v));
+                    .HasConversion(new EnumToStringConverter<EFunctionCaching>());
 
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.GenericTypeCode).HasColumnName("generic_type_code").HasMaxLength(20)
-                .HasConversion(
-                    v => v == null ? null : v.ToString(),
-                    v => string.IsNullOrEmpty(v) ? (ETypeCode?) null : Enum.Parse<ETypeCode>(v)
-                );
+                .HasConversion(new EnumToStringConverter<ETypeCode>());
 
                 entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
                 entity.Property(e => e.TargetDatalinkColumnKey).HasColumnName("target_datalink_column_key");
@@ -1243,9 +1183,7 @@ namespace dexih.repository
                 entity.Property(e => e.Position).HasColumnName("position");
 
                 entity.Property(e => e.TransformType).HasColumnName("transform_type").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETransformType) Enum.Parse(typeof(ETransformType), v));
+                    .HasConversion(new EnumToStringConverter<ETransformType>());
 
                 entity.Property(e => e.TransformClassName).HasColumnName("transform_class_name").HasMaxLength(250);
                 entity.Property(e => e.TransformAssemblyName).HasColumnName("transform_assembly_name").HasMaxLength(250);
@@ -1260,14 +1198,10 @@ namespace dexih.repository
                 entity.Property(e => e.NodeDatalinkColumnKey).HasColumnName("node_datalink_column_key");
 
                 entity.Property(e => e.JoinDuplicateStrategy).HasColumnName("join_duplicate_strategy").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EDuplicateStrategy) Enum.Parse(typeof(EDuplicateStrategy), v));
+                    .HasConversion(new EnumToStringConverter<EDuplicateStrategy>());
 
                 entity.Property(e => e.JoinNotFoundStrategy).HasColumnName("join_not_found_strategy").HasMaxLength(50)
-                .HasConversion(
-                    v => v.ToString(),
-                    v => (EJoinNotFoundStrategy)Enum.Parse(typeof(EJoinNotFoundStrategy), v));
+                .HasConversion(new EnumToStringConverter<EJoinNotFoundStrategy>());
 
                 entity.Property(e => e.JoinSortDatalinkColumnKey).HasColumnName("join_sort_column_key");
                 
@@ -1319,9 +1253,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
                 entity.Property(e => e.DatalinkType).HasColumnName("datalink_type").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EDatalinkType) Enum.Parse(typeof(EDatalinkType), v));
+                    .HasConversion(new EnumToStringConverter<EDatalinkType>());
                 
                 entity.Property(e => e.SourceDatalinkTableKey).HasColumnName("source_datalink_table_key");
                 // entity.Property(e => e.TargetTableKey).HasColumnName("target_table_key");
@@ -1335,14 +1267,10 @@ namespace dexih.repository
                 entity.Property(e => e.RowsPerProgress).HasColumnName("rows_per_progress");
 
                 entity.Property(e => e.LoadStrategy).HasColumnName("load_strategy").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (TransformWriterTarget.ETransformWriterMethod) Enum.Parse(typeof(TransformWriterTarget.ETransformWriterMethod), v));
+                    .HasConversion(new EnumToStringConverter<TransformWriterTarget.ETransformWriterMethod>());
                 
                 entity.Property(e => e.UpdateStrategy).HasColumnName("update_strategy").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EUpdateStrategy) Enum.Parse(typeof(EUpdateStrategy), v));
+                    .HasConversion(new EnumToStringConverter<EUpdateStrategy>());
                 
                 entity.Property(e => e.ProfileTableName).HasColumnName("profile_table_name");
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
@@ -1433,18 +1361,14 @@ namespace dexih.repository
                 entity.Property(e => e.DatalinkTransformItemKey).HasColumnName("datalink_transform_item_key");
                 
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
 
                 entity.Property(e => e.AllowNull).HasColumnName("allow_null");
 
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
 
                 entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EParameterDirection) Enum.Parse(typeof(EParameterDirection), v));
+                    .HasConversion(new EnumToStringConverter<EParameterDirection>());
                 
                 entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
                 entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(1024);
@@ -1484,16 +1408,12 @@ namespace dexih.repository
                 entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
                 
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.AllowNull).HasColumnName("allow_null");
 
                 entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EParameterDirection) Enum.Parse(typeof(EParameterDirection), v));
+                    .HasConversion(new EnumToStringConverter<EParameterDirection>());
                 
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.Rank).HasColumnName("rank");
@@ -1579,10 +1499,7 @@ namespace dexih.repository
                 entity.Property(e => e.UserId).HasMaxLength(450);
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Permission).HasColumnName("permission").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EPermission) Enum.Parse(typeof(EPermission), v));
-
+                    .HasConversion(new EnumToStringConverter<EPermission>());
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
 				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1610,9 +1527,7 @@ namespace dexih.repository
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
                 entity.Property(e => e.EncryptionKey).HasColumnName("encryption_key").HasMaxLength(255);
                 entity.Property(e => e.SharedAccess).HasColumnName("shared_access").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ESharedAccess) Enum.Parse(typeof(ESharedAccess), v));
+                    .HasConversion(new EnumToStringConverter<ESharedAccess>());
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
@@ -1716,13 +1631,9 @@ namespace dexih.repository
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.ColumnValidationKey).HasColumnName("column_validation_key");
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
                 entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EDeltaType) Enum.Parse(typeof(EDeltaType), v));
+                    .HasConversion(new EnumToStringConverter<EDeltaType>());
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
                 entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
@@ -1741,9 +1652,7 @@ namespace dexih.repository
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
                 entity.Property(e => e.Rank).HasColumnName("rank");
                 entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ESecurityFlag) Enum.Parse(typeof(ESecurityFlag), v));
+                    .HasConversion(new EnumToStringConverter<ESecurityFlag>());
                 
                 entity.Property(e => e.TableKey).HasColumnName("table_key");
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
@@ -1792,9 +1701,7 @@ namespace dexih.repository
                 entity.Property(e => e.RejectedTableName).HasColumnName("rejected_table_name").HasMaxLength(250);
                 
                 entity.Property(e => e.TableType).HasColumnName("table_type").HasMaxLength(10)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (Table.ETableType) Enum.Parse(typeof(Table.ETableType), v));
+                    .HasConversion(new EnumToStringConverter<Table.ETableType>());
 
                 // entity.Property(e => e.UseQuery).HasColumnName("use_query");
                 entity.Property(e => e.QueryString).HasColumnName("query_string");
@@ -1813,9 +1720,7 @@ namespace dexih.repository
                 entity.Property(e => e.RestfulUri).HasColumnName("restful_uri").HasMaxLength(2000);
                 entity.Property(e => e.RowPath).HasColumnName("row_path").HasMaxLength(2000);
                 entity.Property(e => e.FormatType).HasColumnName("format_type").HasMaxLength(10)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (ETypeCode) Enum.Parse(typeof(ETypeCode), v));
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
 
                 entity.Property(e => e.IsVersioned).HasColumnName("is_versioned");
                 entity.Property(e => e.SourceConnectionName).HasColumnName("source_connection_name").HasMaxLength(250);
@@ -1890,31 +1795,18 @@ namespace dexih.repository
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description");
                 entity.Property(e => e.ViewType).IsRequired().HasColumnName("view_type").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EViewType) Enum.Parse(typeof(EViewType), v));
+                    .HasConversion(new EnumToStringConverter<EViewType>());
                 entity.Property(e => e.SourceType).IsRequired().HasColumnName("source_type").HasMaxLength(20)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (EDataObjectType) Enum.Parse(typeof(EDataObjectType), v));
+                    .HasConversion(new EnumToStringConverter<EDataObjectType>());
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
 
-                entity.Property(e => e.SelectQuery).HasColumnName("select_query")
-                    .HasConversion(
-                        v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<SelectQuery>(v, true));
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
                 
-                entity.Property(e => e.ChartConfig).HasColumnName("chart_config")
-                    .HasConversion(
-                        v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<ChartConfig>(v, true));
+                entity.Property(e => e.ChartConfig).HasColumnName("chart_config").HasJsonConversion<ChartConfig>();
                 
-                entity.Property(e => e.InputValues).HasColumnName("input_values")
-                    .HasConversion(
-                        v => v == null ? null : JsonExtensions.Serialize(v),
-                        v => v == null ? null : JsonExtensions.Deserialize<InputColumn[]>(v, true));
+                entity.Property(e => e.InputValues).HasColumnName("input_values").HasJsonConversion<InputColumn[]>();
 
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
 
@@ -1993,10 +1885,7 @@ namespace dexih.repository
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
 
-                entity.Property(e => e.SelectQuery).HasColumnName("select_query")
-                    .HasConversion(
-                        v => v == null ? null : v.Serialize(),
-                        v => v == null ? null : v.Deserialize<SelectQuery>(true));
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
 
                 entity.Property(e => e.KeyColumn).HasColumnName("key_column").HasMaxLength(50);
                 entity.Property(e => e.NameColumn).HasColumnName("name_column").HasMaxLength(50);
@@ -2004,10 +1893,7 @@ namespace dexih.repository
                 entity.Property(e => e.Cache).HasColumnName("cache");
                 entity.Property(e => e.CacheSeconds).HasColumnName("cache_seconds");
 
-                entity.Property(e => e.StaticData).HasColumnName("static_data")
-                    .HasConversion(
-                        v => v == null ? null : v.Serialize(),
-                        v => v == null ? null : v.Deserialize<ICollection<ListOfValuesItem>>(true));
+                entity.Property(e => e.StaticData).HasColumnName("static_data").HasJsonConversion<ICollection<ListOfValuesItem>>();
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");
                 entity.Property(e => e.UpdateDate).HasColumnName("update_date");
