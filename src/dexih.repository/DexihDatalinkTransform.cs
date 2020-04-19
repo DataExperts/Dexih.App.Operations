@@ -84,7 +84,7 @@ namespace dexih.repository
 
         public override void ResetKeys()
         {
-            Key = 0;
+            base.ResetKeys();
             
             JoinDatalinkTable?.ResetKeys();
             JoinSortDatalinkColumn?.ResetKeys();

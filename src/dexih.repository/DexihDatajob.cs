@@ -54,7 +54,7 @@ namespace dexih.repository
 
         public override void ResetKeys()
         {
-            Key = 0;
+            base.ResetKeys();
             
             foreach (var parameter in Parameters)
             {

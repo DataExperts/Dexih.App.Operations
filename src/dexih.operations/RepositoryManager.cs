@@ -777,6 +777,50 @@ namespace dexih.operations
 		}
 
 		/// <summary>
+		/// Returns the object based on the objectType and key.
+		/// </summary>
+		/// <param name="sharedObjectType"></param>
+		/// <param name="key"></param>
+		/// <returns>The sharedObject, or null if not found</returns>
+		/// <exception cref="ArgumentOutOfRangeException"></exception>
+		public async Task<DexihHubNamedEntity> GetObject(ESharedObjectType sharedObjectType, long key)
+		{
+			switch (sharedObjectType)
+			{
+				case ESharedObjectType.Connection:
+					return await DbContext.DexihConnections.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.Table:
+					return await DbContext.DexihTables.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.FileFormat:
+					return await DbContext.DexihFileFormats.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.Datalink:
+					return await DbContext.DexihDatalinks.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.Datajob:
+					return await DbContext.DexihDatajobs.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.ColumnValidation:
+					return await DbContext.DexihColumnValidations.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.HubVariable:
+					return await DbContext.DexihHubVariables.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.CustomFunction:
+					return await DbContext.DexihCustomFunctions.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.DatalinkTest:
+					return await DbContext.DexihDatalinkTests.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.View:
+					return await DbContext.DexihViews.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.Api:
+					return await DbContext.DexihApis.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.Dashboard:
+					return await DbContext.DexihDashboards.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.ListOfValues:
+					return await DbContext.DexihListOfValues.SingleOrDefaultAsync(c => c.Key == key);
+				case ESharedObjectType.Tags:
+					return await DbContext.DexihTags.SingleOrDefaultAsync(c => c.Key == key);
+				default:
+					throw new ArgumentOutOfRangeException(nameof(sharedObjectType), sharedObjectType, null);
+			}
+		}
+
+		/// <summary>
 		/// Gets a list of all the shared datalinks/table available to the user.
 		/// </summary>
 		/// <param name="user">User</param>
@@ -1320,7 +1364,7 @@ namespace dexih.operations
         {
             try
             {
-	            var usersHub = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && userIds.Contains(c.UserId)).ToListAsync();
+	            var usersHub = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && userIds.Contains(c.UserId)).ToListAsync(cancellationToken: cancellationToken);
 
                 foreach (var userId in userIds)
                 {
@@ -3131,8 +3175,7 @@ namespace dexih.operations
             {
                 throw new RepositoryManagerException($"Delete custom functions failed.  {ex.Message}", ex);
             }
-
-        }
+		}
 
         public async Task<DexihCustomFunction> SaveCustomFunction(long hubKey, DexihCustomFunction function, CancellationToken cancellationToken)
 		{
@@ -3569,7 +3612,7 @@ namespace dexih.operations
             }
             catch (Exception ex)
             {
-                throw new RepositoryManagerException($"Delete hub variables failed.  {ex.Message}", ex);
+                throw new RepositoryManagerException($"Delete hub tests failed.  {ex.Message}", ex);
             }
 
         }
@@ -3692,6 +3735,188 @@ namespace dexih.operations
             {
                 throw new RepositoryManagerException($"Save listOfValues {listOfValues.Name} failed.  {ex.Message}", ex);
             }
+        }
+        
+        public async Task<DexihTag[]> DeleteTags(long hubKey, long[] keys, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var dbTags = await DbContext.DexihTags
+	                .Include(c => c.DexihTagObjects)
+                    .Where(c => c.HubKey == hubKey && keys.Contains(c.Key) && c.IsValid)
+                    .ToArrayAsync(cancellationToken: cancellationToken);
+
+                foreach (var tag in dbTags)
+                {
+	                tag.IsValid = false;
+
+	                foreach (var tagObject in tag.DexihTagObjects)
+	                {
+		                tagObject.IsValid = false;
+	                }
+                }
+
+                await SaveHubChangesAsync(hubKey, cancellationToken);
+
+                return dbTags;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Delete tags failed.  {ex.Message}", ex);
+            }
+
+        }
+
+        public async Task<DexihTag> SaveTag(long hubKey, DexihTag tag, CancellationToken cancellationToken)
+        {
+            try
+            {
+	            DexihTag dbTag;
+
+                //check there are no connections with the same name
+                var sameName = await DbContext.DexihTags.FirstOrDefaultAsync(c => c.HubKey == hubKey && c.Name == tag.Name && c.Key != tag.Key && c.IsValid, cancellationToken: cancellationToken);
+                if (sameName != null)
+                {
+                    throw new RepositoryManagerException($"A tag with the name {tag.Name} already exists in the hub.");
+                }
+
+                //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
+                if (tag.Key > 0)
+                {
+                    dbTag = await DbContext.DexihTags.SingleOrDefaultAsync(d => d.HubKey == hubKey && d.Key == tag.Key, cancellationToken: cancellationToken);
+                    if (dbTag != null)
+                    {
+                        tag.CopyProperties(dbTag, true);
+                    }
+                    else
+                    {
+                        throw new RepositoryManagerException($"The variable could not be saved as it contains the hub_variable_key {tag.Key} that no longer exists in the hub.");
+                    }
+                }
+                else
+                {
+                    dbTag = new DexihTag();
+                    tag.ResetKeys();
+                    tag.CopyProperties(dbTag, true);
+                    DbContext.DexihTags.Add(dbTag);
+                }
+
+				dbTag.UpdateDate = DateTime.UtcNow;
+                dbTag.IsValid = true;
+
+                await SaveHubChangesAsync(hubKey, cancellationToken);
+
+                return dbTag;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryManagerException($"Save tag {tag.Name} failed.  {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Updates a TagObject with all the tags for a specified object key.  Missing tags will be marked invalid.
+        /// </summary>
+        /// <param name="hubKey"></param>
+        /// <param name="objectKey"></param>
+        /// <param name="objectType"></param>
+        /// <param name="tagKeys"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task SaveObjectTags(long hubKey, long objectKey, ESharedObjectType objectType, long[] tagKeys, CancellationToken cancellationToken)
+        {
+	        var existing = await DbContext.DexihTagObjects
+		        .Where((c => c.HubKey == hubKey && c.ObjectKey == objectKey && objectType == objectType))
+		        .ToDictionaryAsync(c => c.TagKey, cancellationToken: cancellationToken);
+
+	        foreach (var tagObject in existing.Values)
+	        {
+		        tagObject.IsValid = false;
+	        }
+	        
+	        foreach(var tagKey in tagKeys)
+	        {
+		        if (existing.TryGetValue(tagKey, out var value))
+		        {
+			        value.IsValid = true;
+			        value.UpdateDate = DateTime.Now;
+		        }
+		        else
+		        {
+			        var tagObject = new DexihTagObject()
+			        {
+				        ObjectKey = objectKey,
+				        ObjectType = objectType,
+				        TagKey = tagKey
+			        };
+			        DbContext.DexihTagObjects.Add(tagObject);
+		        }
+	        }
+
+	        await SaveHubChangesAsync(hubKey, cancellationToken);
+        }
+        
+        /// <summary>
+        /// Updates a TagObject with all the objects for a specified tag key.  Missing tags will be marked invalid.
+        /// </summary>
+        /// <param name="hubKey"></param>
+        /// <param name="objectKey"></param>
+        /// <param name="objectType"></param>
+        /// <param name="tagKeys"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task SaveTagObjects(long hubKey, long tagKey, bool isChecked, ObjectTypeKey[] objectKeys, CancellationToken cancellationToken)
+        {
+	        var existing = await DbContext.DexihTagObjects
+		        .Where(c => c.HubKey == hubKey && c.TagKey == tagKey)
+		        .ToDictionaryAsync(c => 
+		        new ObjectTypeKey {ObjectType = c.ObjectType, ObjectKey = c.ObjectKey}, cancellationToken: cancellationToken);
+	        
+	        foreach(var objectKey in objectKeys)
+	        {
+		        if (existing.TryGetValue(objectKey, out var value))
+		        {
+			        value.IsValid = isChecked;
+			        value.UpdateDate = DateTime.Now;
+		        }
+		        else
+		        {
+			        if (isChecked)
+			        {
+				        var tagObject = new DexihTagObject()
+				        {
+					        ObjectKey = objectKey.ObjectKey,
+					        ObjectType = objectKey.ObjectType,
+					        TagKey = tagKey
+				        };
+				        DbContext.DexihTagObjects.Add(tagObject);
+			        }
+		        }
+	        }
+
+	        await SaveHubChangesAsync(hubKey, cancellationToken);
+        }
+        
+        public async Task DeleteTagObjects(long hubKey, ObjectTypeKey[] objectKeys, CancellationToken cancellationToken)
+        {
+	        // get the objectKeys and use them to limit the pushdown SQL
+	        // NOTE: Can't workout how to include objectKey and objectType in the pushdown
+	        var keys = objectKeys.Select(c => c.ObjectKey).ToArray();
+	        var existing = await DbContext.DexihTagObjects
+		        .Where(c => c.HubKey == hubKey && keys.Contains(c.ObjectKey))
+		        .ToArrayAsync(cancellationToken: cancellationToken);
+	        
+	        foreach(var tagObject in existing)
+	        {
+		        // check objecttype as the prefilter on object keys will cause problems where different objecttypes have same key
+		        if (objectKeys.Any(c => c.ObjectKey == tagObject.ObjectKey && c.ObjectType == tagObject.ObjectType))
+		        {
+			        tagObject.IsValid = false;
+			        tagObject.UpdateDate = DateTime.Now;
+		        }
+	        }
+
+	        await SaveHubChangesAsync(hubKey, cancellationToken);
         }
         
         /// <summary>
@@ -3916,6 +4141,7 @@ namespace dexih.operations
 			var dashboards = await AddImportItems(hubKey, hub.DexihDashboards, DbContext.DexihDashboards, actions[ESharedObjectType.Dashboard]);
 			var datalinkTests = await AddImportItems(hubKey, hub.DexihDatalinkTests, DbContext.DexihDatalinkTests, actions[ESharedObjectType.DatalinkTest]);
 			var listOfValues = await AddImportItems(hubKey, hub.DexihListOfValues, DbContext.DexihListOfValues, actions[ESharedObjectType.ListOfValues]);
+			var tags = await AddImportItems(hubKey, hub.DexihTags, DbContext.DexihTags, actions[ESharedObjectType.Tags]);
 
 			// update the table connection keys to the target connection keys, as these are required updated before matching
 			foreach (var table in hub.DexihTables)
@@ -3937,6 +4163,7 @@ namespace dexih.operations
 			plan.Dashboards = dashboards.importObjects;
 			plan.DatalinkTests = datalinkTests.importObjects;
 			plan.ListOfValues = listOfValues.importObjects;
+			plan.Tags = tags.importObjects;
 
 			long? UpdateConnectionKey(long? key)
 			{
@@ -4508,6 +4735,9 @@ namespace dexih.operations
             var listOfValues = import.ListOfValues
 	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
 	            .ToDictionary(c => c.Key, c => c);
+            var tags = import.Tags
+	            .Where(c => c.ImportAction == EImportAction.New || c.ImportAction == EImportAction.Replace).Select(c => c.Item)
+	            .ToDictionary(c => c.Key, c => c);
             
             // recurse the child columns and include any in the dictionary.
             var topColumns = columns.Values.ToArray();
@@ -4791,6 +5021,11 @@ namespace dexih.operations
 	            }
             }
             
+            foreach(var tag in tags.Values)
+            {
+	            if (tag.Key < 0) tag.Key = 0;
+            }
+            
             // set all existing datalink object to invalid.
             var datalinkTransforms = datalinks.Values.SelectMany(c => c.DexihDatalinkTransforms).Select(c=>c.Key);
 			var deletedDatalinkTransforms = DbContext.DexihDatalinkTransforms.Include(c=>c.DexihDatalinkTransformItems).ThenInclude(p=>p.DexihFunctionParameters)
@@ -4969,6 +5204,7 @@ namespace dexih.operations
 			AddItems(DbContext, views.Values);
 			AddItems(DbContext, dashboards.Values);
 			AddItems(DbContext, listOfValues.Values);
+			AddItems(DbContext, tags.Values);
 			
 			await SaveHubChangesAsync(import.HubKey, cancellationToken);
 

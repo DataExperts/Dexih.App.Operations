@@ -131,11 +131,6 @@ namespace dexih.repository
             return false;
         }
 
-        public override void ResetKeys()
-        {
-            Key = 0;
-        }
-        
         public InputColumn ToInputColumn()
         {
             return new InputColumn()

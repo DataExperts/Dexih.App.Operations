@@ -1511,7 +1511,7 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_user_hub_dexih_hubs");
                 
-                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.IsValid);
                 // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
@@ -1749,7 +1749,63 @@ namespace dexih.repository
                 entity.HasQueryFilter(e => e.IsValid);
                 // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
+            
+            modelBuilder.Entity<DexihTag>(entity =>
+            {
+                entity.HasKey(e => e.Key)
+                    .HasName("PK_dexih_tags");
 
+                entity.ToTable("dexih_tags");
+
+                entity.Property(e => e.Key).HasColumnName("tag_key");
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+
+                entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(20);
+
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+
+				entity.HasOne(d => d.Hub)
+					  .WithMany(p => p.DexihTags)
+                    .HasForeignKey(d => d.HubKey);
+
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
+            });
+
+            modelBuilder.Entity<DexihTagObject>(entity =>
+            {
+                entity.HasKey(e => new {e.TagKey, e.ObjectKey, e.ObjectType})
+                    .HasName("PK_dexih_tag_objects");
+
+                entity.ToTable("dexih_tag_objects");
+
+                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                entity.Property(e => e.TagKey).HasColumnName("tag_key");
+                entity.Property(e => e.ObjectKey).HasColumnName("object_key");
+                entity.Property(e => e.ObjectType).HasColumnName("object_type");
+
+                entity.Property(e => e.IsValid).HasColumnName("is_valid");
+                entity.Property(e => e.CreateDate).HasColumnName("create_date");
+                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+                
+                entity.HasOne(d => d.DexihTag)
+                    .WithMany(p => p.DexihTagObjects)
+                    .HasForeignKey(d => d.TagKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_tagobject_tags");
+                
+                entity.HasOne(d => d.Hub)
+                    .WithMany(p => p.DexihTagObjects)
+                    .HasForeignKey(d => d.HubKey);
+                
+                // entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
+            });
+            
             modelBuilder.Entity<DexihTrigger>(entity =>
             {
                 entity.HasKey(e => e.Key)
@@ -1969,5 +2025,7 @@ namespace dexih.repository
         
         public DbSet<DexihIssue> DexihIssues { get; set; }
         public DbSet<DexihIssueComment> DexihIssueComments { get; set; }
+        public DbSet<DexihTag> DexihTags { get; set; }
+        public DbSet<DexihTagObject> DexihTagObjects { get; set; }
     }
 }

@@ -35,7 +35,9 @@ namespace dexih.repository
         View,
         Api,
         Dashboard,
-        ListOfValues
+        ListOfValues,
+        Tags,
+        TagObjects
     }
 
     /// <summary>

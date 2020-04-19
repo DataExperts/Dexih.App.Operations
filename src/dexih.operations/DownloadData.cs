@@ -120,7 +120,7 @@ namespace dexih.operations
                             break;
                         case EDownloadFormat.JsonCompact:
                             name = name + ".json";
-                            fileStream = new StreamJsonCompact(name, transform);
+                            fileStream = new StreamJsonCompact(name, transform, showTransformProperties: false);
                             if (!ZipFiles)
                             {
                                 return (name, fileStream);

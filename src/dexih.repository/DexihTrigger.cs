@@ -119,10 +119,5 @@ namespace dexih.repository
             return managedTaskTrigger;
         }
         
-        public override void ResetKeys()
-        {
-            Key = 0;
-        }
-        
     }
 }

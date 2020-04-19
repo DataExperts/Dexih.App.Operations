@@ -89,12 +89,6 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatajob> DexihDatajobAuditConnections { get; set; }
 
-
-        public override void ResetKeys()
-        {
-            Key = 0;
-        }
-
         public string GetPassword(string key, int iterations)
         {
 //            if(string.IsNullOrEmpty(PasswordRaw))

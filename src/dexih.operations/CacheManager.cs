@@ -237,6 +237,8 @@ namespace dexih.operations
 				Hub.DexihColumnValidations = await dbContext.DexihColumnValidations.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 			    Hub.DexihListOfValues = await dbContext.DexihListOfValues.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
+			    Hub.DexihTags = await dbContext.DexihTags.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
+			    Hub.DexihTagObjects = await dbContext.DexihTagObjects.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
 			    
 				_logger?.LogTrace($"Load hub name {Hub.Name} took {stopWatch.ElapsedMilliseconds}ms.");
 

@@ -27,6 +27,8 @@ namespace dexih.repository
             DexihApis = new HashSet<DexihApi>();
             DexihDashboards = new HashSet<DexihDashboard>();
             DexihListOfValues = new HashSet<DexihListOfValues>();
+            DexihTags = new HashSet<DexihTag>();
+            DexihTagObjects = new HashSet<DexihTagObject>();
         }
 
         [DataMember(Order = 3)]
@@ -89,6 +91,12 @@ namespace dexih.repository
         
         [DataMember(Order = 22)]
         public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
+        
+        [DataMember(Order = 23)]
+        public ICollection<DexihTag> DexihTags { get; set; }
+
+        [DataMember(Order = 24)]
+        public ICollection<DexihTagObject> DexihTagObjects { get; set; }
 
         /// <summary>
         /// Searches all connections and table for a columnKey.

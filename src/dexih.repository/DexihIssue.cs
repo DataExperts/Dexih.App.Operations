@@ -47,8 +47,5 @@ namespace dexih.repository
         [DataMember(Order = 17), NotMapped]
         public string UserName { get; set; }
         
-        public override void ResetKeys()
-        {
-        }
     }
 }

@@ -33,10 +33,6 @@ namespace dexih.repository
                                   Direction == EParameterDirection.ResultOutput ||
                                   Direction == EParameterDirection.ReturnValue ||
                                   Direction == EParameterDirection.ResultReturnValue;
-
-        public override void ResetKeys()
-        {
-            Key = 0;
-        }
+        
     }
 }

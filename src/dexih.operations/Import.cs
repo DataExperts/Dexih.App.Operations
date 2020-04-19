@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using dexih.repository;
+using Dexih.Utils.CopyProperties;
 
 
 namespace dexih.operations
@@ -62,6 +63,12 @@ namespace dexih.operations
         public ImportObjects<DexihListOfValues> ListOfValues { get; set; }
 
         [DataMember(Order = 15)]
+        public ImportObjects<DexihTag> Tags { get; set; }
+        
+        [DataMember(Order = 16)]
+        public ImportObjects<DexihTagObject> TagObjects { get; set; }
+        
+        [DataMember(Order = 17)]
         public List<string> Warnings { get; set; }
 
         public Import()
@@ -91,6 +98,8 @@ namespace dexih.operations
             Apis = new ImportObjects<DexihApi>();
             Dashboards = new ImportObjects<DexihDashboard>();
             ListOfValues = new ImportObjects<DexihListOfValues>();
+            Tags = new ImportObjects<DexihTag>();
+            TagObjects = new ImportObjects<DexihTagObject>();
             Warnings = new List<string>();
         }
 
@@ -148,7 +157,12 @@ namespace dexih.operations
                     case DexihListOfValues a:
                         ListOfValues.Add(a, operation);
                         break;
-
+                    case DexihTag a:
+                        Tags.Add(a, operation);
+                        break;
+                    case DexihTagObject a:
+                        TagObjects.Add(a, operation);
+                        break;
                     default:
                         return false;
                 }
@@ -175,7 +189,10 @@ namespace dexih.operations
             UpdateCacheItems(hub.DexihViews, Views);
             UpdateCacheItems(hub.DexihApis, Apis);
             UpdateCacheItems(hub.DexihDashboards, Dashboards);
+            UpdateCacheItems(hub.DexihListOfValues, ListOfValues);
+            UpdateCacheItems(hub.DexihTags, Tags);
 
+            UpdateTagObjectCacheItems(hub);
             UpdateRemoteAgentHubCacheItems(hub);
         }
 
@@ -221,6 +238,47 @@ namespace dexih.operations
             }
         }
         
+        public void UpdateTagObjectCacheItems(DexihHub hub)
+        {
+            foreach (var updatedItem in TagObjects)
+            {
+                switch (updatedItem.ImportAction)
+                {
+                    case EImportAction.Replace:
+                        foreach (var existingItem in hub.DexihTagObjects)
+                        {
+                            if (existingItem.TagKey == updatedItem.Item.TagKey && existingItem.ObjectKey == updatedItem.Item.ObjectKey && existingItem.ObjectType == updatedItem.Item.ObjectType)
+                            {
+                                hub.DexihTagObjects.Remove(existingItem);
+                                break;
+                            }
+                        }
+                        
+                        hub.DexihTagObjects.Add(updatedItem.Item);
+                        break;
+                    case EImportAction.New:
+                        hub.DexihTagObjects.Add(updatedItem.Item);
+                        break;
+                    case EImportAction.Leave:
+                        break;
+                    case EImportAction.Skip:
+                        break;
+                    case EImportAction.Delete:
+                        foreach (var existingItem in hub.DexihTagObjects)
+                        {
+                            if (existingItem.TagKey == updatedItem.Item.TagKey && existingItem.ObjectKey == updatedItem.Item.ObjectKey && existingItem.ObjectType == updatedItem.Item.ObjectType)
+                            {
+                                hub.DexihTagObjects.Remove(existingItem);
+                                break;
+                            }
+                        }
+
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        }
         
         public void UpdateRemoteAgentHubCacheItems(DexihHub hub)
         {
@@ -266,20 +324,23 @@ namespace dexih.operations
 
         public bool Any()
         {
-            return HubVariables.Any() || 
-                   Datajobs.Any() || 
-                   Datalinks.Any() || 
-                   Connections.Any() || 
+            return HubVariables.Any() ||
+                   Datajobs.Any() ||
+                   Datalinks.Any() ||
+                   Connections.Any() ||
                    Tables.Any() ||
-                   ColumnValidations.Any() || 
-                   CustomFunctions.Any() || 
-                   FileFormats.Any() || 
-                   RemoteAgentHubs.Any() || 
+                   ColumnValidations.Any() ||
+                   CustomFunctions.Any() ||
+                   FileFormats.Any() ||
+                   RemoteAgentHubs.Any() ||
                    DatalinkTests.Any() ||
                    Views.Any() ||
                    Apis.Any() ||
                    Dashboards.Any() ||
-                   ListOfValues.Any();
+                   ListOfValues.Any() ||
+                   Tags.Any() || 
+                   TagObjects.Any();
+            
         }
     }
 

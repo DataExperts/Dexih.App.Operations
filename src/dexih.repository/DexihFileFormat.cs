@@ -79,11 +79,6 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihTable> DexihTables { get; set; }
         
-        public override void ResetKeys()
-        {
-            Key = 0;
-        }
-        
         /// <summary>
         /// Converts to a FileFormat class.
         /// </summary>
