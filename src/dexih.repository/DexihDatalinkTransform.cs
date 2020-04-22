@@ -8,7 +8,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions;
-using dexih.functions.Query;
 using dexih.operations;
 using dexih.transforms.Mapping;
 using dexih.transforms.Transforms;

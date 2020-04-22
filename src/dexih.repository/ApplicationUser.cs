@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
-using Dexih.Utils.CopyProperties;
 using Microsoft.AspNetCore.Identity;
-using Newtonsoft.Json;
 
 
 namespace dexih.repository

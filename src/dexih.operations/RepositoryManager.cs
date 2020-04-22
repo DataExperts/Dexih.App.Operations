@@ -2,8 +2,8 @@
 using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -850,135 +850,229 @@ namespace dexih.operations
 				// if no hubkeys specified, then user all available.
 				hubKeys = availableHubs.Select(c => c.HubKey).ToArray();
 			}
-
+			
 			var sharedData = new List<SharedData>();
-			var search = searchString?.ToLower();
-			var noSearch = string.IsNullOrEmpty(search);
-
-			// load shared objects for each available hub
-			foreach (var hub in availableHubs.Where(c => hubKeys.Contains(c.HubKey)))
+			var nonCachedHubs = new List<DexihHub>();
+			
+			// get the cached hubs
+			foreach(var hub in availableHubs.Where(c => hubKeys.Contains(c.HubKey)))
 			{
-				var sharedCache = await _cacheService.GetOrCreateAsync(CacheKeys.HubShared((hub.HubKey)),
-					TimeSpan.FromHours(1),
-					async () =>
-					{
-						var shared = new List<SharedData>();
-						
-						var tables = await DbContext.DexihTables.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid) .ToArrayAsync(cancellationToken: cancellationToken);
-						
-						var datalinks = await DbContext.DexihDatalinks.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid) .ToArrayAsync(cancellationToken: cancellationToken);
-						await DbContext.DexihDatalinkParameters
-							.Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.IsShared && c.Datalink.HubKey == hub.HubKey)
-							.LoadAsync(cancellationToken: cancellationToken);
-						
-						var views = await DbContext.DexihViews.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
-						await DbContext.DexihViewParameters
-							.Where(c => c.IsValid && c.View.IsValid && c.View.IsShared && c.View.HubKey == hub.HubKey)
-							.LoadAsync(cancellationToken: cancellationToken);
-						
-						var dashboards = await DbContext.DexihDashboards.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
-						await DbContext.DexihDashboardParameters
-							.Where(c => c.IsValid && c.Dashboard.IsValid && c.Dashboard.IsShared && c.Dashboard.HubKey == hub.HubKey)
-							.LoadAsync(cancellationToken: cancellationToken);
-						
-						var apis = await DbContext.DexihApis.Where(c => c.HubKey == hub.HubKey && c.IsShared && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
-						await DbContext.DexihApiParameters
-							.Where(c => c.IsValid && c.Api.IsValid && c.Api.IsShared && c.Api.HubKey == hub.HubKey)
-							.LoadAsync(cancellationToken: cancellationToken);
-
-						foreach (var table in tables)
-						{
-							shared.Add(new SharedData()
-							{
-								HubKey = hub.HubKey,
-								HubName = hub.Name,
-								ObjectKey = table.Key,
-								ObjectType = EDataObjectType.Table,
-								Name = table.Name,
-								LogicalName = table.LogicalName,
-								Description = table.Description,
-								UpdateDate = table.UpdateDate,
-								Parameters = null,
-							});
-						}
-
-						foreach (var datalink in datalinks)
-						{
-							shared.Add(new SharedData()
-							{
-								HubKey = datalink.HubKey,
-								HubName = hub.Name,
-								ObjectKey = datalink.Key,
-								ObjectType = EDataObjectType.Datalink,
-								Name = datalink.Name,
-								LogicalName = datalink.Name,
-								Description = datalink.Description,
-								UpdateDate = datalink.UpdateDate,
-								Parameters = datalink.Parameters,
-							});
-						}
-						
-						foreach (var view in views)
-						{
-							shared.Add(new SharedData()
-							{
-								HubKey = view.HubKey,
-								HubName = hub.Name,
-								ObjectKey = view.Key,
-								ObjectType = EDataObjectType.View,
-								Name = view.Name,
-								LogicalName = view.Name,
-								Description = view.Description,
-								UpdateDate = view.UpdateDate,
-								Parameters = view.Parameters,
-							});
-						}
-						
-						foreach (var api in apis)
-						{
-							shared.Add(new SharedData()
-							{
-								HubKey = api.HubKey,
-								HubName = hub.Name,
-								ObjectKey = api.Key,
-								ObjectType = EDataObjectType.Api,
-								Name = api.Name,
-								LogicalName = api.Name,
-								Description = api.Description,
-								UpdateDate = api.UpdateDate,
-								Parameters = api.Parameters,
-							});
-						}
-						
-						foreach (var dashboard in dashboards)
-						{
-							shared.Add(new SharedData()
-							{
-								HubKey = dashboard.HubKey,
-								HubName = hub.Name,
-								ObjectKey = dashboard.Key,
-								ObjectType = EDataObjectType.Dashboard,
-								Name = dashboard.Name,
-								LogicalName = dashboard.Name,
-								Description = dashboard.Description,
-								UpdateDate = dashboard.UpdateDate,
-								Parameters = dashboard.Parameters,
-							});
-						}
-						return shared;
-					}, cancellationToken);
-
-				sharedData.AddRange(sharedCache.Where(c => noSearch || c.Name.ToLower().Contains(search ?? "")));
-
-				if (sharedData.Count > maxResults)
+				var cacheData = await _cacheService.Get<List<SharedData>>(CacheKeys.HubShared(hub.HubKey), cancellationToken);
+				
+				if(cacheData == null) 
 				{
-					return sharedData.Take(maxResults);
+					// if not in cache, remember so we can query database 
+					nonCachedHubs.Add(hub);
+				}
+				else
+				{
+					sharedData.AddRange(cacheData);
 				}
 			}
 
-			return sharedData;
+			// get the remaining non-cached hubs
+			var nonCachedData = await GetSharedData(nonCachedHubs, cancellationToken);
+
+			// add the non-cached hubs to the cache
+			foreach (var hub in nonCachedHubs)
+			{
+				_cacheService.GetOrCreateAsync(CacheKeys.HubShared(hub.HubKey),
+					TimeSpan.FromHours(1),
+					async () =>
+					{
+						return nonCachedData.Where(c => c.HubKey == hub.HubKey);
+					}
+				);
+			}
+			
+			sharedData.AddRange(nonCachedData);
+			
+			if (string.IsNullOrEmpty(searchString))
+			{
+				return sharedData.Take(maxResults);
+			}
+			else
+			{
+				return sharedData.Where(c =>
+					c.Name.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0 ||
+					c.LogicalName.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0 ||
+					c.Description.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0)
+					.Take(maxResults);
+			}
 		}
-		
+
+		private async Task<IEnumerable<SharedData>> GetSharedData(List<DexihHub> hubs, CancellationToken cancellationToken)
+		{
+			var shared = new List<SharedData>();
+			var hubKeys = hubs.Select(c => c.HubKey).ToArray();
+			var hubNames = hubs.ToDictionary(c => c.HubKey, c => c.Name);
+
+			var tables = await DbContext.DexihTables.Where(c => hubKeys.Contains(c.HubKey) && c.IsShared && c.IsValid)
+				.ToArrayAsync(cancellationToken: cancellationToken);
+
+			var datalinks = await DbContext.DexihDatalinks.Where(c => hubKeys.Contains(c.HubKey) && c.IsShared && c.IsValid)
+				.ToArrayAsync(cancellationToken: cancellationToken);
+			if (datalinks.Any())
+			{
+				await DbContext.DexihDatalinkParameters
+					.Where(c => c.IsValid && c.Datalink.IsValid && c.Datalink.IsShared &&
+					            hubKeys.Contains(c.HubKey))
+					.LoadAsync(cancellationToken: cancellationToken);
+			}
+
+			var views = await DbContext.DexihViews.Where(c => hubKeys.Contains(c.HubKey) && c.IsShared && c.IsValid)
+				.ToArrayAsync(cancellationToken: cancellationToken);
+			if (views.Any())
+			{
+				await DbContext.DexihViewParameters
+					.Where(c => c.IsValid && c.View.IsValid && c.View.IsShared &&
+					            hubKeys.Contains(c.HubKey))
+					.LoadAsync(cancellationToken: cancellationToken);
+			}
+
+			var dashboards = await DbContext.DexihDashboards
+				.Where(c => hubKeys.Contains(c.HubKey) && c.IsShared && c.IsValid)
+				.ToArrayAsync(cancellationToken: cancellationToken);
+			if (dashboards.Any())
+			{
+				await DbContext.DexihDashboardParameters
+					.Where(c => c.IsValid && c.Dashboard.IsValid && c.Dashboard.IsShared &&
+					            hubKeys.Contains(c.HubKey))
+					.LoadAsync(cancellationToken: cancellationToken);
+			}
+
+			var apis = await DbContext.DexihApis.Where(c => hubKeys.Contains(c.HubKey) && c.IsShared && c.IsValid)
+				.ToArrayAsync(cancellationToken: cancellationToken);
+			if (apis.Any())
+			{
+				await DbContext.DexihApiParameters
+					.Where(c => c.IsValid && c.Api.IsValid && c.Api.IsShared && hubKeys.Contains(c.HubKey))
+					.LoadAsync(cancellationToken: cancellationToken);
+			}
+
+			foreach (var table in tables)
+			{
+				shared.Add(new SharedData()
+				{
+					HubKey = table.HubKey,
+					HubName = hubNames[table.HubKey],
+					ObjectKey = table.Key,
+					ObjectType = EDataObjectType.Table,
+					Name = table.Name,
+					LogicalName = table.LogicalName,
+					Description = table.Description,
+					UpdateDate = table.UpdateDate,
+					Parameters = null,
+				});
+			}
+
+			foreach (var datalink in datalinks)
+			{
+				shared.Add(new SharedData()
+				{
+					HubKey = datalink.HubKey,
+					HubName = hubNames[datalink.HubKey],
+					ObjectKey = datalink.Key,
+					ObjectType = EDataObjectType.Datalink,
+					Name = datalink.Name,
+					LogicalName = datalink.Name,
+					Description = datalink.Description,
+					UpdateDate = datalink.UpdateDate,
+					Parameters = datalink.Parameters,
+				});
+			}
+
+			foreach (var view in views)
+			{
+				shared.Add(new SharedData()
+				{
+					HubKey = view.HubKey,
+					HubName = hubNames[view.HubKey],
+					ObjectKey = view.Key,
+					ObjectType = EDataObjectType.View,
+					Name = view.Name,
+					LogicalName = view.Name,
+					Description = view.Description,
+					UpdateDate = view.UpdateDate,
+					Parameters = view.Parameters,
+				});
+			}
+
+			foreach (var api in apis)
+			{
+				shared.Add(new SharedData()
+				{
+					HubKey = api.HubKey,
+					HubName = hubNames[api.HubKey],
+					ObjectKey = api.Key,
+					ObjectType = EDataObjectType.Api,
+					Name = api.Name,
+					LogicalName = api.Name,
+					Description = api.Description,
+					UpdateDate = api.UpdateDate,
+					Parameters = api.Parameters,
+				});
+			}
+
+			foreach (var dashboard in dashboards)
+			{
+				shared.Add(new SharedData()
+				{
+					HubKey = dashboard.HubKey,
+					HubName = hubNames[dashboard.HubKey],
+					ObjectKey = dashboard.Key,
+					ObjectType = EDataObjectType.Dashboard,
+					Name = dashboard.Name,
+					LogicalName = dashboard.Name,
+					Description = dashboard.Description,
+					UpdateDate = dashboard.UpdateDate,
+					Parameters = dashboard.Parameters,
+				});
+			}
+
+			ESharedObjectType ConvertObjectType(EDataObjectType dataObjectType)
+			{
+				switch(dataObjectType)
+				{
+					case EDataObjectType.Table:
+						return ESharedObjectType.Table;
+					case EDataObjectType.Datalink:
+						return ESharedObjectType.Datalink;
+					case EDataObjectType.View:
+						return ESharedObjectType.View;
+					case EDataObjectType.Dashboard:
+						return ESharedObjectType.Dashboard;
+					case EDataObjectType.Api:
+						return ESharedObjectType.Api;
+					default:
+						throw new ArgumentOutOfRangeException(nameof(dataObjectType), dataObjectType, null);
+				}
+			}
+
+			var sharedObjects = shared.Select(c => new {c.HubKey, c.ObjectKey, ObjectType = ConvertObjectType(c.ObjectType)}).ToArray();
+			var objectKeys = sharedObjects.Select(c => c.ObjectKey).ToArray();
+			
+			var tags = await DbContext.DexihTagObjects.Include(c => c.DexihTag)
+				.Where(c => c.IsValid && objectKeys.Contains(c.ObjectKey))
+				.ToHashSetAsync(cancellationToken: cancellationToken);
+
+			foreach (var sharedItem in shared)
+			{
+				var t = tags.Where(c =>
+					c.HubKey == sharedItem.HubKey && c.ObjectKey == sharedItem.ObjectKey &&
+					c.ObjectType == ConvertObjectType(sharedItem.ObjectType))
+					.Select(c => c.DexihTag).ToArray();
+
+				if (t.Length > 0)
+				{
+					sharedItem.Tags = t;
+				}
+			}
+			
+			return shared;
+		}
+
+
 		/// <summary>
 		/// Saves changes in the dbContext, and raises event to report these back to the client.
 		/// </summary>
@@ -3826,7 +3920,7 @@ namespace dexih.operations
         public async Task SaveObjectTags(long hubKey, long objectKey, ESharedObjectType objectType, long[] tagKeys, CancellationToken cancellationToken)
         {
 	        var existing = await DbContext.DexihTagObjects
-		        .Where((c => c.HubKey == hubKey && c.ObjectKey == objectKey && objectType == objectType))
+		        .Where((c => c.HubKey == hubKey && c.ObjectKey == objectKey && c.ObjectType == objectType))
 		        .ToDictionaryAsync(c => c.TagKey, cancellationToken: cancellationToken);
 
 	        foreach (var tagObject in existing.Values)

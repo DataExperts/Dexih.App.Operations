@@ -48,5 +48,8 @@ namespace dexih.operations
 
         [DataMember(Order = 11)]
         public DexihColumnBase[] OutputColumns { get; set; }
+        
+        [DataMember(Order = 12)]
+        public DexihTag[] Tags { get; set; }
     }
 }

@@ -5,8 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 using dexih.functions;
 using Dexih.Utils.CopyProperties;
-using static Dexih.Utils.DataType.DataType;
-using dexih.functions.Query;
 using System.Linq;
 using System.Text;
 using System.IO;
@@ -19,10 +17,8 @@ using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Parameter;
 using dexih.transforms;
-using dexih.transforms.Exceptions;
 using dexih.transforms.Mapping;
 using Microsoft.Extensions.Logging;
-using static dexih.functions.Query.SelectColumn;
 using Dexih.Utils.DataType;
 
 

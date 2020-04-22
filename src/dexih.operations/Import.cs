@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using dexih.repository;
-using Dexih.Utils.CopyProperties;
 
 
 namespace dexih.operations

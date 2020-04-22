@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
-using Dexih.Utils.CopyProperties;
 
 namespace dexih.repository
 {
