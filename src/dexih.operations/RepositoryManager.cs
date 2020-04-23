@@ -876,13 +876,12 @@ namespace dexih.operations
 			// add the non-cached hubs to the cache
 			foreach (var hub in nonCachedHubs)
 			{
-				_cacheService.GetOrCreateAsync(CacheKeys.HubShared(hub.HubKey),
+				await _cacheService.GetOrCreateAsync(CacheKeys.HubShared(hub.HubKey),
 					TimeSpan.FromHours(1),
-					async () =>
+					 () =>
 					{
-						return nonCachedData.Where(c => c.HubKey == hub.HubKey);
-					}
-				);
+						return Task.FromResult(nonCachedData.Where(c => c.HubKey == hub.HubKey));
+					}, cancellationToken);
 			}
 			
 			sharedData.AddRange(nonCachedData);
@@ -2049,7 +2048,7 @@ namespace dexih.operations
 
 					if (dashboard == null)
 					{
-						throw new RepositoryManagerException($"The dashboard with the key {dashboard.Key} was not found.");
+						throw new RepositoryManagerException($"The dashboard with the key {dashboardIem.Key} was not found.");
 					}
 
 					if (!dashboard.IsShared)
