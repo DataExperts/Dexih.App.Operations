@@ -384,7 +384,7 @@ namespace dexih.operations
                     //if this is an empty transform, then ignore it.
                     if (datalinkTransform.DexihDatalinkTransformItems.Count == 0)
                     {
-                        if (datalinkTransform.TransformType == ETransformType.Filter || (datalinkTransform.TransformType == ETransformType.Mapping && datalinkTransform.PassThroughColumns))
+                        if (datalinkTransform.TransformType == ETransformType.Filter || datalinkTransform.TransformType == ETransformType.Mapping && datalinkTransform.PassThroughColumns)
                         {
                             if (datalinkTransform.Key == maxDatalinkTransformKey)
                                 break;

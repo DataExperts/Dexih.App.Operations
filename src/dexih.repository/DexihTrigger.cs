@@ -50,7 +50,7 @@ namespace dexih.repository
                 }
                 else
                 {
-                    DaysOfWeekString = String.Join(",", value.Select(c => c.ToString()));
+                    DaysOfWeekString = string.Join(",", value.Select(c => c.ToString()));
                 }
             }
         }
@@ -80,15 +80,15 @@ namespace dexih.repository
                 if (StartDate != null)
                     desc.AppendLine("Starts on/after:" + StartDate);
                 if (StartTime != null)
-                    desc.AppendLine("Runs daily after:" + StartTime.Value.ToString());
+                    desc.AppendLine("Runs daily after:" + StartTime.Value);
                 if (EndTime != null)
-                    desc.AppendLine("Ends daily after:" + EndTime.Value.ToString());
+                    desc.AppendLine("Ends daily after:" + EndTime.Value);
                 if (DaysOfWeek != null && DaysOfWeek.Length > 0 && DaysOfWeek.Length < 7)
-                    desc.AppendLine("Only on:" + String.Join(",", DaysOfWeek.Select(c => c.ToString()).ToArray()));
+                    desc.AppendLine("Only on:" + string.Join(",", DaysOfWeek.Select(c => c.ToString()).ToArray()));
                 if (IntervalTime != null)
-                    desc.AppendLine("Runs every: " + IntervalTime.Value.ToString());
+                    desc.AppendLine("Runs every: " + IntervalTime.Value);
                 if (MaxRecurs != null)
-                    desc.AppendLine("Recurs for: " + MaxRecurs.Value.ToString());
+                    desc.AppendLine("Recurs for: " + MaxRecurs.Value);
 
                 return desc.ToString();
             }

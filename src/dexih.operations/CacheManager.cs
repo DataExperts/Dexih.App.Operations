@@ -233,12 +233,12 @@ namespace dexih.operations
 				
 				Hub.DexihCustomFunctions = await dbContext.DexihCustomFunctions.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 				
-				Hub.DexihFileFormats = await dbContext.DexihFileFormats.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
+				Hub.DexihFileFormats = await dbContext.DexihFileFormats.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 				Hub.DexihColumnValidations = await dbContext.DexihColumnValidations.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 			    Hub.DexihRemoteAgentHubs = await dbContext.DexihRemoteAgentHubs.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
-			    Hub.DexihListOfValues = await dbContext.DexihListOfValues.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
-			    Hub.DexihTags = await dbContext.DexihTags.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
-			    Hub.DexihTagObjects = await dbContext.DexihTagObjects.Where(c => (c.HubKey == HubKey) && c.IsValid).ToHashSetAsync();
+			    Hub.DexihListOfValues = await dbContext.DexihListOfValues.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+			    Hub.DexihTags = await dbContext.DexihTags.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
+			    Hub.DexihTagObjects = await dbContext.DexihTagObjects.Where(c => c.HubKey == HubKey && c.IsValid).ToHashSetAsync();
 			    
 				_logger?.LogTrace($"Load hub name {Hub.Name} took {stopWatch.ElapsedMilliseconds}ms.");
 
@@ -1334,7 +1334,7 @@ namespace dexih.operations
 		            .LoadAsync();
 
 	            await dbContext.DexihDatalinkDependencies
-		            .Where(c => c.IsValid && c.DatalinkStep.IsValid && c.DatalinkStep.HubKey == HubKey && (stepKeys.Contains(c.DatalinkStepKey) || stepKeys.Contains((c.DependentDatalinkStepKey))))
+		            .Where(c => c.IsValid && c.DatalinkStep.IsValid && c.DatalinkStep.HubKey == HubKey && (stepKeys.Contains(c.DatalinkStepKey) || stepKeys.Contains(c.DependentDatalinkStepKey)))
 		            .LoadAsync();
 
 	            return datajobs;

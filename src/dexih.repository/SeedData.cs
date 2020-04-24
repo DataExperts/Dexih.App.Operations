@@ -16,7 +16,7 @@ namespace dexih.repository
 
                     foreach (var role in roles)
                     {
-                        if (!(await roleManager.RoleExistsAsync(role)))
+                        if (!await roleManager.RoleExistsAsync(role))
                         {
                             var identityRole = new IdentityRole(role);
                             var identityResult = await roleManager.CreateAsync(identityRole);
@@ -64,7 +64,7 @@ namespace dexih.repository
                         adminUser = await userManager.FindByEmailAsync("admin@dataexpertsgroup.com");
                     }
 
-                    if (!(await userManager.IsInRoleAsync(adminUser, "ADMINISTRATOR")))
+                    if (!await userManager.IsInRoleAsync(adminUser, "ADMINISTRATOR"))
                     {
                         await userManager.AddToRoleAsync(adminUser, "ADMINISTRATOR");
                         //configurationLogger.LogDebug("admin@dataexpertsgroup.com  added to administrator role");

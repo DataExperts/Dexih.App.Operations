@@ -195,8 +195,8 @@ namespace dexih.operations
 
                             await expectedConnection.CreateTable(expectedTable, true, token);
 
-                            using (var targetReader = targetConnection.GetTransformReader(targetTable))
-                            using (var targetReader2 = new ReaderConvertDataTypes(expectedConnection, targetReader))
+                            await using (var targetReader = targetConnection.GetTransformReader(targetTable))
+                            await using (var targetReader2 = new ReaderConvertDataTypes(expectedConnection, targetReader))
                             {
                                 await targetReader2.Open(0, null, token);
                                 await expectedConnection.ExecuteInsertBulk(expectedTable, targetReader2, token);
@@ -225,8 +225,8 @@ namespace dexih.operations
 
                         await expectedConnection.CreateTable(expectedTable, true, cancellationToken);
 
-                        using (var transform = runPlan.sourceTransform)
-                        using (var transform2 = new ReaderConvertDataTypes(expectedConnection, transform))
+                        await using (var transform = runPlan.sourceTransform)
+                        await using (var transform2 = new ReaderConvertDataTypes(expectedConnection, transform))
                         {
                             await transform2.Open(0, null, cancellationToken);
                             await expectedConnection.ExecuteInsertBulk(expectedTable, transform2, cancellationToken);
@@ -258,8 +258,8 @@ namespace dexih.operations
 
                         await testConnection.CreateTable(testTable1, true, cancellationToken);
 
-                        using (var datalinkReader = datalinkConnection.GetTransformReader(datalinkTable))
-                        using (var datalinkReader2 = new ReaderConvertDataTypes(testConnection, datalinkReader))
+                        await using (var datalinkReader = datalinkConnection.GetTransformReader(datalinkTable))
+                        await using (var datalinkReader2 = new ReaderConvertDataTypes(testConnection, datalinkReader))
                         {
                             await datalinkReader2.Open(0, null, cancellationToken);
                             await testConnection.ExecuteInsertBulk(testTable1, datalinkReader2, cancellationToken);
@@ -431,7 +431,7 @@ namespace dexih.operations
                         }
 
                         // use the delta transform to compare expected and target tables.
-                        using var delta = new TransformDelta(targetTransform, expectedTransform,
+                        await using var delta = new TransformDelta(targetTransform, expectedTransform,
                             EUpdateStrategy.AppendUpdateDelete, 0, false, true);
                         await delta.Open(0, null, token);
 

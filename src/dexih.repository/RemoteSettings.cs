@@ -50,7 +50,7 @@ namespace dexih.repository
         {
             if (AppSettings.UserPrompt) return true;
             if (string.IsNullOrEmpty(AppSettings.User) ||
-                (string.IsNullOrEmpty(AppSettings.UserToken) && string.IsNullOrEmpty(Runtime.Password)))
+                string.IsNullOrEmpty(AppSettings.UserToken) && string.IsNullOrEmpty(Runtime.Password))
             {
                 return true;
             }
@@ -251,7 +251,7 @@ namespace dexih.repository
                 if (Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
                 {
                     urls.Add(new DownloadUrl(
-                        $"https://{localIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(localPort)}",
+                        $"https://{localIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{localPort}",
                         EDownloadUrlType.Direct,
                         true));
                 }
@@ -266,7 +266,7 @@ namespace dexih.repository
             {
                 if (!string.IsNullOrEmpty(Network.ExternalDownloadUrl))
                 {
-                    bool encrypted = Network.ExternalDownloadUrl.StartsWith("https:://");
+                    var encrypted = Network.ExternalDownloadUrl.StartsWith("https:://");
                     if (!Network.EnforceHttps || encrypted)
                     {
                         urls.Add(new DownloadUrl(Network.ExternalDownloadUrl, EDownloadUrlType.Direct, encrypted));
@@ -277,7 +277,7 @@ namespace dexih.repository
                     if (Network.EnforceHttps && !string.IsNullOrEmpty(Network.DynamicDomain))
                     {
                         urls.Add(new DownloadUrl(
-                            $"https://{Runtime.ExternalIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{(Network.DownloadPort ?? 33944)}",
+                            $"https://{Runtime.ExternalIpAddress.Replace('.', '-')}.{Runtime.UserHash}.{Network.DynamicDomain}:{Network.DownloadPort ?? 33944}",
                             EDownloadUrlType.Direct, true));
                     }
 
@@ -389,7 +389,7 @@ namespace dexih.repository
                 Directory.CreateDirectory(pluginDirectory);
             }
 
-            List<string> installed = new List<string>();
+            var installed = new List<string>();
 
             var installedUpdated = false;
             var installedFile = Path.Combine(pluginDirectory, "installed.txt");
@@ -465,9 +465,9 @@ namespace dexih.repository
                         var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
                         request.Headers.Add("User-Agent", "Dexih Remote Agent");
                         var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-                        
-                        using (var streamToReadFrom = await response.Content.ReadAsStreamAsync())
-                        using (Stream streamToWriteTo = File.Open(downloadPath, FileMode.Create))
+
+                        await using (var streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                        await using (Stream streamToWriteTo = File.Open(downloadPath, FileMode.Create))
                         {
                             await streamToReadFrom.CopyToAsync(streamToWriteTo);
                         }

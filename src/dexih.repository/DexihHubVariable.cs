@@ -29,9 +29,9 @@ namespace dexih.repository
             
             if (IsEncrypted)
             {
-                if (String.IsNullOrEmpty(ValueRaw))
+                if (string.IsNullOrEmpty(ValueRaw))
                 {
-                    if (String.IsNullOrEmpty(Value))
+                    if (string.IsNullOrEmpty(Value))
                     {
                         value = "";
                     }
@@ -62,7 +62,7 @@ namespace dexih.repository
 
         public void Encrypt(string key, int iterations)
         {
-            if(!String.IsNullOrEmpty(ValueRaw))
+            if(!string.IsNullOrEmpty(ValueRaw))
             {
                 Value = EncryptString.Encrypt(ValueRaw, key, iterations);
                 ValueRaw = null;

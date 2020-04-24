@@ -539,7 +539,7 @@ namespace dexih.operations
 		/// <returns></returns>
 		public Task<DexihHub> GetHub(long hubKey, CancellationToken cancellationToken)
 		{
-			var hubReturn = _cacheService.GetOrCreateAsync(CacheKeys.Hub((hubKey)), TimeSpan.FromHours(1), async () =>
+			var hubReturn = _cacheService.GetOrCreateAsync(CacheKeys.Hub(hubKey), TimeSpan.FromHours(1), async () =>
 			{
 				var cache = new CacheManager(hubKey, "", _logger);
 				var hub = await cache.LoadHub(DbContext);
@@ -688,7 +688,7 @@ namespace dexih.operations
 					// all hubs other public/shared hubs
 					var hub = await DbContext.DexihHubs.SingleOrDefaultAsync(c => 
 						c.HubKey == hubKey &&
-						(c.IsValid) &&
+						c.IsValid &&
 						(
 							c.SharedAccess == ESharedAccess.Public ||
 							c.SharedAccess == ESharedAccess.Registered 
@@ -764,13 +764,13 @@ namespace dexih.operations
 			switch (objectType)
 			{
 				case EDataObjectType.Table:
-					return (await DbContext.DexihTables.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+					return await DbContext.DexihTables.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken) != null;
 				case EDataObjectType.Datalink:
-					return (await DbContext.DexihDatalinks.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+					return await DbContext.DexihDatalinks.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken) != null;
 				case EDataObjectType.View:
-					return (await DbContext.DexihViews.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+					return await DbContext.DexihViews.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken) != null;
 				case EDataObjectType.Dashboard:
-					return (await DbContext.DexihDashboards.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken)) != null;
+					return await DbContext.DexihDashboards.SingleAsync(c => c.Key == key && c.IsShared, cancellationToken: cancellationToken) != null;
 			}
 
 			return false;
@@ -1917,7 +1917,7 @@ namespace dexih.operations
 		{
 			try
 			{
-				var dbTables = await DbContext.DexihTables.Where(c => tableKeys.Contains(c.Key) && c.HubKey == hubKey && c.IsValid).ToArrayAsync();
+				var dbTables = await DbContext.DexihTables.Where(c => tableKeys.Contains(c.Key) && c.HubKey == hubKey && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
 
 				if (includeColumns)
 				{
@@ -2916,7 +2916,7 @@ namespace dexih.operations
 			
 			var remoteAgents = await DbContext.DexihRemoteAgents.Where(c => 
 				c.IsValid && 
-				((user.IsAdmin || c.UserId == user.Id) || c.DexihRemoteAgentHubs.Any(d => userHubs.Contains(d.HubKey)))
+				(user.IsAdmin || c.UserId == user.Id || c.DexihRemoteAgentHubs.Any(d => userHubs.Contains(d.HubKey)))
 				).ToArrayAsync(cancellationToken: cancellationToken);
 			return remoteAgents;
 		}
@@ -3122,7 +3122,7 @@ namespace dexih.operations
 				            while (hubTable.DexihTableColumns.FirstOrDefault(c => c.Name == baseName[0] && c.IsValid) !=
 				                   null)
 				            {
-					            baseName[0] = newColumn.Name + (version++).ToString();
+					            baseName[0] = newColumn.Name + (version++);
 				            }
 
 				            newColumn.Name = baseName[0];
@@ -3919,7 +3919,7 @@ namespace dexih.operations
         public async Task SaveObjectTags(long hubKey, long objectKey, ESharedObjectType objectType, long[] tagKeys, CancellationToken cancellationToken)
         {
 	        var existing = await DbContext.DexihTagObjects
-		        .Where((c => c.HubKey == hubKey && c.ObjectKey == objectKey && c.ObjectType == objectType))
+		        .Where(c => c.HubKey == hubKey && c.ObjectKey == objectKey && c.ObjectType == objectType)
 		        .ToDictionaryAsync(c => c.TagKey, cancellationToken: cancellationToken);
 
 	        foreach (var tagObject in existing.Values)
@@ -4030,7 +4030,7 @@ namespace dexih.operations
 			
 			var datalinkTest = new DexihDatalinkTest
 			{
-				Name = string.IsNullOrEmpty(name) ? ( datalinks.Length == 1 ? $"{datalinks[0].Name} tests" : "datalink tests") : name,
+				Name = string.IsNullOrEmpty(name) ? datalinks.Length == 1 ? $"{datalinks[0].Name} tests" : "datalink tests" : name,
 				AuditConnectionKey = auditConnectionKey
 			};
 
@@ -4153,6 +4153,11 @@ namespace dexih.operations
         
         private void UpdateTableColumns(long hubKey, ICollection<DexihTableColumn> childItems, ICollection<DexihTableColumn> existingItems, EImportAction importAction, Dictionary<long, long> mappings, ref int keySequence)
         {
+	        if (existingItems == null)
+	        {
+		        throw new RepositoryManagerException("Cannot update table columns ad existing items is null.");
+	        }
+	        
 	        foreach (var childItem in childItems)
 	        {
 		        childItem.HubKey = hubKey;

@@ -86,7 +86,7 @@ namespace dexih.repository
 		        }
 		        else
 		        {
-			        SortColumnKeysString = String.Join(",", value.Select(c => c.ToString()));
+			        SortColumnKeysString = string.Join(",", value.Select(c => c.ToString()));
 		        }
 	        }
 	        

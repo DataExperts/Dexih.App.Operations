@@ -110,7 +110,7 @@ namespace dexih.repository
                     {
                         return null;
                     }
-                    string value = header;
+                    var value = header;
                     if (IgnoreHeaderWhiteSpace)
                     {
                         value = Regex.Replace(value, @"\s", string.Empty);

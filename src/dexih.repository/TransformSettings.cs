@@ -39,7 +39,7 @@ namespace dexih.repository
         /// <returns></returns>
         public string InsertHubVariables(string value, bool allowSecureVariables)
         {
-            if (string.IsNullOrEmpty(value) || (( HubVariables == null || HubVariables.Length == 0) && (InputParameters == null || InputParameters.Length == 0)))
+            if (string.IsNullOrEmpty(value) || ( HubVariables == null || HubVariables.Length == 0) && (InputParameters == null || InputParameters.Length == 0))
             {
                 return value;
             }

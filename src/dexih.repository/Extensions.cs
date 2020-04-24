@@ -11,11 +11,11 @@ namespace dexih.repository
     {
         public static PropertyBuilder<T> HasJsonConversion<T>(this PropertyBuilder<T> propertyBuilder)
         {           
-            ValueConverter<T, String> converter = new ValueConverter<T, String>(
+            var converter = new ValueConverter<T, string>(
                 v => v.Serialize(),
                 v => v.Deserialize<T>(true));
 
-            ValueComparer<T> comparer = new ValueComparer<T>(
+            var comparer = new ValueComparer<T>(
                 (l, r) => l.Serialize() == r.Serialize(),
                 v => v == null ? 0 : v.Serialize().GetHashCode(),
                 v => v.Serialize().Deserialize<T>(true));

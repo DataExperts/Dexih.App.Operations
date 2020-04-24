@@ -132,7 +132,7 @@ namespace dexih.operations
                     }
 
                     var entry = archive.CreateEntry(name);
-                    using (var entryStream = entry.Open())
+                    await using (var entryStream = entry.Open())
                     {
                         await fileStream.CopyToAsync(entryStream, cancellationToken);
                     }

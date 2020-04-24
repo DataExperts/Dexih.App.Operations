@@ -275,7 +275,7 @@ namespace dexih.repository
 
 				// var returnParameter = TargetDatalinkColumn == null ? null : new ParameterOutputColumn("return", TargetDatalinkColumn.GetTableColumn(null));
 
-				Parameters parameters = new Parameters() { 
+				var parameters = new Parameters() { 
 					Inputs = inputs, 
 					Outputs = outputs, 
 					ResultInputs = resultInputs, 
