@@ -4153,11 +4153,6 @@ namespace dexih.operations
         
         private void UpdateTableColumns(long hubKey, ICollection<DexihTableColumn> childItems, ICollection<DexihTableColumn> existingItems, EImportAction importAction, Dictionary<long, long> mappings, ref int keySequence)
         {
-	        if (existingItems == null)
-	        {
-		        throw new RepositoryManagerException("Cannot update table columns ad existing items is null.");
-	        }
-	        
 	        foreach (var childItem in childItems)
 	        {
 		        childItem.HubKey = hubKey;
@@ -4195,6 +4190,11 @@ namespace dexih.operations
 
 		        if (importAction == EImportAction.Replace)
 		        {
+			        if (existingItems == null)
+			        {
+				        throw new RepositoryManagerException("Cannot replace table columns ad existing items is null.");
+			        }
+			        
 			        var deleteItems =
 				        existingItems.Where(c => c.IsValid && !childItems.Select(t => t.Key).Contains(c.Key));
 			        foreach (var deleteItem in deleteItems)
