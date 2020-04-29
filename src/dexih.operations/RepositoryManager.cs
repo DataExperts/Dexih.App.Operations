@@ -2630,13 +2630,7 @@ namespace dexih.operations
                         }
                     }
 
-                    foreach (var step in datajob.DexihDatalinkSteps)
-                    {
-                        if (step.Key < 0)
-                        {
-                            step.Key = 0;
-                        }
-                    }
+
 
                     if (datajob.Key <= 0) {
 						datajob.Key = 0;
@@ -2663,6 +2657,12 @@ namespace dexih.operations
 						else 
 						{
 							datajob.CopyProperties(originalDatajob);
+							
+							foreach (var step in datajob.DexihDatalinkSteps.Where(c => c.Key < 0))
+							{
+							    step.ResetKeys();
+							}
+							
 							originalDatajob.UpdateDate = DateTime.UtcNow;
 							savedDatajobs.Add(originalDatajob);
 						}
@@ -3521,7 +3521,7 @@ namespace dexih.operations
                 {
                     dbView = new DexihView();
                     view.ResetKeys();
-                    view.CopyProperties(dbView, true);
+                    view.CopyProperties(dbView, false);
                     DbContext.DexihViews.Add(dbView);
                 }
 
