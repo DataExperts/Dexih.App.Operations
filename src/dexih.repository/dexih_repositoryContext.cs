@@ -7,8 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
 using dexih.functions.Query;
+using dexih.repository.Properties;
 using dexih.transforms;
 using dexih.transforms.Mapping;
+using dexih.transforms.View;
 using Dexih.Utils.DataType;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -1859,13 +1861,11 @@ namespace dexih.repository
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
 
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
-                
                 entity.Property(e => e.ChartConfig).HasColumnName("chart_config").HasJsonConversion<ChartConfig>();
-                
+                entity.Property(e => e.AnimateConfig).HasColumnName("animation_config").HasJsonConversion<AnimateConfig>();
                 entity.Property(e => e.InputValues).HasColumnName("input_values").HasJsonConversion<InputColumn[]>();
 
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
-
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
 
                 entity.Property(e => e.CreateDate).HasColumnName("create_date");

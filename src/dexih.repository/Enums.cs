@@ -173,11 +173,7 @@ namespace dexih.repository
         Input = 1, Output, ResultInput, ResultOutput, ReturnValue, ResultReturnValue, Join
     }
 
-    // [JsonConverter(typeof(StringEnumConverter))]
-    public enum EViewType
-    {
-        Table = 1, Chart
-    }
+   
 
     public enum EDatabaseType
     {
@@ -201,36 +197,7 @@ namespace dexih.repository
         Administrator = 1, Manager, User, Viewer, None
     }
 
-    // [JsonConverter(typeof(StringEnumConverter))]
-    public enum EChartType 
-    {
-        BarVertical = 1,
-        BarHorizontal,
-        BarVertical2D,
-        BarHorizontal2D,
-        BarVerticalStacked,
-        BarHorizontalStacked,
-        BarVerticalNormalized,
-        BarHorizontalNormalized,
-        Pie,
-        PieAdvanced,
-        PieGrid,
-        Line,
-        Area,
-        Polar,
-        AreaStacked,
-        AreaNormalized,
-        Scatter,
-        Error,
-        Bubble,
-        ForceDirected,
-        HeatMap,
-        TreeMap,
-        Cards,
-        Gauge,
-        LinearGauge,
-        Map
-    }
+    
 
     public enum EIssueCategory
     {

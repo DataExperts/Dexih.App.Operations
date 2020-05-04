@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using dexih.functions.Query;
+using dexih.repository.Properties;
+using dexih.transforms.View;
 using Dexih.Utils.CopyProperties;
 
 
@@ -64,11 +66,24 @@ namespace dexih.repository
         public ChartConfig ChartConfig { get; set; }
 
         [DataMember(Order = 15)]
+        [CopyReference]
+        public AnimateConfig AnimateConfig { get; set; }
+        
+        [DataMember(Order = 16)]
         public bool IsShared { get; set; }
 
-        [DataMember(Order = 16)]
+        [DataMember(Order = 17)]
         public ICollection<DexihViewParameter> Parameters { get; set; }
 
+        public ViewConfig GetViewConfig()
+        {
+            return new ViewConfig()
+            {
+                ViewType = ViewType,
+                ChartConfig = ChartConfig,
+                AnimateConfig = AnimateConfig
+            };
+        }
         
         public override void ResetKeys()
         {
