@@ -757,6 +757,12 @@ namespace dexih.repository
 
         [DataMember(Order = 7)]
         public string SocketTransportType { get; set; } = "WebSockets";
+        
+        [DataMember(Order = 8)]
+        public int DefaultPreviewRows { get; set; } = 100;
+        
+        [DataMember(Order = 9)]
+        public int MaxPreviewRows { get; set; } = 5000;
     }
 
     [DataContract]
