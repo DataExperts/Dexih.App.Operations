@@ -900,6 +900,39 @@ namespace dexih.operations
 			}
 		}
 
+		public async Task<SharedData> GetSharedDataObject(ApplicationUser user, long hubKey, EDataObjectType objectType, long objectKey, CancellationToken cancellationToken)
+		{
+			var canAccess = await CanAccessSharedObjects(user, hubKey, cancellationToken);
+
+			if (!canAccess)
+			{
+				throw new RepositoryException($"The user does not have access to the hub with the key {hubKey}");
+			}
+			
+			var sharedData = await _cacheService.Get<IEnumerable<SharedData>>(CacheKeys.HubShared(hubKey), cancellationToken);
+
+			// if no shared data for this hub in cache, then lookup from db and add to cache.
+			if (sharedData == null)
+			{
+				var hub = await DbContext.DexihHubs.SingleAsync(c => c.HubKey == hubKey, cancellationToken: cancellationToken);
+				sharedData = await GetSharedData(new List<DexihHub>() {hub}, cancellationToken);
+				
+				await _cacheService.GetOrCreateAsync(CacheKeys.HubShared(hub.HubKey),
+					TimeSpan.FromHours(1),
+					() => Task.FromResult(sharedData), cancellationToken);
+			}
+
+			var sharedObject = sharedData.SingleOrDefault(c =>
+				c.ObjectType == objectType && c.ObjectKey == objectKey);
+
+			if (sharedObject == null)
+			{
+				throw new RepositoryException($"The shared item with the key {objectKey} could not be found.");
+			}
+
+			return sharedObject;
+		}
+		
 		private async Task<IEnumerable<SharedData>> GetSharedData(List<DexihHub> hubs, CancellationToken cancellationToken)
 		{
 			var shared = new List<SharedData>();

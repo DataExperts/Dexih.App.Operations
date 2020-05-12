@@ -33,7 +33,7 @@ namespace dexih.operations
 
         [DataMember(Order = 4)]
         public string MicrosoftClientId { get; set; }
-
+        
         [DataMember(Order = 5)]
         public string GoogleMapsAPIKey { get; set; }
         

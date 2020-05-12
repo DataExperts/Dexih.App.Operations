@@ -57,7 +57,6 @@ namespace dexih.repository
     {
         Table = 1,
         Datalink,
-        View,
         Static
     }
 
@@ -189,7 +188,7 @@ namespace dexih.repository
     // [JsonConverter(typeof(StringEnumConverter))]
     public enum ELoginProvider
     {
-        Dexih = 1, Google, Microsoft    
+        Dexih = 1, Google, Microsoft
     }
     
     public enum EUserRole
