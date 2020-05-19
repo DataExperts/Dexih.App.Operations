@@ -754,6 +754,22 @@ namespace dexih.operations
 					}
 					
 					throw new RepositoryManagerException($"The dashboard {dashboard.Name} does not have a parameter with name {parameterName} containing a list of values.");
+				case EDataObjectType.DashboardItem:
+					var dashboardItem = await DbContext.DexihDashboardItems.SingleOrDefaultAsync(c => c.Key == key && c.Dashboard.IsShared, cancellationToken: cancellationToken);
+					if (dashboardItem == null)
+					{
+						throw new RepositoryManagerException($"The view with the key {key} does not exist or is not shared.");
+					}
+
+					var dashboardItemParameter = await DbContext.DexihDashboardItemParameters.SingleOrDefaultAsync(c =>
+						c.DashboardItemKey == key && c.Name == parameterName && c.IsValid, cancellationToken: cancellationToken);
+
+					if (dashboardItemParameter != null && dashboardItemParameter.ListOfValuesKey > 0)
+					{
+						return dashboardItemParameter.ListOfValuesKey.Value;
+					}
+					
+					throw new RepositoryManagerException($"The dashboard item {dashboardItem.Name} does not have a parameter with name {parameterName} containing a list of values.");
 			}
 			
 			throw new RepositoryManagerException($"The {objectType} with key {key} does not contain parameters.");
@@ -973,6 +989,19 @@ namespace dexih.operations
 					.LoadAsync(cancellationToken: cancellationToken);
 			}
 
+			var dashboardKeys = dashboards.Select(c => c.Key).ToArray();
+
+			var dashboardItems = await DbContext.DexihDashboardItems
+				.Where(c => hubKeys.Contains(c.HubKey) && dashboardKeys.Contains(c.DashboardKey) && c.IsValid)
+				.ToArrayAsync(cancellationToken: cancellationToken);
+			if (dashboardItems.Any())
+			{
+				await DbContext.DexihDashboardItemParameters
+					.Where(c => c.IsValid && c.DashboardItem.IsValid && dashboardKeys.Contains(c.DashboardItem.DashboardKey) &&
+					            hubKeys.Contains(c.HubKey))
+					.LoadAsync(cancellationToken: cancellationToken);
+			}
+			
 			var apis = await DbContext.DexihApis.Where(c => hubKeys.Contains(c.HubKey) && c.IsShared && c.IsValid)
 				.ToArrayAsync(cancellationToken: cancellationToken);
 			if (apis.Any())
@@ -1061,6 +1090,22 @@ namespace dexih.operations
 					Parameters = dashboard.Parameters,
 				});
 			}
+			
+			foreach (var dashboardItem in dashboardItems)
+			{
+				shared.Add(new SharedData()
+				{
+					HubKey = dashboardItem.HubKey,
+					HubName = hubNames[dashboardItem.HubKey],
+					ObjectKey = dashboardItem.Key,
+					ObjectType = EDataObjectType.DashboardItem,
+					Name = dashboardItem.Name,
+					LogicalName = dashboardItem.Name,
+					Description = dashboardItem.Description,
+					UpdateDate = dashboardItem.UpdateDate,
+					Parameters = dashboardItem.Parameters,
+				});
+			}
 
 			ESharedObjectType ConvertObjectType(EDataObjectType dataObjectType)
 			{
@@ -1074,6 +1119,8 @@ namespace dexih.operations
 						return ESharedObjectType.View;
 					case EDataObjectType.Dashboard:
 						return ESharedObjectType.Dashboard;
+					case EDataObjectType.DashboardItem:
+						return ESharedObjectType.Dashboard;
 					case EDataObjectType.Api:
 						return ESharedObjectType.Api;
 					default:
@@ -1081,9 +1128,9 @@ namespace dexih.operations
 				}
 			}
 
-			var sharedObjects = shared.Select(c => new {c.HubKey, c.ObjectKey, ObjectType = ConvertObjectType(c.ObjectType)}).ToArray();
-			var objectKeys = sharedObjects.Select(c => c.ObjectKey).ToArray();
+			var objectKeys = shared.Select(c => c.ObjectKey).ToArray();
 			
+			// get all tags in one query
 			var tags = await DbContext.DexihTagObjects.Include(c => c.DexihTag)
 				.Where(c => c.IsValid && objectKeys.Contains(c.ObjectKey))
 				.ToHashSetAsync(cancellationToken: cancellationToken);
