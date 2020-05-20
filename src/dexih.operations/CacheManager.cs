@@ -1116,6 +1116,46 @@ namespace dexih.operations
 		    }
 	    }
 	    
+	    public void AddDashboardItems(IEnumerable<long> dashboardItemKeys, DexihHub hub)
+	    {
+		    foreach (var dashboardItemKey in dashboardItemKeys)
+		    {
+			    var (dashboard, dashboardItem) = Hub.GetDashboardItemFromKey(dashboardItemKey);
+			    if(dashboardItem == null)
+			    {
+				    (dashboard, dashboardItem) = hub.GetDashboardItemFromKey(dashboardItemKey);
+
+				    if (dashboard == null)
+				    {
+					    throw new CacheManagerException($"The dashboard item with the key {dashboardItemKeys} was not found.");
+				    }
+				    
+				    Hub.DexihDashboards.Add(dashboard);
+
+				    LoadDashboardDependencies(dashboard, hub);
+			    }
+		    }
+	    }
+	    
+	    public async Task AddDashboardItems(IEnumerable<long> dashboardItemKeys, DexihRepositoryContext dbContext)
+	    {
+		    foreach (var dashboardItemKey in dashboardItemKeys)
+		    {
+			    var (dashboard, dashboardItem) = Hub.GetDashboardItemFromKey(dashboardItemKey);
+			    if(dashboardItem == null)
+			    {
+				    dashboardItem = await dbContext.DexihDashboardItems.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == dashboardItemKey && c.IsValid);
+				    
+				    if (dashboardItem == null)
+				    {
+					    throw new CacheManagerException($"The dashboard item with the key {dashboardItemKey} was not found.");
+				    }
+
+				    await AddDashboards(new[] {dashboardItem.DashboardKey}, dbContext);
+			    }
+		    }
+	    }
+	    
 	    public void AddListOfValues(IEnumerable<long> listOfValuesKeys, DexihHub hub)
 	    {
 		    foreach (var key in listOfValuesKeys)

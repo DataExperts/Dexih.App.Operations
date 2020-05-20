@@ -16,6 +16,7 @@ using static dexih.functions.TableColumn;
 using Microsoft.Extensions.Logging;
 using Dexih.Utils.CopyProperties;
 using System.Threading;
+using dexih.functions.Query;
 using dexih.operations.Extensions;
 using dexih.transforms;
 using dexih.transforms.Transforms;

@@ -117,6 +117,21 @@ namespace dexih.repository
             return (null, null);
         }
 
+        public (DexihDashboard dashboard, DexihDashboardItem dashboardItem) GetDashboardItemFromKey(long dashboardItemKey)
+        {
+            foreach (var dashboard in DexihDashboards)
+            {
+                var item = dashboard.DexihDashboardItems.SingleOrDefault(c => c.IsValid && c.Key == dashboardItemKey);
+                if (item != null)
+                {
+                    return (dashboard, item);
+                }
+            }
+
+            return (null, null);
+        }
+
+        
         /// <summary>
         /// Searches all connections for a table.
         /// </summary>

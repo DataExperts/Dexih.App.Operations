@@ -52,6 +52,8 @@ namespace dexih.operations
                 {
                     Transform transform;
                     string name;
+                    
+                    downloadObject.Query.AddParameters(downloadObject.InputParameters);
 
                     switch (downloadObject.ObjectType)
                     {
@@ -62,13 +64,26 @@ namespace dexih.operations
                             break;
                         case EDataObjectType.Datalink:
                             (transform, name) = await GetDatalinkTransform(downloadObject.ObjectKey, downloadObject.DatalinkTransformKey,
-                                downloadObject.InputColumns, downloadObject.Query, cancellationToken);
+                                downloadObject.InputColumns, downloadObject.InputParameters, downloadObject.Query, cancellationToken);
                             break;
                         case EDataObjectType.View:
-                            var dbView = Cache.Hub.DexihViews.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                        case EDataObjectType.DashboardItem:
+                            DexihView dbView;
+                            if (downloadObject.ObjectType == EDataObjectType.DashboardItem)
+                            {
+                                var dashboardItem = Cache.Hub.GetDashboardItemFromKey(downloadObject.ObjectKey);
+                                dbView = Cache.Hub.DexihViews.SingleOrDefault(c => c.Key == dashboardItem.dashboardItem.ViewKey);
+                            }
+                            else
+                            {
+                                dbView = Cache.Hub.DexihViews.SingleOrDefault(c => c.Key == downloadObject.ObjectKey);
+                            }
+
                             if (dbView != null)
                             {
                                 name = dbView.Name;
+                                dbView.SelectQuery.AddParameters(downloadObject.InputParameters);
+                                
                                 switch (dbView.SourceType)
                                 {
                                     case EDataObjectType.Table:
@@ -76,7 +91,7 @@ namespace dexih.operations
                                             dbView.SelectQuery, cancellationToken);
                                         break;
                                         case EDataObjectType.Datalink:
-                                            (transform, _) = await GetDatalinkTransform(dbView.SourceDatalinkKey.Value, null, dbView.InputValues,
+                                            (transform, _) = await GetDatalinkTransform(dbView.SourceDatalinkKey.Value, null, dbView.InputValues, downloadObject.InputParameters,
                                                 dbView.SelectQuery, cancellationToken);
                                             break;
                                         default:
@@ -86,7 +101,7 @@ namespace dexih.operations
                             }
                             else
                             {
-                                throw new DownloadDataException($"The view with key {downloadObject.ObjectKey} could not be found in the cache.");
+                                throw new DownloadDataException($"The {downloadObject.ObjectType.ToString()} with key {downloadObject.ObjectKey} could not be found in the cache.");
                                
                             }
                             
@@ -201,20 +216,22 @@ namespace dexih.operations
                 $"The table with key {key} could not be found in the cache.");
         }
 
-        private async Task<(Transform transform, string name)> GetDatalinkTransform(long key, long? datalinkTransformKey, InputColumn[] inputColumns, SelectQuery selectQuery, CancellationToken cancellationToken)
+        private async Task<(Transform transform, string name)> GetDatalinkTransform(long key, long? datalinkTransformKey, InputColumn[] inputColumns, InputParameters inputParameters, SelectQuery selectQuery, CancellationToken cancellationToken)
         {
             var dbDatalink =
                 Cache.Hub.DexihDatalinks.SingleOrDefault(c => c.Key == key);
-
+            
             if (dbDatalink == null)
             {
                 throw new DownloadDataException(
                     $"The datalink with key {key} could not be found in the cache.");
             }
 
+            dbDatalink.UpdateParameters(inputParameters);
+
             var transformWriterOptions = new TransformWriterOptions()
             {
-                PreviewMode = true
+                PreviewMode = true,
             };
 
             var transformManager = new TransformsManager(TransformSettings);

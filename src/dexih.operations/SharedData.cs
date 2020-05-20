@@ -42,14 +42,17 @@ namespace dexih.operations
 
         [DataMember(Order = 9)]
         public IEnumerable<InputParameterBase> Parameters { get; set; }
-
+        
         [DataMember(Order = 10)]
-        public SelectQuery Query { get; set; }
+        public InputParameters ParentParameters { get; set; }
 
         [DataMember(Order = 11)]
+        public SelectQuery Query { get; set; }
+
+        [DataMember(Order = 12)]
         public DexihColumnBase[] OutputColumns { get; set; }
         
-        [DataMember(Order = 12)]
+        [DataMember(Order = 13)]
         public DexihTag[] Tags { get; set; }
     }
 }
