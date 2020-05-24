@@ -3592,6 +3592,11 @@ namespace dexih.operations
                     if (dbView != null)
                     {
 	                    view.CopyProperties(dbView, false);
+	                    
+	                    // FUTURE PROOF: add these manually as the CopyProperties won't complete if changes have
+	                    // been made to either of these classes.
+	                    view.ChartConfig = dbView.ChartConfig;
+	                    view.SelectQuery = dbView.SelectQuery;
                     }
                     else
                     {

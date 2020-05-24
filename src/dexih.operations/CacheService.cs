@@ -73,6 +73,7 @@ namespace dexih.operations
                 var updated = 0L;
 
                 // check distributed cache for an update
+                
                 if (DistributedCache != null)
                 {
                     var bytes = await DistributedCache.GetAsync(key, cancellationToken);
@@ -86,6 +87,7 @@ namespace dexih.operations
                 {
                     entry.SetSlidingExpiration(expiration);
                     var value = await factory.Invoke();
+                    await ResetDistributed(key, cancellationToken);
                     return new CacheServiceItem<TItem>(value);
                 });
 
@@ -95,6 +97,7 @@ namespace dexih.operations
                     var value = await factory.Invoke();
                     var options = new MemoryCacheEntryOptions() {SlidingExpiration = expiration};
                     MemoryCache.Set(key, new CacheServiceItem<TItem>(value), options);
+                    await ResetDistributed(key, cancellationToken);
                 }
 
                 return cacheItem.Item;
