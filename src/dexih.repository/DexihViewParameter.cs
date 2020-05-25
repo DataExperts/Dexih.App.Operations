@@ -12,6 +12,9 @@ namespace dexih.repository
         [DataMember(Order = 11)]
         [CopyParentCollectionKey]
         public long ViewKey { get; set; }
+        
+        [DataMember(Order = 12)]
+        public long DatalinkParameterKey { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihView View { get; set; }

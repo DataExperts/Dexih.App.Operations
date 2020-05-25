@@ -141,10 +141,14 @@ namespace dexih.repository
 
             foreach (var parameter in Parameters)
             {
-                var inputParameter = inputParameters.SingleOrDefault(c => c.Name == parameter.Name);
-                if (inputParameter != null)
+                var inputParameter = inputParameters.Where(c => c.Name == parameter.Name).ToArray();
+                if (inputParameter.Count() > 1)
                 {
-                    parameter.Value = inputParameter.Value;
+                    throw new RepositoryException($"There are multiple parameters with the name {parameter.Name}.");
+                }
+                if (inputParameter.Count() == 1)
+                {
+                    parameter.Value = inputParameter[0].Value;
                 }
             }
         }

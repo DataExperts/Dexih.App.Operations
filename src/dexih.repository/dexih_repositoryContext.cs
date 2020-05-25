@@ -1902,6 +1902,7 @@ namespace dexih.repository
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Key).HasColumnName("view_parameter_key");
                 entity.Property(e => e.ViewKey).HasColumnName("view_key");
+                entity.Property(e => e.DatalinkParameterKey).HasColumnName("datalink_parameter_key");
 
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
