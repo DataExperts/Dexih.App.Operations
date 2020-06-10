@@ -7,23 +7,23 @@ using Dexih.Utils.CopyProperties;
 namespace dexih.repository
 {
     [DataContract]
-    public class DexihDatalinkTarget: DexihHubNamedEntity
+    public class DexihDatalinkTarget: DexihHubKeyEntity
     {
 
-        [DataMember(Order = 7)]
+        [DataMember(Order = 5)]
         [CopyParentCollectionKey]
         public long DatalinkKey { get; set; }
 
-        [DataMember(Order = 8)]
+        [DataMember(Order = 6)]
         public long? NodeDatalinkColumnKey { get; set; }
 
-        [DataMember(Order = 9)]
+        [DataMember(Order = 7)]
         public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
 
-        [DataMember(Order = 10)]
+        [DataMember(Order = 8)]
         public int Position { get; set; }
 
-        [DataMember(Order = 11)]
+        [DataMember(Order = 9)]
         public long TableKey { get; set; }
         
         [JsonIgnore, CopyIgnore, IgnoreDataMember]

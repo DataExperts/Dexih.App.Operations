@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Dexih.Utils.CopyProperties;
@@ -19,7 +20,7 @@ namespace dexih.repository
     public class InputParameterBase: DexihHubNamedEntity
     {
         [DataMember(Order = 7)]
-        public string Value { get; set; }
+        public object Value { get; set; }
         
         [DataMember(Order = 8)]
         public long? ListOfValuesKey { get; set; }
@@ -28,7 +29,11 @@ namespace dexih.repository
         public bool AllowUserSelect { get; set; } = true;
 
         [DataMember(Order = 10)]
-        public string ValueDesc { get; set; }
+        public object ValueDesc { get; set; }
+        
+        [DataMember(Order = 11)]
+        [NotMapped]
+        public short Rank { get; set; }
         
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihListOfValues ListOfValues { get; set; }

@@ -34,12 +34,8 @@ namespace dexih.repository
     // [Union(24, typeof(DexihTable))]
     // [Union(25, typeof(DexihTrigger))]
     // [Union(26, typeof(DexihView))]
-    public class DexihHubNamedEntity : DexihHubEntity
+    public class DexihHubNamedEntity : DexihHubKeyEntity
     {
-        [DataMember(Order = 4)]
-        [CopyCollectionKey((long)0, true)]
-        public long Key { get; set; }
-
         [DataMember(Order = 5)]
         [NotMapped]
         public string Name { get; set; }
@@ -50,11 +46,6 @@ namespace dexih.repository
 
         [JsonIgnore, CopyIgnore, NotMapped, IgnoreDataMember]
         public virtual long ParentKey => 0;
-
-        public virtual void ResetKeys()
-        {
-            Key = 0;
-        }
-
+        
     }
 }

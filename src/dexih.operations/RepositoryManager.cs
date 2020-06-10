@@ -5389,7 +5389,7 @@ namespace dexih.operations
 
 		}
 
-        void ResetKeys(IEnumerable<DexihHubNamedEntity> entities)
+        void ResetKeys(IEnumerable<DexihHubKeyEntity> entities)
         {
 	        foreach (var entity in entities)
 	        {

@@ -14,6 +14,7 @@ using dexih.transforms.View;
 using Dexih.Utils.DataType;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 
@@ -131,7 +132,103 @@ namespace dexih.repository
 				((DexihBaseEntity)entity.Entity).UpdateDate = DateTime.UtcNow;
             }
 		}
+        
+        private void SetDexihBaseEntity<T>(EntityTypeBuilder<T> entity) where T:DexihBaseEntity
+        {
+            entity.Property(e => e.CreateDate).HasColumnName("create_date");
+            entity.Property(e => e.UpdateDate).HasColumnName("update_date");
+            entity.Property(e => e.IsValid).HasColumnName("is_valid");
+        }
 
+        private void SetDexihHubEntity<T>(EntityTypeBuilder<T> entity) where T:DexihHubEntity
+        {
+            entity.Property(e => e.HubKey).IsRequired().HasColumnName("hub_key");
+            SetDexihBaseEntity(entity);
+        }
+        
+        private void SetDexihHubKeyEntity<T>(EntityTypeBuilder<T> entity, string keyName = "key") where T:DexihHubKeyEntity
+        {
+            SetDexihHubEntity(entity);
+            entity.Property(e => e.Key).HasColumnName(keyName);
+            SetDexihBaseEntity(entity);
+        }
+        
+        private void SetDexihHubNamedEntity<T>(EntityTypeBuilder<T> entity, string keyName = "key") where T:DexihHubNamedEntity
+        {
+            SetDexihHubKeyEntity(entity, keyName);
+            entity.Property(e => e.Key).HasColumnName(keyName);
+            entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
+            entity.Property(e => e.Description).HasColumnName("description");
+
+            SetDexihBaseEntity(entity);
+        }
+
+        private void SetInputParameterBase<T>(EntityTypeBuilder<T> entity, string keyName = "key") where T:InputParameterBase
+        {
+            SetDexihHubNamedEntity(entity, keyName);
+
+            var test = new JsonObjectConverter();
+            entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(500).HasJsonConversion();
+            entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
+            entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
+            entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(500).HasJsonConversion();
+            entity.Property(e => e.Rank).HasColumnName("rank");
+        }
+        
+        private void SetDexihParameterBase<T>(EntityTypeBuilder<T> entity, string keyName = "key") where T:DexihParameterBase
+        {
+            SetDexihHubKeyEntity(entity, keyName);
+            
+            entity.Property(e => e.Name).HasColumnName("parameter_name");
+            entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
+                .HasConversion(new EnumToStringConverter<ETypeCode>());
+            entity.Property(e => e.AllowNull).HasColumnName("allow_null");
+            entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
+            entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
+                .HasConversion(new EnumToStringConverter<EParameterDirection>());
+
+            entity.Property(e => e.Position).HasColumnName("position");
+            entity.Property(e => e.Rank).HasColumnName("rank");
+        }
+
+        private void SetDexihFunctionParameterBase<T>(EntityTypeBuilder<T> entity, string keyName = "key")
+            where T : DexihFunctionParameterBase
+        {
+            SetDexihParameterBase(entity, keyName);
+            
+            entity.Property(e => e.Name).HasColumnName("parameter_name");
+            entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
+            entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasMaxLength(8000);
+            entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(50);
+        }
+        
+        private void SetDexihColumnBase<T>(EntityTypeBuilder<T> entity, string keyName = "key") where T:DexihColumnBase
+        {
+            SetDexihHubNamedEntity(entity, keyName);
+            
+                entity.Property(e => e.Key).HasColumnName(keyName);
+                entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
+                entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
+                    .HasConversion(new EnumToStringConverter<ETypeCode>());
+                entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
+                    .HasConversion(new EnumToStringConverter<EDeltaType>());
+                entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
+                entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
+                entity.Property(e => e.IsUnique).HasColumnName("is_unique");
+                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);   
+                entity.Property(e => e.ColumnGroup).HasColumnName("column_group").HasMaxLength(250);
+                entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasMaxLength(1024);
+                entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
+                entity.Property(e => e.MaxLength).HasColumnName("max_length");
+                entity.Property(e => e.Position).HasColumnName("position");
+                entity.Property(e => e.Precision).HasColumnName("precision");
+                entity.Property(e => e.Scale).HasColumnName("scale");
+                entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
+                    .HasConversion(new EnumToStringConverter<ESecurityFlag>());
+                entity.Property(e => e.IsInput).HasColumnName("is_input");
+                entity.Property(e => e.Rank).HasColumnName("rank");
+        }
+        
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -181,28 +278,19 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_apis");
 
-                entity.Property(e => e.Key).HasColumnName("api_key");
-                entity.Property(e => e.HubKey).IsRequired().HasColumnName("hub_key");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description");
+                SetDexihHubNamedEntity(entity, "api_key");
+
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.SourceType).IsRequired().HasColumnName("source_type").HasMaxLength(20)
                     .HasConversion(new EnumToStringConverter<ESourceType>());
                 entity.Property(e => e.LogDirectory).HasColumnName("log_directory").HasMaxLength(250);
                 entity.Property(e => e.AutoStart).HasColumnName("auto_start");
                 entity.Property(e => e.CacheQueries).IsRequired().HasColumnName("cache_queries");
                 entity.Property(e => e.CacheResetInterval).HasColumnName("cache_reset_interval");
-
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
-
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
+                
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihApis)
                     .HasForeignKey(d => d.HubKey);
@@ -218,21 +306,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_api_parameter");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("api_parameter_key");
+                SetInputParameterBase(entity, "api_parameter_key");
                 entity.Property(e => e.ApiKey).HasColumnName("api_key");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-                
-                entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(50);
-                entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
-                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
-                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
-                
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Api)
                     .WithMany(p => p.Parameters)
@@ -251,8 +326,7 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_column_validation");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("column_validation_key");
+                SetDexihHubNamedEntity(entity, "column_validation_key");
 
                 entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
 
@@ -262,9 +336,6 @@ namespace dexih.repository
                 entity.Property(e => e.InvalidAction).HasColumnName("invalid_action").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<EInvalidAction>());
                 
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-
                 entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<ETypeCode>());
                 
@@ -274,7 +345,6 @@ namespace dexih.repository
 
                 entity.Property(e => e.ListOfNotValuesString).HasColumnName("list_of_not_values").HasMaxLength(8000);
                 
-
                 entity.Property(e => e.LookupColumnKey).HasColumnName("lookup_column_key");
                 entity.Property(e => e.LookupIsValid).HasColumnName("lookup_is_valid");
                 entity.Property(e => e.LookupMultipleRecords).HasColumnName("lookup_multiple_records");
@@ -287,10 +357,6 @@ namespace dexih.repository
 
                 entity.Property(e => e.PatternMatch).HasColumnName("pattern_match").HasMaxLength(250);
                 entity.Property(e => e.RegexMatch).HasColumnName("regex_match").HasMaxLength(250);
-
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihColumnValidations)
@@ -314,13 +380,9 @@ namespace dexih.repository
                 entity.HasKey(e => e.Key).HasName("PK_dexih_connections");
 
                 entity.ToTable("dexih_connections");
-
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-
-                entity.Property(e => e.Key).HasColumnName("connection_key");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-
+                
+                SetDexihHubNamedEntity(entity, "connection_key");
+                
                 entity.Property(e => e.Purpose).HasColumnName("purpose").HasMaxLength(10)
                     .HasConversion(new EnumToStringConverter<EConnectionPurpose>());
 
@@ -336,7 +398,6 @@ namespace dexih.repository
                 entity.Property(e => e.DefaultDatabase).HasColumnName("default_database").HasMaxLength(50);
 				entity.Property(e => e.EmbedTableKey).HasColumnName("embed_tablekey");
                 entity.Property(e => e.Filename).HasColumnName("filename").HasMaxLength(1000);
-//                entity.Property(e => e.IsInternal).HasColumnName("is_internal");
 
 				entity.Property(e => e.UseWindowsAuth).HasColumnName("use_windows_auth");
                 entity.Property(e => e.Username).HasColumnName("username").HasMaxLength(250);
@@ -345,10 +406,6 @@ namespace dexih.repository
 
                 entity.Property(e => e.ConnectionTimeout).HasColumnName("connection_timeout");
                 entity.Property(e => e.CommandTimeout).HasColumnName("command_timeout");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihConnections)
@@ -365,12 +422,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_custom_functions");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("custom_function_key");
+                SetDexihHubNamedEntity(entity, "custom_function_key");
+
                 entity.Property(e => e.MethodCode).HasColumnName("method_code").HasMaxLength(8000);
                 entity.Property(e => e.ResultCode).HasColumnName("result_code").HasMaxLength(8000);
-                entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
                 entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
                 entity.Property(e => e.GenericTypeDefault).HasColumnName("generic_type_default").HasMaxLength(20)
@@ -381,10 +436,6 @@ namespace dexih.repository
                 
                 entity.Property(e => e.ReturnType).HasColumnName("return_type").HasMaxLength(30)
                     .HasConversion(new EnumToStringConverter<ETypeCode>());
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihCustomFunctions)
@@ -399,25 +450,9 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_custom_function_parameters");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("custom_function_parameter_key");
+                SetDexihParameterBase(entity, "custom_function_parameter_key");
+
                 entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
-                // entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(250);
-                entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<ETypeCode>());
-                entity.Property(e => e.AllowNull).HasColumnName("allow_null");
-                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
-                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<EParameterDirection>());
-
-                entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.Rank).HasColumnName("rank");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.CustomFunction)
                     .WithMany(p => p.DexihCustomFunctionParameters)
@@ -435,12 +470,9 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_dashboard_item");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("dashboard_item_key");
-                entity.Property(e => e.DashboardKey).HasColumnName("dashboard_key");
+                SetDexihHubNamedEntity(entity, "dashboard_item_key");
                 
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                entity.Property(e => e.DashboardKey).HasColumnName("dashboard_key");
                 
                 entity.Property(e => e.X).HasColumnName("x");
                 entity.Property(e => e.Y).HasColumnName("y");
@@ -450,10 +482,6 @@ namespace dexih.repository
                 entity.Property(e => e.Scrollable).HasColumnName("scrollable");
                 entity.Property(e => e.ViewKey).HasColumnName("view_key");
                 
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
                 entity.HasOne(d => d.Dashboard)
                     .WithMany(p => p.DexihDashboardItems)
                     .HasForeignKey(d => d.DashboardKey)
@@ -471,21 +499,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_dashboard_parameter");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("dashboard_parameter_key");
+                SetInputParameterBase(entity, "dashboard_parameter_key");
                 entity.Property(e => e.DashboardKey).HasColumnName("dashboard_key");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-                
-                entity.Property(e => e.Value).HasColumnName("value");
-                entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
-                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
-                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Dashboard)
                     .WithMany(p => p.Parameters)
@@ -504,22 +519,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_dashboard_item_parameter");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("dashboard_item_parameter_key");
+                SetInputParameterBase(entity, "dashboard_item_parameter_key");
+
                 entity.Property(e => e.DashboardItemKey).HasColumnName("dashboard_item_key");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 
-                entity.Property(e => e.Value).HasColumnName("value");
-                entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
-                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
-                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
                 entity.HasOne(d => d.DashboardItem)
                     .WithMany(p => p.Parameters)
                     .HasForeignKey(d => d.DashboardItemKey)
@@ -537,21 +540,15 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_dashboards");
 
-                entity.Property(e => e.Key).HasColumnName("table_key");
-				entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                SetDexihHubNamedEntity(entity, "dashboard_key");
+
                 entity.Property(e => e.MinCols).HasColumnName("min_cols");
                 entity.Property(e => e.MaxCols).HasColumnName("max_cols");
                 entity.Property(e => e.MinRows).HasColumnName("min_rows");
                 entity.Property(e => e.MaxRows).HasColumnName("max_rows");
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
 
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1000);
 				entity.Property(e => e.IsShared).HasColumnName("is_shared");
-
-				entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihDashboards)
@@ -567,10 +564,7 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datajobs");
 
-                entity.Property(e => e.Key).HasColumnName("datajob_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                SetDexihHubNamedEntity(entity, "datajob_key");
 
                 entity.Property(e => e.FailAction).HasColumnName("fail_action").HasMaxLength(20)
                     .HasConversion(new EnumToStringConverter<EFailAction>());
@@ -579,10 +573,6 @@ namespace dexih.repository
                 // entity.Property(e => e.ExternalTrigger).HasColumnName("external_trigger");
                 entity.Property(e => e.FileWatch).HasColumnName("file_watch");
                 entity.Property(e => e.AutoStart).HasColumnName("auto_start");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihDatajobs)
@@ -605,22 +595,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datajob_parameter");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datajob_parameter_key");
+                SetInputParameterBase(entity, "datajob_parameter_key");
+
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 
-                entity.Property(e => e.Value).HasColumnName("value");
-                entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
-                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
-                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
                 entity.HasOne(d => d.Datajob)
                     .WithMany(p => p.Parameters)
                     .HasForeignKey(d => d.DatajobKey)
@@ -637,39 +615,9 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_columns");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_column_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                SetDexihColumnBase(entity, "datalink_column_key");
                 entity.Property(e => e.DatalinkTableKey).HasColumnName("datalink_table_key");
                 entity.Property(e => e.ParentDatalinkColumnKey).HasColumnName("parent_datalink_column_key");
-                entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<ETypeCode>());
-
-                entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
-                    .HasConversion(new EnumToStringConverter<EDeltaType>());
-                
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-                entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
-                entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
-                entity.Property(e => e.IsUnique).HasColumnName("is_unique");
-                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);   
-                entity.Property(e => e.ColumnGroup).HasColumnName("column_group").HasMaxLength(250);
-                entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasMaxLength(1024);
-                entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
-                entity.Property(e => e.MaxLength).HasColumnName("max_length");
-                entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.Precision).HasColumnName("precision");
-                entity.Property(e => e.Scale).HasColumnName("scale");
-                entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
-                    .HasConversion(new EnumToStringConverter<ESecurityFlag>());
-
-                entity.Property(e => e.IsInput).HasColumnName("is_input");
-                entity.Property(e => e.Rank).HasColumnName("rank");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.DatalinkTable)
                     .WithMany(p => p.DexihDatalinkColumns)
@@ -693,9 +641,7 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_tables");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_table_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
+                SetDexihHubNamedEntity(entity, "datalink_table_key");
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
                 entity.Property(e => e.SourceType).HasColumnName("source_type").HasMaxLength(20)
@@ -708,10 +654,6 @@ namespace dexih.repository
                 entity.Property(e => e.DisablePushDown).HasColumnName("disable_push_down");
                 entity.Property(e => e.DisableVersioning).HasColumnName("disable_versioning");
 
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                
                 entity.HasOne(d => d.SourceTable)
                     .WithMany(p => p.DexihDatalinkTables)
                     .HasForeignKey(d => d.SourceTableKey)
@@ -735,15 +677,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_dependencies");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datalink_dependency_key");
+                SetDexihHubKeyEntity(entity, "datalink_dependency_key");
                 entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
                 entity.Property(e => e.DependentDatalinkStepKey).HasColumnName("dependent_datalink_step_key");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
+                
                 entity.HasOne(d => d.DependentDatalinkStep)
                     .WithMany(p => p.DexihDatalinkDependentSteps)
                     .HasForeignKey(d => d.DependentDatalinkStepKey)
@@ -767,22 +704,9 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_parameter");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datalink_parameter_key");
+                SetInputParameterBase(entity, "datalink_parameter_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 
-                entity.Property(e => e.Value).HasColumnName("value");
-                entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
-                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
-                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
                 entity.HasOne(d => d.Datalink)
                     .WithMany(p => p.Parameters)
                     .HasForeignKey(d => d.DatalinkKey)
@@ -800,19 +724,14 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_profiles");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datalink_profile_key");
+                SetDexihHubKeyEntity(entity, "datalink_profile_key");
+
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
 				entity.Property(e => e.DetailedResults).HasColumnName("detailed_results");
-
                 entity.Property(e => e.FunctionClassName).HasColumnName("function_class_name");
                 entity.Property(e => e.FunctionMethodName).HasColumnName("function_method_name");
                 entity.Property(e => e.FunctionAssemblyName).HasColumnName("function_assembly_name");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
+                
                 entity.HasOne(d => d.Datalink)
                     .WithMany(p => p.DexihDatalinkProfiles)
                     .HasForeignKey(d => d.DatalinkKey)
@@ -832,17 +751,11 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_steps");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datalink_step_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
+                SetDexihHubNamedEntity(entity, "datalink_step_key");
 
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
                 entity.Property(e => e.Position).HasColumnName("position");
-
-				entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Datajob)
                     .WithMany(p => p.DexihDatalinkSteps)
@@ -867,21 +780,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_step_parameter");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datalink_step_parameter_key");
+                SetInputParameterBase(entity, "datalink_step_parameter_key");
                 entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-                
-                entity.Property(e => e.Value).HasColumnName("value");
-                entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
-                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
-                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.DatalinkStep)
                     .WithMany(p => p.Parameters)
@@ -899,35 +799,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_step_columns");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_step_column_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                SetDexihColumnBase(entity, "datalink_step_column_key");
                 entity.Property(e => e.DatalinkStepKey).HasColumnName("datalink_step_key");
-                entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<ETypeCode>());
-                entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
-                    .HasConversion(new EnumToStringConverter<EDeltaType>());
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-                entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
-                entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
-                entity.Property(e => e.IsUnique).HasColumnName("is_unique");
-                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);    
-                entity.Property(e => e.ColumnGroup).HasColumnName("column_group").HasMaxLength(250);
-                entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasMaxLength(1024);
-                entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
-                entity.Property(e => e.MaxLength).HasColumnName("max_length");
-                entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.Precision).HasColumnName("precision");
-                entity.Property(e => e.Scale).HasColumnName("scale");
-                entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
-                    .HasConversion(new EnumToStringConverter<ESecurityFlag>());
-
-                entity.Property(e => e.IsInput).HasColumnName("is_input");
-                entity.Property(e => e.Rank).HasColumnName("rank");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.DatalinkStep)
                     .WithMany(p => p.DexihDatalinkStepColumns)
@@ -945,15 +818,11 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_targets");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_target_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                SetDexihHubKeyEntity(entity, "datalink_target_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.NodeDatalinkColumnKey).HasColumnName("node_datalink_column_key");
                 entity.Property(e => e.TableKey).HasColumnName("table_key");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 
                 entity.HasOne(d => d.Datalink)
                     .WithMany(p => p.DexihDatalinkTargets)
@@ -983,14 +852,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_tests");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_test_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1000);
+                SetDexihHubNamedEntity(entity, "datalink_test_key");
                 entity.Property(e => e.AuditConnectionKey).HasColumnName("audit_connection_key");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihDatalinkTests)
@@ -1006,15 +869,12 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_test_steps");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_test_step_key");
+                SetDexihHubNamedEntity(entity, "datalink_test_step_key");
                 entity.Property(e => e.DatalinkTestKey).HasColumnName("datalink_test_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Position).HasColumnName("position");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
                 
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1000);
-                
+               
                 entity.Property(e => e.TargetConnectionKey).HasColumnName("target_connection_key");
                 entity.Property(e => e.TargetTableName).HasColumnName("target_table_name").HasMaxLength(50);
                 entity.Property(e => e.TargetSchema).HasColumnName("target_schema").HasMaxLength(50);
@@ -1026,10 +886,6 @@ namespace dexih.repository
                 entity.Property(e => e.ErrorConnectionKey).HasColumnName("error_connection_key");
                 entity.Property(e => e.ErrorTableName).HasColumnName("error_table_name").HasMaxLength(50);
                 entity.Property(e => e.ErrorSchema).HasColumnName("error_schema").HasMaxLength(50);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.DatalinkTest)
                     .WithMany(p => p.DexihDatalinkTestSteps)
@@ -1047,9 +903,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_datalink_test_tables");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_test_table_key");
+                SetDexihHubKeyEntity(entity, "datalink_test_table_key");
                 entity.Property(e => e.DatalinkTestStepKey).HasColumnName("datalink_test_step_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 
                 entity.Property(e => e.TableKey).HasColumnName("table_key");
                 entity.Property(e => e.SourceConnectionKey).HasColumnName("source_connection_key");
@@ -1062,10 +917,6 @@ namespace dexih.repository
 
                 entity.Property(e => e.Action).HasColumnName("action").HasMaxLength(20)
                     .HasConversion(new EnumToStringConverter<ETestTableAction>());
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 
                 entity.HasOne(d => d.DatalinkTestStep)
                     .WithMany(p => p.DexihDatalinkTestTables)
@@ -1082,8 +933,7 @@ namespace dexih.repository
                 entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_transform_items");
                 entity.ToTable("dexih_datalink_transform_items");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datalink_transform_item_key");
+                SetDexihHubNamedEntity(entity, "datalink_transform_item_key");
                 entity.Property(e => e.DatalinkTransformKey).HasColumnName("datalink_transform_key");
 
                 entity.Property(e => e.FunctionCode).HasColumnName("function_code").HasMaxLength(8000);
@@ -1129,11 +979,7 @@ namespace dexih.repository
 
                 entity.Property(e => e.CustomFunctionKey).HasColumnName("custom_function_key");
                 entity.Property(e => e.TargetDatalinkColumnKey).HasColumnName("target_datalink_column_key");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
+                
                 entity.HasOne(d => d.Dt)
                     .WithMany(p => p.DexihDatalinkTransformItems)
                     .HasForeignKey(d => d.DatalinkTransformKey)
@@ -1179,8 +1025,7 @@ namespace dexih.repository
                 entity.HasKey(e => e.Key).HasName("PK_dexih_datalink_transforms");
                 entity.ToTable("dexih_datalink_transforms");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("datalink_transform_key");
+                SetDexihHubNamedEntity(entity, "datalink_transform_key");
                 entity.Property(e => e.DatalinkKey).HasColumnName("datalink_key");
                 entity.Property(e => e.Position).HasColumnName("position");
 
@@ -1189,9 +1034,6 @@ namespace dexih.repository
 
                 entity.Property(e => e.TransformClassName).HasColumnName("transform_class_name").HasMaxLength(250);
                 entity.Property(e => e.TransformAssemblyName).HasColumnName("transform_assembly_name").HasMaxLength(250);
-
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
 
                 entity.Property(e => e.PassThroughColumns).HasColumnName("pass_through_columns");
 
@@ -1209,12 +1051,7 @@ namespace dexih.repository
                 
                 entity.Property(e => e.MaxInputRows).HasColumnName("max_input_rows");
                 entity.Property(e => e.MaxOutputRows).HasColumnName("max_output_rows");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
-
+                
                 entity.HasOne(d => d.Datalink)
                     .WithMany(p => p.DexihDatalinkTransforms)
                     .HasForeignKey(d => d.DatalinkKey)
@@ -1248,11 +1085,7 @@ namespace dexih.repository
                 entity.HasKey(e => e.Key).HasName("PK_dexih_datalink");
                 entity.ToTable("dexih_datalinks");
 
-                entity.Property(e => e.Key).HasColumnName("datalink_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                SetDexihHubNamedEntity(entity, "datalink_key");
 
                 entity.Property(e => e.DatalinkType).HasColumnName("datalink_type").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<EDatalinkType>());
@@ -1276,11 +1109,7 @@ namespace dexih.repository
                 
                 entity.Property(e => e.ProfileTableName).HasColumnName("profile_table_name");
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
+                
                 entity.HasOne(d => d.SourceDatalinkTable)
                     .WithMany(p => p.DexihDatalinkSourceTables)
                     .HasForeignKey(d => d.SourceDatalinkTableKey)
@@ -1312,10 +1141,7 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_file_formats");
 
-                entity.Property(e => e.Key).HasColumnName("file_format_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                SetDexihHubNamedEntity(entity, "file_format_key");
                 
                 entity.Property(e => e.MatchHeaderRecord).HasColumnName("match_header_record");
                 entity.Property(e => e.SkipHeaderRows).HasColumnName("skip_header_rows");
@@ -1336,11 +1162,7 @@ namespace dexih.repository
                 entity.Property(e => e.TrimHeaders).HasColumnName("trim_headers");
                 entity.Property(e => e.WillThrowOnMissingField).HasColumnName("will_throw_on_missing_field");
                 entity.Property(e => e.SetWhiteSpaceCellsToNull).HasColumnName("set_white_space_cells_to_null");
-
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-
+                
 				entity.HasOne(d => d.Hub)
 					  .WithMany(p => p.DexihFileFormats)
                     .HasForeignKey(d => d.HubKey);
@@ -1356,31 +1178,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_function_parameters");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("function_parameter_key");
-
-                entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
+                SetDexihFunctionParameterBase(entity, "function_parameter_key");
                 entity.Property(e => e.DatalinkTransformItemKey).HasColumnName("datalink_transform_item_key");
-                
-                entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<ETypeCode>());
-
-                entity.Property(e => e.AllowNull).HasColumnName("allow_null");
-
-                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
-
-                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<EParameterDirection>());
-                
-                entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
-                entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(1024);
-                entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.Rank).HasColumnName("rank");
-                entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasMaxLength(8000);
-                
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.DtItem)
                     .WithMany(p => p.DexihFunctionParameters)
@@ -1403,28 +1202,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_function_array_parameters");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("function_parameter_array_key");
-                entity.Property(e => e.DatalinkColumnKey).HasColumnName("datalink_column_key");
+                SetDexihFunctionParameterBase(entity, "function_parameter_array_key");
+ 
                 entity.Property(e => e.FunctionParameterKey).HasColumnName("function_parameter_key");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("parameter_name").HasMaxLength(50);
-                
-                entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<ETypeCode>());
-                entity.Property(e => e.IsGeneric).HasColumnName("is_generic");
-                entity.Property(e => e.AllowNull).HasColumnName("allow_null");
-
-                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<EParameterDirection>());
-                
-                entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.Rank).HasColumnName("rank");
-                entity.Property(e => e.ListOfValuesString).HasColumnName("list_of_values").HasMaxLength(8000);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
+ 
                 entity.HasOne(d => d.FunctionParameter)
                     .WithMany(p => p.ArrayParameters)
                     .HasForeignKey(d => d.FunctionParameterKey)
@@ -1442,6 +1223,7 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_remote_agents");
 
+                SetDexihBaseEntity(entity);
                 entity.Property(e => e.RemoteAgentKey).HasColumnName("remote_agent_key");
                 entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(50);
 
@@ -1456,11 +1238,7 @@ namespace dexih.repository
                 
                 entity.Property(e => e.LastLoginDateTime).HasColumnName("last_login_date");
                 entity.Property(e => e.LastLoginIpAddress).HasColumnName("last_login_ip");
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-               
+                
                 entity.HasQueryFilter(e => e.IsValid);
             });
 
@@ -1470,15 +1248,11 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_remote_agent_hubs");
 
+                SetDexihHubEntity(entity);
                 entity.Property(e => e.RemoteAgentHubKey).HasColumnName("remote_agent_hub_key");
                 entity.Property(e => e.RemoteAgentKey).HasColumnName("remote_agent_key");
                 entity.Property(e => e.IsDefault).HasColumnName("is_default");
                 entity.Property(e => e.IsAuthorized).HasColumnName("is_authorized");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
                 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihRemoteAgentHubs)
@@ -1498,14 +1272,12 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_hub_users");
 
+                SetDexihBaseEntity(entity);
                 entity.Property(e => e.UserId).HasMaxLength(450);
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Permission).HasColumnName("permission").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<EPermission>());
 
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihHubUsers)
@@ -1524,16 +1296,14 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_hubs");
 
+                SetDexihBaseEntity(entity);
+                
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
                 entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
                 entity.Property(e => e.EncryptionKey).HasColumnName("encryption_key").HasMaxLength(255);
                 entity.Property(e => e.SharedAccess).HasColumnName("shared_access").HasMaxLength(20)
                     .HasConversion(new EnumToStringConverter<ESharedAccess>());
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasQueryFilter(e => e.IsValid);
             });
@@ -1545,17 +1315,11 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_hub_variables");
 
-                entity.Property(e => e.Key).HasColumnName("hub_variable_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
+                SetDexihHubNamedEntity(entity, "hub_variable_key");
                 entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(1024);
                 entity.Property(e => e.IsEncrypted).HasColumnName("is_encrypted");
                 entity.Property(e => e.IsEnvironmentVariable).HasColumnName("is_environment_var");
-
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-
+                
                 entity.HasOne(d => d.Hub)
                       .WithMany(p => p.DexihHubVariables)
                       .HasForeignKey(d => d.HubKey);
@@ -1570,10 +1334,9 @@ namespace dexih.repository
                     .HasName("PK_dexih_issue");
 
                 entity.ToTable("dexih_issues");
+                
+                SetDexihHubNamedEntity(entity, "issue_key");
 
-                entity.Property(e => e.Key).HasColumnName("issue_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").IsFixedLength(false);
                 entity.Property(e => e.Type).HasColumnName("type");
                 entity.Property(e => e.Category).HasColumnName("category");
                 entity.Property(e => e.Severity).HasColumnName("severity");
@@ -1584,10 +1347,6 @@ namespace dexih.repository
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(36);
                 entity.Property(e => e.IssueStatus).HasColumnName("issue_status");
-
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
                 
                 entity.HasQueryFilter(e => e.IsValid);
                 // entity.HasQueryFilter(e => e.HubKey == HubKey);
@@ -1600,15 +1359,12 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_issue_comments");
 
+                SetDexihBaseEntity(entity);
                 entity.Property(e => e.IssueKey).HasColumnName("issue_key");
                 entity.Property(e => e.Key).HasColumnName("issue_comment_key");
                 entity.Property(e => e.Comment).HasColumnName("comment").IsFixedLength(false);
                 entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(36);
-
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-
+                
                 entity.HasOne(d => d.Issue)
                     .WithMany(p => p.DexihIssueComments)
                     .HasForeignKey(d => d.IssueKey)
@@ -1625,41 +1381,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_table_columns");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("column_key");
-
-                entity.Property(e => e.AllowDbNull).HasColumnName("allow_db_null");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
+                SetDexihColumnBase(entity, "column_key");
                 entity.Property(e => e.ColumnValidationKey).HasColumnName("column_validation_key");
-                entity.Property(e => e.DataType).HasColumnName("datatype").HasMaxLength(20)
-                    .HasConversion(new EnumToStringConverter<ETypeCode>());
-                entity.Property(e => e.DeltaType).HasColumnName("delta_type").HasMaxLength(50)
-                    .HasConversion(new EnumToStringConverter<EDeltaType>());
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-                entity.Property(e => e.IsIncrementalUpdate).HasColumnName("is_incremental_update");
-                entity.Property(e => e.IsMandatory).HasColumnName("is_mandatory");
-                entity.Property(e => e.IsUnique).HasColumnName("is_unique");
-
                 entity.Property(e => e.ParentColumnKey).HasColumnName("parent_column_key");
-
-                entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);
-                entity.Property(e => e.ColumnGroup).HasColumnName("column_group").HasMaxLength(250);
-                entity.Property(e => e.DefaultValue).HasColumnName("default_value").HasMaxLength(1024);
-                entity.Property(e => e.IsUnicode).HasColumnName("is_unicode");
-                entity.Property(e => e.MaxLength).HasColumnName("max_length");
-                entity.Property(e => e.Position).HasColumnName("position");
-                entity.Property(e => e.Precision).HasColumnName("precision");
-                entity.Property(e => e.Scale).HasColumnName("scale");
-                entity.Property(e => e.IsInput).HasColumnName("is_input");
-                entity.Property(e => e.Rank).HasColumnName("rank");
-                entity.Property(e => e.SecurityFlag).HasColumnName("security_flag").HasMaxLength(50)
-                    .HasConversion(new EnumToStringConverter<ESecurityFlag>());
-                
                 entity.Property(e => e.TableKey).HasColumnName("table_key");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Table)
                     .WithMany(p => p.DexihTableColumns)
@@ -1691,13 +1416,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_tables");
 
-                entity.Property(e => e.Key).HasColumnName("table_key");
-				entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                SetDexihHubNamedEntity(entity, "table_key");
                 entity.Property(e => e.ConnectionKey).HasColumnName("connection_key");
 
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
                 entity.Property(e => e.Schema).HasColumnName("schema").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1000);
                 entity.Property(e => e.LogicalName).HasColumnName("logical_name").HasMaxLength(250);
                 entity.Property(e => e.BaseTableName).HasColumnName("base_table_name").HasMaxLength(250);
                 entity.Property(e => e.RejectedTableName).HasColumnName("rejected_table_name").HasMaxLength(250);
@@ -1728,10 +1450,6 @@ namespace dexih.repository
                 entity.Property(e => e.SourceConnectionName).HasColumnName("source_connection_name").HasMaxLength(250);
 				entity.Property(e => e.IsShared).HasColumnName("is_shared");
 
-				entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
                 entity.HasOne(d => d.Connection)
                     .WithMany(p => p.DexihTables)
                     .HasForeignKey(d => d.ConnectionKey)
@@ -1759,16 +1477,8 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_tags");
 
-                entity.Property(e => e.Key).HasColumnName("tag_key");
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(50);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
-
+                SetDexihHubNamedEntity(entity, "tag_key");
                 entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(20);
-
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
 
 				entity.HasOne(d => d.Hub)
 					  .WithMany(p => p.DexihTags)
@@ -1785,15 +1495,11 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_tag_objects");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
+                SetDexihHubEntity(entity);
                 entity.Property(e => e.TagKey).HasColumnName("tag_key");
                 entity.Property(e => e.ObjectKey).HasColumnName("object_key");
                 entity.Property(e => e.ObjectType).HasColumnName("object_type");
 
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                
                 entity.HasOne(d => d.DexihTag)
                     .WithMany(p => p.DexihTagObjects)
                     .HasForeignKey(d => d.TagKey)
@@ -1815,8 +1521,7 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_triggers");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("trigger_key");
+                SetDexihHubKeyEntity(entity, "trigger_key");
                 entity.Property(e => e.DatajobKey).HasColumnName("datajob_key");
 
                 entity.Property(e => e.Position).HasColumnName("position");
@@ -1827,10 +1532,6 @@ namespace dexih.repository
                 entity.Property(e => e.DaysOfWeekString).HasColumnName("days_of_week").HasMaxLength(200);
                 entity.Property(e => e.MaxRecurs).HasColumnName("max_recurrs");
                 entity.Property(e => e.CronExpression).HasColumnName("cron_expression").HasMaxLength(500);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-				entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.Datajob)
                     .WithMany(p => p.DexihTriggers)
@@ -1848,17 +1549,13 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_views");
 
-                entity.Property(e => e.Key).HasColumnName("view_key");
-                entity.Property(e => e.HubKey).IsRequired().HasColumnName("hub_key");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description");
+                SetDexihHubNamedEntity(entity, "view_key");
                 entity.Property(e => e.ViewType).IsRequired().HasColumnName("view_type").HasMaxLength(20)
                     .HasConversion(new EnumToStringConverter<EViewType>());
                 entity.Property(e => e.SourceType).IsRequired().HasColumnName("source_type").HasMaxLength(20)
                     .HasConversion(new EnumToStringConverter<EDataObjectType>());
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
-                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(250);
 
                 entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
                 entity.Property(e => e.ChartConfig).HasColumnName("chart_config").HasJsonConversion<ChartConfig>();
@@ -1868,10 +1565,6 @@ namespace dexih.repository
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
 
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-                
                 entity.HasOne(d => d.SourceDatalink)
                     .WithMany(p => p.DexihViews)
                     .HasForeignKey(d => d.SourceDatalinkKey)
@@ -1899,23 +1592,10 @@ namespace dexih.repository
 
                 entity.ToTable("dexih_view_parameter");
 
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("view_parameter_key");
+                SetInputParameterBase(entity, "view_parameter_key");
                 entity.Property(e => e.ViewKey).HasColumnName("view_key");
                 entity.Property(e => e.DatalinkParameterKey).HasColumnName("datalink_parameter_key");
-
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
                 
-                entity.Property(e => e.Value).HasColumnName("value");
-                entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
-                entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");
-                entity.Property(e => e.ValueDesc).HasColumnName("value_desc").HasMaxLength(50);
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
-
                 entity.HasOne(d => d.View)
                     .WithMany(p => p.Parameters)
                     .HasForeignKey(d => d.ViewKey)
@@ -1932,11 +1612,8 @@ namespace dexih.repository
                     .HasName("PK_dexih_list_of_values");
 
                 entity.ToTable("dexih_list_of_values");
-
-                entity.Property(e => e.HubKey).HasColumnName("hub_key");
-                entity.Property(e => e.Key).HasColumnName("list_of_values_key");
-                entity.Property(e => e.Name).IsRequired().HasColumnName("name").HasMaxLength(250);
-                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1024);
+                
+                SetDexihHubNamedEntity(entity, "list_of_values_key");
                 
                 entity.Property(e => e.SourceType).HasColumnName("source_type");
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
@@ -1951,10 +1628,6 @@ namespace dexih.repository
                 entity.Property(e => e.CacheSeconds).HasColumnName("cache_seconds");
 
                 entity.Property(e => e.StaticData).HasColumnName("static_data").HasJsonConversion<ICollection<ListOfValuesItem>>();
-
-                entity.Property(e => e.CreateDate).HasColumnName("create_date");
-                entity.Property(e => e.UpdateDate).HasColumnName("update_date");
-                entity.Property(e => e.IsValid).HasColumnName("is_valid");
 
                 entity.HasOne(d => d.SourceDatalink)
                     .WithMany(p => p.DexihListOfValues)
@@ -1975,13 +1648,8 @@ namespace dexih.repository
                 entity.HasQueryFilter(e => e.IsValid);
                 // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
-            
-           
-                        
         }
         
-
-
         public DbSet<DexihApi> DexihApis { get; set; }
         public DbSet<DexihApiParameter> DexihApiParameters { get; set; }
         public DbSet<DexihColumnValidation> DexihColumnValidations { get; set; }

@@ -11,7 +11,7 @@ using Dexih.Utils.ManagedTasks;
 namespace dexih.repository
 {
     [DataContract]
-    public class DexihTrigger : DexihHubNamedEntity
+    public class DexihTrigger : DexihHubKeyEntity
     {
         [DataMember(Order = 7)]
         [CopyParentCollectionKey]
@@ -102,7 +102,7 @@ namespace dexih.repository
             var daysOfWeek = DaysOfWeek?.ToArray() ?? Enum.GetValues(typeof(EDayOfWeek)).Cast<EDayOfWeek>().ToArray();
             var managedTaskTrigger = new ManagedTaskTrigger()
             {
-                Details =  Description,
+                Details =  Details,
                 EndDate = null,
                 EndTime = EndTime,
                 IntervalTime =  IntervalTime,

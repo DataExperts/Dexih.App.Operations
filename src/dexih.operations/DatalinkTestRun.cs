@@ -165,14 +165,14 @@ namespace dexih.operations
 
                             if (dbDatalinkTargetTable == null)
                             {
-                                throw new DatalinkTestRunException($"The table {target.Name} could not be found.");
+                                throw new DatalinkTestRunException($"The table with key {target.TableKey} could not be found.");
                             }
 
                             var dbDatalinkTargetConnection = _hub.DexihConnections.SingleOrDefault(c => c.IsValid && c.Key == dbDatalinkTargetTable.ConnectionKey);
 
                             if (dbDatalinkTargetConnection == null)
                             {
-                                throw new DatalinkTestRunException($"The connection for the table {target.Name} with the connection key {dbDatalinkTargetTable.Key} could not be found.");
+                                throw new DatalinkTestRunException($"The connection for the table {dbDatalinkTargetTable.Name} with the connection key {dbDatalinkTargetTable.Key} could not be found.");
                             }
                             
                             var targetConnection = dbDatalinkTargetConnection.GetConnection(_transformSettings);

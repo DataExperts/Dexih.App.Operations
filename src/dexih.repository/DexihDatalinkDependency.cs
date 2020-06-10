@@ -7,7 +7,7 @@ using Dexih.Utils.CopyProperties;
 namespace dexih.repository
 {
     [DataContract]
-    public class DexihDatalinkDependency : DexihHubNamedEntity
+    public class DexihDatalinkDependency : DexihHubKeyEntity
     {
         [DataMember(Order = 7)]
         [CopyParentCollectionKey]

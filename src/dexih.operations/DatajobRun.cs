@@ -243,7 +243,7 @@ namespace dexih.operations
 				var inputParameters = new InputParameters();
 				foreach (var parameter in Datajob.Parameters)
 				{
-					inputParameters.Add(new InputParameter() {Name = parameter.Name, Value =  parameter.Value});
+					inputParameters.Add(new InputParameter() {Name = parameter.Name, Value =  parameter.Value, Rank = parameter.Rank});
 				}
 
 				//start all jobs async
@@ -258,7 +258,7 @@ namespace dexih.operations
 
 					foreach(var parameter in step.Parameters)
 					{
-						parameter.Value = inputParameters.SetParameters(parameter.Value);
+						parameter.Value = inputParameters.SetParameters(parameter.Value, parameter.Rank);
 					}
 
 					var transformSettings = new TransformSettings
