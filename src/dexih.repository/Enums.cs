@@ -282,5 +282,21 @@ namespace dexih.repository
         [Description("Closed")]
         Closed,
     }
+
+    public enum EAlertLevel
+    {
+        [Description("No alerting.")]
+        None,
+
+        [Description("Alert on critical failures only.")]
+        Critical,
+
+        [Description("Alert on any errors.")]
+        Errors,
+
+        [Description("Alert on start/stop and errors")]
+        All,
+
+    }
     
 }

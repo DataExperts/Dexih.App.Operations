@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using dexih.operations.Alerts;
 using Dexih.Utils.ManagedTasks;
 using Microsoft.Extensions.Logging;
 using static dexih.transforms.TransformWriterResult;
@@ -34,6 +35,8 @@ namespace dexih.operations
 		private readonly TransformSettings _transformSettings;
         private readonly InputColumn[] _inputColumns;
         private readonly ILogger _logger;
+        private readonly IAlertQueue _alertQueue;
+        private readonly string[] _alertEmails;
         
         public long DatalinkStepKey { get; set; }
         public long ParentAuditKey { get; }
@@ -49,7 +52,7 @@ namespace dexih.operations
             return _taskCompletionSource?.Task;
         }
 
-        public DatalinkRun(TransformSettings transformSettings, ILogger logger, long parentAuditKey, DexihDatalink hubDatalink, DexihHub hub, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions)
+        public DatalinkRun(TransformSettings transformSettings, ILogger logger, long parentAuditKey, DexihDatalink hubDatalink, DexihHub hub, InputColumn[] inputColumns, TransformWriterOptions transformWriterOptions, IAlertQueue alertQueue, string[] alertEmails)
         {
             ParentAuditKey = parentAuditKey;
             _transformSettings = transformSettings;
@@ -58,6 +61,8 @@ namespace dexih.operations
             Datalink = hubDatalink;
             _inputColumns = inputColumns;
             _transformWriterOptions = transformWriterOptions;
+            _alertQueue = alertQueue;
+            _alertEmails = alertEmails;
             
             Connection auditConnection;
 
@@ -268,6 +273,65 @@ namespace dexih.operations
 
         public void Datalink_OnStatusUpdate(TransformWriterResult writer)
         {
+            if (_alertQueue != null && Datalink.AlertLevel != EAlertLevel.None)
+            {
+                switch (writer.RunStatus)
+                {
+                    case ERunStatus.Started:
+                        if (Datalink.AlertLevel == EAlertLevel.All)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+                                Emails = _alertEmails,
+                                Subject = $"Datalink {Datalink.Name} has started.",
+                                Body = $"The datalink {Datalink.Name} started at {DateTime.Now}"
+                            });
+                        }
+
+                        break;
+                    case ERunStatus.Finished:
+                        if (Datalink.AlertLevel == EAlertLevel.All)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+                                Emails = _alertEmails,
+                                Subject = $"Datalink {Datalink.Name} finished successfully.",
+                                Body = $"The datalink {Datalink.Name} finished successfully at {DateTime.Now}"
+                            });
+                        }
+
+                        break;
+                    case ERunStatus.FinishedErrors:
+                        if (Datalink.AlertLevel == EAlertLevel.Errors || Datalink.AlertLevel == EAlertLevel.Critical)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+                                Emails = _alertEmails,
+                                Subject = $"Datalink {Datalink.Name} finished with some errors.",
+                                Body =
+                                    $"The datalink {Datalink.Name} finished with some errors at {DateTime.Now}.\n\n{writer.Message}"
+                            });
+                        }
+
+                        break;
+                    case ERunStatus.Abended:
+                    case ERunStatus.Cancelled:
+                    case ERunStatus.Failed:
+                        if (Datalink.AlertLevel != EAlertLevel.None)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+                                Emails = _alertEmails,
+                                Subject = $"Datalink {Datalink.Name} finished with status {writer.RunStatus}.",
+                                Body =
+                                    $"The datalink {Datalink.Name} finished with status {writer.RunStatus} at {DateTime.Now}.\n\n{writer.Message}"
+                            });
+                        }
+
+                        break;
+                }
+            }
+
             OnStatusUpdate?.Invoke(this, writer);
         }
 

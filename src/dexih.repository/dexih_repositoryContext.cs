@@ -574,6 +574,9 @@ namespace dexih.repository
                 entity.Property(e => e.FileWatch).HasColumnName("file_watch");
                 entity.Property(e => e.AutoStart).HasColumnName("auto_start");
 
+                entity.Property(e => e.AlertLevel).HasColumnName("alert_level").HasMaxLength(20)
+                    .HasConversion(new EnumToStringConverter<EAlertLevel>());
+
                 entity.HasOne(d => d.Hub)
                     .WithMany(p => p.DexihDatajobs)
                     .HasForeignKey(d => d.HubKey)
@@ -1109,7 +1112,10 @@ namespace dexih.repository
                 
                 entity.Property(e => e.ProfileTableName).HasColumnName("profile_table_name");
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
-                
+
+                entity.Property(e => e.AlertLevel).HasColumnName("alert_level").HasMaxLength(20)
+                    .HasConversion(new EnumToStringConverter<EAlertLevel>());
+
                 entity.HasOne(d => d.SourceDatalinkTable)
                     .WithMany(p => p.DexihDatalinkSourceTables)
                     .HasForeignKey(d => d.SourceDatalinkTableKey)
@@ -1277,6 +1283,7 @@ namespace dexih.repository
                 entity.Property(e => e.HubKey).HasColumnName("hub_key");
                 entity.Property(e => e.Permission).HasColumnName("permission").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<EPermission>());
+                entity.Property(e => e.ReceiveAlerts).HasColumnName("receive_alerts");
 
 
                 entity.HasOne(d => d.Hub)

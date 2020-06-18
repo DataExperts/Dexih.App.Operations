@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
+using dexih.operations.Alerts;
 using dexih.repository;
 using dexih.transforms;
 using Dexih.Utils.CopyProperties;
@@ -35,6 +36,8 @@ namespace dexih.operations
         private readonly DexihHub _hub;
         private readonly TransformSettings _transformSettings;
         private readonly TransformWriterOptions _transformWriterOptions;
+        private readonly IAlertQueue _alertQueue;
+        private readonly string[] _alertEmails;
 
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         
@@ -50,7 +53,9 @@ namespace dexih.operations
             ILogger logger, 
             DexihDatalinkTest datalinkTest, 
             DexihHub hub, 
-            TransformWriterOptions transformWriterOptions
+            TransformWriterOptions transformWriterOptions,
+            IAlertQueue alertQueue,
+            string[] alertEmails
             )
         {
             _transformSettings = transformSettings;
@@ -62,6 +67,8 @@ namespace dexih.operations
             // _hub = hub.CloneProperties();
             
             _datalinkTest = datalinkTest;
+            _alertQueue = alertQueue;
+            _alertEmails = alertEmails;
             
             Connection auditConnection;
             
@@ -371,7 +378,7 @@ namespace dexih.operations
                     UpdateProgress(50);
 
                     // run the datalink
-                    var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions);
+                    var datalinkRun = new DatalinkRun(_transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, null, _transformWriterOptions, _alertQueue, _alertEmails);
                     datalinkRun.WriterTarget.WriterResult.AuditType = "DatalinkTestStep";
                     datalinkRun.WriterTarget.WriterResult.ReferenceKey = step.Key;
 

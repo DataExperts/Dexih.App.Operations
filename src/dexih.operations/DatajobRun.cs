@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using dexih.operations.Alerts;
 using static dexih.transforms.TransformWriterResult;
 using dexih.functions.Query;
 using Dexih.Utils.ManagedTasks;
@@ -42,13 +43,17 @@ namespace dexih.operations
 		private readonly TransformSettings _transformSettings;
 		private readonly TransformWriterOptions _transformWriterOptions;
 		private readonly ILogger _logger;
+		private readonly IAlertQueue _alertQueue;
+		private readonly string[] _alertEmails;
 		
 		private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, TransformWriterOptions transformWriterOptions)
+		public DatajobRun(TransformSettings transformSettings, ILogger logger, DexihDatajob datajob, DexihHub hub, TransformWriterOptions transformWriterOptions, IAlertQueue alertQueue, string[] alertEmails)
 		{
 			_transformSettings = transformSettings;
 			_logger = logger;
+			_alertQueue = alertQueue;
+			_alertEmails = alertEmails;
 
 			_transformWriterOptions = transformWriterOptions;
 
@@ -130,6 +135,65 @@ namespace dexih.operations
 
 		public void Datajob_OnStatusUpdate(TransformWriterResult writer)
 		{
+			if (_alertQueue != null && Datajob.AlertLevel != EAlertLevel.None)
+            {
+                switch (writer.RunStatus)
+                {
+                    case ERunStatus.Started:
+                        if (Datajob.AlertLevel == EAlertLevel.All)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+	                            Emails = _alertEmails,
+                                Subject = $"Datajob {Datajob.Name} has started.",
+                                Body = $"The datajob {Datajob.Name} started at {DateTime.Now}"
+                            });
+                        }
+
+                        break;
+                    case ERunStatus.Finished:
+                        if (Datajob.AlertLevel == EAlertLevel.All)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+	                            Emails = _alertEmails,
+                                Subject = $"Datajob {Datajob.Name} finished successfully.",
+                                Body = $"The datajob {Datajob.Name} finished successfully at {DateTime.Now}"
+                            });
+                        }
+
+                        break;
+                    case ERunStatus.FinishedErrors:
+                        if (Datajob.AlertLevel == EAlertLevel.Errors || Datajob.AlertLevel == EAlertLevel.Critical)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+	                            Emails = _alertEmails,
+                                Subject = $"Datajob {Datajob.Name} finished with some errors.",
+                                Body =
+                                    $"The datajob {Datajob.Name} finished with some errors at {DateTime.Now}.\n\n{writer.Message}"
+                            });
+                        }
+
+                        break;
+                    case ERunStatus.Abended:
+                    case ERunStatus.Cancelled:
+                    case ERunStatus.Failed:
+                        if (Datajob.AlertLevel != EAlertLevel.None)
+                        {
+                            _alertQueue.Add(new Alert()
+                            {
+	                            Emails = _alertEmails,
+                                Subject = $"Datajob {Datajob.Name} finished with status {writer.RunStatus}.",
+                                Body =
+                                    $"The datajob {Datajob.Name} finished with status {writer.RunStatus} at {DateTime.Now}.\n\n{writer.Message}"
+                            });
+                        }
+
+                        break;
+                }
+            }
+			            
 			OnDatajobStatusUpdate?.Invoke(writer);
 		}
 
@@ -271,7 +335,7 @@ namespace dexih.operations
 					
 					var inputColumns = step.DexihDatalinkStepColumns.Select(c => c.ToInputColumn()).ToArray();
 					
-					var datalinkRun = new DatalinkRun(transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, inputColumns, _transformWriterOptions) { DatalinkStepKey = step.Key};
+					var datalinkRun = new DatalinkRun(transformSettings, _logger, WriterResult.AuditKey, datalink, _hub, inputColumns, _transformWriterOptions, _alertQueue, _alertEmails) { DatalinkStepKey = step.Key};
 
 					DatalinkSteps.Add(datalinkRun);
 

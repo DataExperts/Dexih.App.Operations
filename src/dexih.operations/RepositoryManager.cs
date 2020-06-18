@@ -1366,7 +1366,8 @@ namespace dexih.operations
 					            FirstName = user.FirstName,
 					            LastName = user.LastName,
 					            Id = hubUser.UserId,
-					            Permission = hubUser.Permission
+					            Permission = hubUser.Permission,
+					            ReceiveAlerts = hubUser.ReceiveAlerts
 				            });
 			            }
 		            }
@@ -1381,6 +1382,22 @@ namespace dexih.operations
                 throw new RepositoryManagerException($"Error getting hub users.  {ex.Message}", ex);
             }
         }
+
+		public async Task<string[]> GetAlertEmails(long hubKey, CancellationToken cancellationToken)
+		{
+			var hubUsers = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && c.ReceiveAlerts && c.IsValid).ToListAsync(cancellationToken: cancellationToken);
+
+			if (hubUsers.Count == 0)
+			{
+				return new string[0];
+			}
+
+			var emails = await DbContext.Users.Where(c => hubUsers.Select(d => d.UserId).Contains(c.Id))
+				.Select(c => c.Email).ToArrayAsync(cancellationToken);
+
+			
+			return emails;
+		}
         
         public async Task<DexihHub> GetUserHub(long hubKey, ApplicationUser user, CancellationToken cancellationToken)
 		{
@@ -1574,6 +1591,26 @@ namespace dexih.operations
             }
         }
 
+        public async Task HubSetUserAlerts(long hubKey, IEnumerable<string> userIds, bool alertEmails, CancellationToken cancellationToken)
+        {
+	        try
+	        {
+		        var usersHub = await DbContext.DexihHubUser.Where(c => c.HubKey == hubKey && userIds.Contains(c.UserId)).ToListAsync(cancellationToken: cancellationToken);
+		        foreach (var userHub in usersHub)
+		        {
+			        userHub.ReceiveAlerts = alertEmails;
+			        await ResetUserCacheAsync(userHub.UserId, cancellationToken);
+			        await DbContext.SaveChangesAsync(cancellationToken);
+		        }
+
+		        await ResetHubPermissions(hubKey, cancellationToken);
+	        }
+	        catch (Exception ex)
+	        {
+		        throw new RepositoryManagerException($"Hub set user alerts failed.  {ex.Message}", ex);
+	        }
+        }
+        
     public async Task HubDeleteUsers(long hubKey, IEnumerable<string> userIds, CancellationToken cancellationToken)
 		{
             try

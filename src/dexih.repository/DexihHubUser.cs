@@ -19,6 +19,9 @@ namespace dexih.repository
 
         [DataMember(Order = 5)]
         public EPermission Permission { get; set; }
+        
+        [DataMember(Order = 6)]
+        public bool ReceiveAlerts { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public virtual DexihHub Hub { get; set; }

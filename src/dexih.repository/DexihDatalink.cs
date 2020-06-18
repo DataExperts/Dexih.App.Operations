@@ -86,13 +86,15 @@ namespace dexih.repository
         [DataMember(Order = 24)]
         public ICollection<DexihDatalinkParameter> Parameters { get; set; }
 
-
         /// <summary>
         /// Reference to the source columns for the datalink.
         /// </summary>
         [DataMember(Order = 25)]
         public DexihDatalinkTable SourceDatalinkTable { get; set; }
 
+        [DataMember(Order = 26)]
+        public EAlertLevel AlertLevel { get; set; }
+        
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
         

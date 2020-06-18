@@ -41,6 +41,8 @@ namespace dexih.repository
         [DataMember(Order = 7)] public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         [DataMember(Order = 8)] public PluginsSection Plugins { get; set; } = new PluginsSection();
+        
+        [DataMember(Order = 9)] public AlertSection Alerts { get; set; } = new AlertSection();
 
         /// <summary>
         /// Indicates if more user input is required.
@@ -843,8 +845,37 @@ namespace dexih.repository
 
         [DataMember(Order = 13)]
         public bool DoUpgrade { get; set; } = false;
+    }
+    
+    public class AlertSection {
 
-//        public List<FunctionReference> Functions { get; set; }
+        [DataMember(Order = 0)]
+        public string SmtpServer { get; set; }
+
+        [DataMember(Order = 1)]
+        public string SmtpUserName { get; set; }
+
+        [DataMember(Order = 2)]
+        public string SmtpPassword { get; set; }
+
+        [DataMember(Order = 3)] 
+        public int SmtpPort { get; set; } = 25;
+
+        [DataMember(Order = 4)] 
+        public bool EnableSsl { get; set; } = true;
+
+        [DataMember(Order = 5)]
+        public string FromEmail { get; set; }
+
+        [DataMember(Order = 6)] 
+        public string[] AdminEmails { get; set; }
+
+        [DataMember(Order = 7)] 
+        public bool AlertOnShutdown { get; set; } = false;
+        
+        [DataMember(Order = 8)] 
+        public bool AlertOnCritical { get; set; } = false;
+
     }
 
 

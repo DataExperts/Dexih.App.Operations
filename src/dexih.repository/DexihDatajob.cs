@@ -52,6 +52,9 @@ namespace dexih.repository
         [DataMember(Order = 13)]
         public ICollection<DexihDatajobParameter> Parameters { get; set; }
 
+        [DataMember(Order = 14)]
+        public EAlertLevel AlertLevel { get; set; }
+
         public override void ResetKeys()
         {
             base.ResetKeys();

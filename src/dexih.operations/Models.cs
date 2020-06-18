@@ -25,6 +25,10 @@ namespace dexih.operations
         
         [DataMember(Order = 4)]
         public EPermission Permission { get; set; }
+
+        [DataMember(Order = 5)]
+        public bool ReceiveAlerts { get; set; }
+
     }
     
     /// <summary>
