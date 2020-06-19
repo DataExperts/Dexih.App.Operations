@@ -157,12 +157,12 @@ namespace dexih.repository
 
                 if (transformSettings.HasVariables())
                 {
-                    connection.ConnectionString = transformSettings.InsertHubVariables(connection.ConnectionString, true);
-                    connection.Server = transformSettings.InsertHubVariables(connection.Server, false);
-                    connection.Password = transformSettings.InsertHubVariables(connection.Password, true);
-                    connection.Username = transformSettings.InsertHubVariables(connection.Username, false);
-                    connection.DefaultDatabase = transformSettings.InsertHubVariables(connection.DefaultDatabase, false);
-                    connection.Filename = transformSettings.InsertHubVariables(connection.Filename, false);
+                    connection.ConnectionString = transformSettings.InsertHubVariables(connection.ConnectionString);
+                    connection.Server = transformSettings.InsertHubVariables(connection.Server);
+                    connection.Password = transformSettings.InsertHubVariables(connection.Password);
+                    connection.Username = transformSettings.InsertHubVariables(connection.Username);
+                    connection.DefaultDatabase = transformSettings.InsertHubVariables(connection.DefaultDatabase);
+                    connection.Filename = transformSettings.InsertHubVariables(connection.Filename);
                 }
 
                 connection.FilePermissions = transformSettings.RemoteSettings.Permissions.GetFilePermissions();

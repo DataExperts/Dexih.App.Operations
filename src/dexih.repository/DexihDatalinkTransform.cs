@@ -189,21 +189,21 @@ namespace dexih.repository
                         
                         
                         if (!string.IsNullOrEmpty(item.SourceValue))
-                            item.SourceValue = transformSettings.InsertHubVariables(item.SourceValue, false);
+                            item.SourceValue = transformSettings.InsertHubVariables(item.SourceValue);
                         if (!string.IsNullOrEmpty(item.SeriesStart))
-                            item.SeriesStart = transformSettings.InsertHubVariables(item.SeriesStart, false);
+                            item.SeriesStart = transformSettings.InsertHubVariables(item.SeriesStart);
                         if (!string.IsNullOrEmpty(item.SeriesFinish))
-                            item.SeriesFinish = transformSettings.InsertHubVariables(item.SeriesFinish, false);
+                            item.SeriesFinish = transformSettings.InsertHubVariables(item.SeriesFinish);
                         
                         foreach (var param in item.DexihFunctionParameters)
                         {
                             if (!string.IsNullOrEmpty(param.Value))
-                                param.Value = transformSettings.InsertHubVariables(param.Value, false);
+                                param.Value = transformSettings.InsertHubVariables(param.Value);
 
                             foreach (var arrayParam in param.ArrayParameters)
                             {
                                 if (!string.IsNullOrEmpty(arrayParam.Value))
-                                    arrayParam.Value = transformSettings.InsertHubVariables(arrayParam.Value, false);
+                                    arrayParam.Value = transformSettings.InsertHubVariables(arrayParam.Value);
                             }
                         }
                     }
@@ -225,12 +225,12 @@ namespace dexih.repository
                             break;
                         case ETransformItemType.JoinPair:
                             var joinOp = item.FilterCompare ?? ECompare.IsEqual;
-                            var joinValue = transformSettings.UpdateHubVariable(item.JoinValue, false, joinOp == ECompare.IsIn ? 1 : 0);
+                            var joinValue = transformSettings.UpdateHubVariable(item.JoinValue, joinOp == ECompare.IsIn ? 1 : 0);
                             mappings.Add(new MapJoin(item.SourceValue, sourceColumn, joinValue, joinColumn, joinOp));
                             break;
                         case ETransformItemType.FilterPair:
                             var op = item.FilterCompare ?? ECompare.IsEqual;
-                            var filterValue = transformSettings.UpdateHubVariable(item.FilterValue, false, op == ECompare.IsIn ? 1 : 0);
+                            var filterValue = transformSettings.UpdateHubVariable(item.FilterValue, op == ECompare.IsIn ? 1 : 0);
                             
                             mappings.Add(new MapFilter()
                             {

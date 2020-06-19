@@ -33,7 +33,7 @@ namespace dexih.repository
             return HubVariables?.Length > 0 || InputParameters?.Length > 0;
         }
 
-        public object UpdateHubVariable(string value, bool allowSecureVariables, int rank)
+        public object UpdateHubVariable(string value, int rank)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
@@ -42,7 +42,7 @@ namespace dexih.repository
             
             if (rank == 0)
             {
-                return InsertHubVariables(value, allowSecureVariables);
+                return InsertHubVariables(value);
             }
 
             if (rank == 1)
@@ -51,7 +51,7 @@ namespace dexih.repository
                 if (trimmed.StartsWith("{") && trimmed.EndsWith("}"))
                 {
                     var name = trimmed.Substring(1, trimmed.Length - 2);
-                    var variableValue = GetVariableValue(name, allowSecureVariables);
+                    var variableValue = GetVariableValue(name);
 
                     if (variableValue != null)
                     {
@@ -123,7 +123,7 @@ namespace dexih.repository
         /// <param name="value">String to replace</param>
         /// <param name="allowSecureVariables">Allow encrypted and environment variables to be used.</param>
         /// <returns></returns>
-        public string InsertHubVariables(string value, bool allowSecureVariables)
+        public string InsertHubVariables(string value)
         {
             if (string.IsNullOrEmpty(value) || ( HubVariables == null || HubVariables.Length == 0) && (InputParameters == null || InputParameters.Length == 0))
             {
@@ -161,7 +161,7 @@ namespace dexih.repository
                 if (openStart >= 0 && character == '}')
                 {
                     var name = value.Substring(openStart + 1, pos - openStart - 1);
-                    var variableValue = GetVariableValue(name, allowSecureVariables);
+                    var variableValue = GetVariableValue(name);
                     
                     if (variableValue != null)
                     {
@@ -190,17 +190,12 @@ namespace dexih.repository
             }
         }
 
-        private object GetVariableValue(string name, bool allowSecureVariables)
+        private object GetVariableValue(string name)
         {
             object variableValue = null;
             var variable = HubVariables?.SingleOrDefault(c => c.IsValid && c.Name == name);
             if (variable != null)
             {
-                if (!allowSecureVariables && (variable.IsEncrypted || variable.IsEnvironmentVariable))
-                {
-                    throw new Exception($"The variable {variable.Name} could not be used as encrypted or environment variables are not available for this parameter.");
-                }
-
                 variableValue = variable.GetValue(RemoteSettings.AppSettings.EncryptionKey,
                     RemoteSettings.SystemSettings.EncryptionIterations);
             }

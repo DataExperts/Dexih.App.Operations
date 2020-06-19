@@ -256,12 +256,12 @@ namespace dexih.repository
                 
 					if (transformSettings.HasVariables())
 					{
-						flatFile.FileIncomingPath = transformSettings.InsertHubVariables(flatFile.FileIncomingPath, false);
-						flatFile.FileMatchPattern = transformSettings.InsertHubVariables(flatFile.FileMatchPattern, false);
-						flatFile.FileOutgoingPath = transformSettings.InsertHubVariables(flatFile.FileOutgoingPath, false);
-						flatFile.FileProcessedPath = transformSettings.InsertHubVariables(flatFile.FileProcessedPath, false);
-						flatFile.FileRejectedPath = transformSettings.InsertHubVariables(flatFile.FileRejectedPath, false);
-						flatFile.FileRootPath = transformSettings.InsertHubVariables(flatFile.FileRootPath, false);
+						flatFile.FileIncomingPath = transformSettings.InsertHubVariables(flatFile.FileIncomingPath);
+						flatFile.FileMatchPattern = transformSettings.InsertHubVariables(flatFile.FileMatchPattern);
+						flatFile.FileOutgoingPath = transformSettings.InsertHubVariables(flatFile.FileOutgoingPath);
+						flatFile.FileProcessedPath = transformSettings.InsertHubVariables(flatFile.FileProcessedPath);
+						flatFile.FileRejectedPath = transformSettings.InsertHubVariables(flatFile.FileRejectedPath);
+						flatFile.FileRootPath = transformSettings.InsertHubVariables(flatFile.FileRootPath);
 					}
 
 					break;
@@ -269,8 +269,8 @@ namespace dexih.repository
                 
 				   if (transformSettings.HasVariables())
 				   {
-					   restFunction.RestfulUri = transformSettings.InsertHubVariables(restFunction.RestfulUri, false);
-					   restFunction.RowPath = transformSettings.InsertHubVariables(restFunction.RowPath, false);
+					   restFunction.RestfulUri = transformSettings.InsertHubVariables(restFunction.RestfulUri);
+					   restFunction.RowPath = transformSettings.InsertHubVariables(restFunction.RowPath);
 				   }
 
 				   break;
