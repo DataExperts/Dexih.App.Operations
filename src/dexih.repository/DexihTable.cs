@@ -214,8 +214,18 @@ namespace dexih.repository
 	        }
 	        else
 	        {
-		        var connectionReference = Connections.GetConnection(connection.GetType());
-		        switch (connectionReference.ConnectionCategory)
+		        EConnectionCategory category;
+		        if (connection is ConnectionFlatFile)
+		        {
+			        category = EConnectionCategory.File;
+		        }
+		        else
+		        {
+			        var connectionReference = Connections.GetConnection(connection.GetType());
+			        category = connectionReference.ConnectionCategory;
+		        }
+		        
+		        switch (category)
 		        {
 			        case EConnectionCategory.File:
 				        table = new FlatFile();

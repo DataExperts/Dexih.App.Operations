@@ -826,6 +826,7 @@ namespace dexih.operations
 	    {
 		    foreach (var fileFormatKey in fileFormatKeys)
 		    {
+			    if(fileFormatKey == 0) {continue;}
 			    var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.Key == fileFormatKey);
 			    if(fileFormat == null)
 			    {
@@ -845,6 +846,7 @@ namespace dexih.operations
 	    {
 		    foreach (var fileFormatKey in fileFormatKeys)
 		    {
+			    if(fileFormatKey == 0) {continue;}
 			    var fileFormat = Hub.DexihFileFormats.SingleOrDefault(c => c.Key == fileFormatKey);
 			    if(fileFormat == null)
 			    {
