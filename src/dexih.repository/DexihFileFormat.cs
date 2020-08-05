@@ -141,10 +141,7 @@ namespace dexih.repository
 
             if (WillThrowOnMissingField)
             {
-                fileFormat.MissingFieldFound = (strings, i, arg3) =>
-                {
-                    throw new RepositoryException($"The field {arg3.Field} was missing");
-                };
+                fileFormat.MissingFieldFound = (strings, i, arg3) => throw new RepositoryException($"The field {arg3.Field} at position {i} was missing.  Set the \"Will Throw on Missing Field\" in the file format off to ignore this.");
             }
 
             this.CopyProperties(fileFormat, false);
