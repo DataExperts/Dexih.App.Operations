@@ -149,7 +149,7 @@ namespace dexih.repository
             return columns;
         }
 
-        public Transform GetTransform(DexihHub hub, GlobalSettings globalSettings, TransformSettings transformSettings, Transform primaryTransform, Transform referenceTransform, DexihTable targetTable, ILogger logger = null)
+        public Transform GetTransform(DexihHub hub, DexihDatalink datalink, GlobalSettings globalSettings, TransformSettings transformSettings, Transform primaryTransform, Transform referenceTransform, DexihTable targetTable, ILogger logger = null)
         {
             try
             {
@@ -172,6 +172,8 @@ namespace dexih.repository
 
                 transform.MaxInputRows = MaxInputRows;
                 transform.MaxOutputRows = MaxOutputRows;
+
+                transform.TableAlias = datalink.SourceDatalinkTableKey.ToString();
 
 				if(JoinDatalinkTable != null)
 				{

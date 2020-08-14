@@ -213,6 +213,7 @@ namespace dexih.operations
             {
                 Transform sourceTransform;
                 Table sourceTable;
+                var referenceTableAlias = hubDatalinkTable.Key.ToString();
                 
                 switch (hubDatalinkTable.SourceType)
                 {
@@ -224,7 +225,6 @@ namespace dexih.operations
                         }
 
                         (sourceTransform, sourceTable) = CreateRunPlan(hub, datalink, inputColumns, null, false, null);
-                        sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
                         break;
                     case ESourceType.Table:
                         if (hubDatalinkTable.SourceTableKey == null)
@@ -246,11 +246,9 @@ namespace dexih.operations
                         }
 
                         var sourceConnection = sourceDbConnection.GetConnection(_transformSettings);
-                        sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings);
+                        sourceTable = sourceDbTable.GetTable(hub, sourceConnection, inputColumns, _transformSettings, referenceTableAlias);
                         if(hubDatalinkTable.DisableVersioning) { sourceTable.IsVersioned = false; }
                         sourceTransform = sourceConnection.GetTransformReader(sourceTable, transformWriterOptions.PreviewMode);
-                        sourceTransform.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
-
                         break;
                     case ESourceType.Rows:
                         var rowCreator = new ReaderRowCreator();
@@ -277,6 +275,8 @@ namespace dexih.operations
                     
                 }
 
+                sourceTransform.ReferenceTableAlias = referenceTableAlias;
+                
                 // compare the table in the transform to the source datalink columns.  If any are missing, add a mapping 
                 // transform to include them.
                 var transformColumns = sourceTransform.CacheTable.Columns;
@@ -401,7 +401,7 @@ namespace dexih.operations
                         referenceTransform = joinTransformResult.sourceTransform;
                     }
                     
-                    var transform = datalinkTransform.GetTransform(hub, transformWriterOptions.GlobalSettings, _transformSettings, primaryTransform, referenceTransform, targetTable, _logger);
+                    var transform = datalinkTransform.GetTransform(hub, hubDatalink, transformWriterOptions.GlobalSettings, _transformSettings, primaryTransform, referenceTransform, targetTable, _logger);
 
                     _logger?.LogTrace($"CreateRunPlan {hubDatalink.Name}, adding transform {datalinkTransform.Name}.  Elapsed: {timer.Elapsed}");
 

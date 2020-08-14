@@ -193,18 +193,18 @@ namespace dexih.repository
 	        }
         }
         
-	    public Table GetTable(DexihHub hub, Connection connection, TransformSettings transformSettings)
+	    public Table GetTable(DexihHub hub, Connection connection, TransformSettings transformSettings, string referenceTableAlias = null)
 	    {
-		    return GetTable(hub, connection, (InputColumn[]) null, transformSettings);
+		    return GetTable(hub, connection, (InputColumn[]) null, transformSettings, referenceTableAlias);
 	    }
 	    
-	    public Table GetTable(DexihHub hub, Connection connection,  IEnumerable<DexihColumnBase> inputColumns, TransformSettings transformSettings)
+	    public Table GetTable(DexihHub hub, Connection connection,  IEnumerable<DexihColumnBase> inputColumns, TransformSettings transformSettings, string referenceTableAlias = null)
 	    {
 		    var inputs = inputColumns.Select(c => c.ToInputColumn()).ToArray();
-		    return GetTable(hub, connection, inputs, transformSettings);
+		    return GetTable(hub, connection, inputs, transformSettings, referenceTableAlias);
 	    }
 
-        public Table GetTable(DexihHub hub, Connection connection, InputColumn[] inputColumns, TransformSettings transformSettings)
+        public Table GetTable(DexihHub hub, Connection connection, InputColumn[] inputColumns, TransformSettings transformSettings, string referenceTableAlias = null)
         {
 	        Table table;
 
@@ -289,7 +289,7 @@ namespace dexih.repository
 
             foreach (var dbColumn in DexihTableColumns.Where(c => c.IsValid && c.DeltaType != EDeltaType.IgnoreField).OrderBy(c => c.Position))
             {
-                table.Columns.Add(dbColumn.GetTableColumn(inputColumns));
+                table.Columns.Add(dbColumn.GetTableColumn(inputColumns, referenceTableAlias));
             }
 	        
 

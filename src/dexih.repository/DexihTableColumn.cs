@@ -47,11 +47,11 @@ namespace dexih.repository
 	    [JsonIgnore, CopyIgnore, IgnoreDataMember]
 	    public ICollection<DexihColumnValidation> DexihColumnValidationLookupColumn { get; set; }
 	    
-	    public TableColumn GetTableColumn(InputColumn[] inputColumns)
+	    public TableColumn GetTableColumn(InputColumn[] inputColumns, string referenceTableAlias = null)
 	    {
 		    var tableColumn = new TableColumn();
 		    this.CopyProperties(tableColumn, true);
-		    tableColumn.ReferenceTable = TableKey.ToString();
+		    tableColumn.ReferenceTable = referenceTableAlias;
 
 		    if (ChildColumns != null && ChildColumns.Count > 0)
 		    {
