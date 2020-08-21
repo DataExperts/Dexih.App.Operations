@@ -1044,6 +1044,9 @@ namespace dexih.repository
                 
                 entity.Property(e => e.NodeDatalinkColumnKey).HasColumnName("node_datalink_column_key");
 
+                entity.Property(e => e.JoinStrategy).HasColumnName("join_strategy").HasMaxLength(50)
+                    .HasConversion(new EnumToStringConverter<EJoinStrategy>());
+
                 entity.Property(e => e.JoinDuplicateStrategy).HasColumnName("join_duplicate_strategy").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<EDuplicateStrategy>());
 

@@ -253,7 +253,7 @@ namespace dexih.operations
                     case ESourceType.Rows:
                         var rowCreator = new ReaderRowCreator();
                         rowCreator.InitializeRowCreator(hubDatalinkTable.RowsStartAt??1, hubDatalinkTable.RowsEndAt??1, hubDatalinkTable.RowsIncrement??1);
-                        rowCreator.ReferenceTableAlias = hubDatalinkTable.Key.ToString();
+                        rowCreator.TableAlias = hubDatalinkTable.Key.ToString();
                         sourceTable = rowCreator.GetTable();
                         sourceTransform = rowCreator;
                         break;
@@ -275,7 +275,7 @@ namespace dexih.operations
                     
                 }
 
-                sourceTransform.ReferenceTableAlias = referenceTableAlias;
+                sourceTransform.TableAlias = referenceTableAlias;
                 
                 // compare the table in the transform to the source datalink columns.  If any are missing, add a mapping 
                 // transform to include them.

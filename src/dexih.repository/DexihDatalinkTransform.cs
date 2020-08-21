@@ -50,40 +50,44 @@ namespace dexih.repository
         [DataMember(Order = 15)]
         public string TransformAssemblyName { get; set; }
 
-        [DataMember(Order = 16)]
-        public EDuplicateStrategy JoinDuplicateStrategy { get; set; }
+        [DataMember(Order = 16)] 
+        public EJoinStrategy JoinStrategy { get; set; } = EJoinStrategy.Auto;
 
-        [DataMember(Order = 17)]
-        public EJoinNotFoundStrategy JoinNotFoundStrategy { get; set; }
+        [DataMember(Order = 17)] 
+        public EDuplicateStrategy JoinDuplicateStrategy { get; set; } = EDuplicateStrategy.All;
 
         [DataMember(Order = 18)]
+        public EJoinNotFoundStrategy JoinNotFoundStrategy { get; set; } = EJoinNotFoundStrategy.Filter;
+
+        [DataMember(Order = 19)]
         [NotMapped]
         public EntityStatus EntityStatus { get; set; }
 
-        [DataMember(Order = 19)]
+        [DataMember(Order = 20)]
         public ICollection<DexihDatalinkTransformItem> DexihDatalinkTransformItems { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatalink Datalink { get; set; }
 
-        [DataMember(Order = 20)]
+        [DataMember(Order = 21)]
         public DexihDatalinkTable JoinDatalinkTable { get; set; }
 
-        [DataMember(Order = 21)]
+        [DataMember(Order = 22)]
         public DexihDatalinkColumn JoinSortDatalinkColumn { get; set; }
 
-        [DataMember(Order = 22)]
+        [DataMember(Order = 23)]
         public DexihDatalinkColumn NodeDatalinkColumn { get; set; }
 
-        [DataMember(Order = 23)]
+        [DataMember(Order = 24)]
         public long MaxInputRows { get; set; } = 0;
 
-        [DataMember(Order = 24)]
+        [DataMember(Order = 25)]
         public long MaxOutputRows { get; set; } = 0;
 
         public override void ResetKeys()
         {
             base.ResetKeys();
+            
             
             JoinDatalinkTable?.ResetKeys();
             JoinSortDatalinkColumn?.ResetKeys();
@@ -175,10 +179,10 @@ namespace dexih.repository
 
                 transform.TableAlias = datalink.SourceDatalinkTableKey.ToString();
 
-				if(JoinDatalinkTable != null)
-				{
-					transform.ReferenceTableAlias = JoinDatalinkTable.Key.ToString();	
-				}
+				// if(JoinDatalinkTable != null)
+				// {
+				// 	transform.TableAlias = JoinDatalinkTable.Key.ToString();	
+				// }
 
                 var mappings = new Mappings(PassThroughColumns);
 
@@ -188,8 +192,6 @@ namespace dexih.repository
 
                     if (transformSettings.HasVariables())
                     {
-                        
-                        
                         if (!string.IsNullOrEmpty(item.SourceValue))
                             item.SourceValue = transformSettings.InsertHubVariables(item.SourceValue);
                         if (!string.IsNullOrEmpty(item.SeriesStart))
@@ -324,6 +326,7 @@ namespace dexih.repository
                 }
 
                 // transform.PassThroughColumns = PassThroughColumns;
+                transform.JoinStrategy = JoinStrategy;
                 transform.JoinDuplicateStrategy = JoinDuplicateStrategy;
                 transform.JoinNotFoundStrategy = JoinNotFoundStrategy;
                 
