@@ -329,12 +329,45 @@ namespace dexih.operations
 				issue.UserId = user.Id;
 				issue.GitHubLink = gitHubLink;
 				
-				DbContext.DexihIssues.Add(issue);
+				await DbContext.DexihIssues.AddAsync(issue, cancellationToken);
 			}
 
 			await DbContext.SaveChangesAsync(cancellationToken);
 
 			return issue;
+		}
+
+		public async Task DeleteIssueAsync(long issueKey, ApplicationUser user, CancellationToken cancellationToken)
+		{
+			var issue = await DbContext.DexihIssues.SingleOrDefaultAsync(c => c.Key == issueKey, cancellationToken);
+
+			if (issue == null)
+			{
+				throw new RepositoryManagerException($"The issue with the key {issueKey} was not found.");
+			}
+			
+			var canDelete = false;
+			if (user.IsAdmin)
+			{
+				canDelete = true;
+			}
+			else
+			{
+				if (issue.UserId == user.Id)
+				{
+					canDelete = true;
+				}
+			}
+
+			if (!canDelete)
+			{
+				throw new RepositoryException("The user cannot delete the issue.  Only the issue originator or an administrator can delete issues.");
+			}
+
+			issue.IsValid = false;
+			issue.UpdateDate = DateTime.Now;
+
+			await DbContext.SaveChangesAsync(cancellationToken);
 		}
 
 		public async Task AddIssueComment(ApplicationUser user, DexihIssueComment issueComment,
@@ -367,7 +400,47 @@ namespace dexih.operations
 				throw new RepositoryException("The user cannot comment on the issue.  Only the issue originator or an administrator can comment.");
 			}
 
-			DbContext.DexihIssueComments.Add(issueComment);
+			await DbContext.DexihIssueComments.AddAsync(issueComment, cancellationToken);
+
+			await DbContext.SaveChangesAsync(cancellationToken);
+		}
+		
+		public async Task DeleteIssueCommentAsync(long commentKey, ApplicationUser user, CancellationToken cancellationToken)
+		{
+			var comment = await DbContext.DexihIssueComments.SingleOrDefaultAsync(c => c.Key == commentKey, cancellationToken);
+			
+			if (comment == null)
+			{
+				throw new RepositoryManagerException($"The comment with the key {commentKey} was not found.");
+			}
+			
+			var issue = await DbContext.DexihIssues.SingleOrDefaultAsync(c => c.Key == comment.IssueKey, cancellationToken);
+
+			if (issue == null)
+			{
+				throw new RepositoryManagerException($"The issue with the key {comment.IssueKey} was not found.");
+			}
+			
+			var canDelete = false;
+			if (user.IsAdmin)
+			{
+				canDelete = true;
+			}
+			else
+			{
+				if (issue.UserId == user.Id)
+				{
+					canDelete = true;
+				}
+			}
+
+			if (!canDelete)
+			{
+				throw new RepositoryException("The user cannot delete the issue comment.  Only the issue originator or an administrator can delete issues or comments.");
+			}
+
+			comment.IsValid = false;
+			comment.UpdateDate = DateTime.Now;
 
 			await DbContext.SaveChangesAsync(cancellationToken);
 		}
