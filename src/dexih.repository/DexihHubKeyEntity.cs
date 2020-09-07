@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
+﻿using System.Runtime.Serialization;
 using Dexih.Utils.CopyProperties;
 
 

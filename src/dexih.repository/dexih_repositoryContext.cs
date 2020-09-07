@@ -2,12 +2,9 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Linq;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using dexih.functions;
-using dexih.functions.Query;
-using dexih.repository.Properties;
 using dexih.transforms;
 using dexih.transforms.Mapping;
 using dexih.transforms.View;
@@ -288,7 +285,7 @@ namespace dexih.repository
                 entity.Property(e => e.AutoStart).HasColumnName("auto_start");
                 entity.Property(e => e.CacheQueries).IsRequired().HasColumnName("cache_queries");
                 entity.Property(e => e.CacheResetInterval).HasColumnName("cache_reset_interval");
-                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion();
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
                 
                 entity.HasOne(d => d.Hub)
@@ -1567,10 +1564,10 @@ namespace dexih.repository
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
 
-                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
-                entity.Property(e => e.ChartConfig).HasColumnName("chart_config").HasJsonConversion<ChartConfig>();
-                entity.Property(e => e.AnimateConfig).HasColumnName("animation_config").HasJsonConversion<AnimateConfig>();
-                entity.Property(e => e.InputValues).HasColumnName("input_values").HasJsonConversion<InputColumn[]>();
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion();
+                entity.Property(e => e.ChartConfig).HasColumnName("chart_config").HasJsonConversion();
+                entity.Property(e => e.AnimateConfig).HasColumnName("animation_config").HasJsonConversion();
+                entity.Property(e => e.InputValues).HasColumnName("input_values").HasJsonConversion();
 
                 entity.Property(e => e.AutoRefresh).HasColumnName("auto_refresh");
                 entity.Property(e => e.IsShared).HasColumnName("is_shared");
@@ -1629,7 +1626,7 @@ namespace dexih.repository
                 entity.Property(e => e.SourceTableKey).HasColumnName("source_table_key");
                 entity.Property(e => e.SourceDatalinkKey).HasColumnName("source_datalink_key");
 
-                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion<SelectQuery>();
+                entity.Property(e => e.SelectQuery).HasColumnName("select_query").HasJsonConversion();
 
                 entity.Property(e => e.KeyColumn).HasColumnName("key_column").HasMaxLength(50);
                 entity.Property(e => e.NameColumn).HasColumnName("name_column").HasMaxLength(50);
@@ -1637,7 +1634,7 @@ namespace dexih.repository
                 entity.Property(e => e.Cache).HasColumnName("cache");
                 entity.Property(e => e.CacheSeconds).HasColumnName("cache_seconds");
 
-                entity.Property(e => e.StaticData).HasColumnName("static_data").HasJsonConversion<ICollection<ListOfValuesItem>>();
+                entity.Property(e => e.StaticData).HasColumnName("static_data").HasJsonConversion();
 
                 entity.HasOne(d => d.SourceDatalink)
                     .WithMany(p => p.DexihListOfValues)

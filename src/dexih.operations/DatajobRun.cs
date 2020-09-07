@@ -86,7 +86,7 @@ namespace dexih.operations
 			{
 				AuditConnection = _auditConnection,
 				AuditConnectionKey = Datajob.AuditConnectionKey ?? 0,
-				AuditType = "Datajob",
+				AuditType = Constants.Datajob,
 				HubKey = _hub.HubKey,
 				ReferenceKey = Datajob.Key,
 				ParentAuditKey = 0,

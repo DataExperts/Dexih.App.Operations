@@ -129,7 +129,7 @@ namespace dexih.operations
             {
                 AuditConnection = auditConnection,
                 AuditConnectionKey = Datalink.AuditConnectionKey ?? 0,
-                AuditType = "Datalink",
+                AuditType = Constants.Datalink,
                 HubKey = _hub.HubKey,
                 ReferenceKey = Datalink.Key,
                 ParentAuditKey = ParentAuditKey,
@@ -239,7 +239,7 @@ namespace dexih.operations
 
             void ProgressUpdate(DatalinkRun datalinkRun2, TransformWriterResult writerResult)
             {
-                if (writerResult.AuditType == "Datalink")
+                if (writerResult.AuditType == Constants.Datalink)
                 {
                     progress.Report(writerResult.PercentageComplete,
                         writerResult.RowsTotal + writerResult.RowsReadPrimary,

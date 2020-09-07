@@ -705,7 +705,7 @@ namespace dexih.operations
 				    }
 				    else
 				    {
-					    Hub.DexihConnections.Add(connection.CloneProperties<DexihConnection>(true));
+					    Hub.DexihConnections.Add(connection.CloneProperties(true));
 				    }
 			    }
 		    }

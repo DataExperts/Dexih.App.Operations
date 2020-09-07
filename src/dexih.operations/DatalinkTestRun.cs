@@ -96,7 +96,7 @@ namespace dexih.operations
             {
                 AuditConnection = auditConnection,
                 AuditConnectionKey = datalinkTest.AuditConnectionKey ?? 0,
-                AuditType = "DatalinkTest",
+                AuditType = Constants.DatalinkTest,
                 HubKey = _hub.HubKey,
                 ReferenceKey = datalinkTest.Key,
                 ParentAuditKey = 0,
@@ -651,7 +651,7 @@ namespace dexih.operations
 
             OnProgressUpdate += ProgressUpdate;
                             
-            await Initialize("DatalinkTest", cancellationToken);
+            await Initialize(Constants.DatalinkTest, cancellationToken);
 
             progress.Report(0, 0, $"Running datalink test {_datalinkTest.Name}...");
 
