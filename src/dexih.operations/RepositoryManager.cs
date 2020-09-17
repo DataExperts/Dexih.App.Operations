@@ -4858,6 +4858,9 @@ namespace dexih.operations
 
 						item.SourceDatalinkColumnKey = DatalinkColumnMapping(item.SourceDatalinkColumn);
 						item.SourceDatalinkColumn = null;
+						
+						item.FilterDatalinkColumnKey = DatalinkColumnMapping(item.FilterDatalinkColumn);
+						item.FilterDatalinkColumn = null;
 
 						if(item.TargetDatalinkColumnKey != null)  item.TargetDatalinkColumnKey = 0;
 						ResetDatalinkColumn(item.TargetDatalinkColumn);
