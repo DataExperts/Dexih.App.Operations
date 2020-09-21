@@ -224,6 +224,7 @@ namespace dexih.repository
                     .HasConversion(new EnumToStringConverter<ESecurityFlag>());
                 entity.Property(e => e.IsInput).HasColumnName("is_input");
                 entity.Property(e => e.Rank).HasColumnName("rank");
+                entity.Property(e => e.Format).HasColumnName("format");
         }
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)

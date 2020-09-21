@@ -65,6 +65,9 @@ namespace dexih.repository
         /// </summary>
         [DataMember(Order = 22)]
         public int Rank { get; set; }
+        
+        [DataMember(Order = 23)]
+        public string Format { get; set; }
 
         public bool IsArray() => Rank > 0;
 
