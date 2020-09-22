@@ -183,8 +183,7 @@ namespace dexih.operations
                 }
                 
                 var connection = dbConnection.GetConnection(TransformSettings);
-                var table = dbTable.GetTable(Cache.Hub, connection, inputColumns,
-                    TransformSettings);
+                var table = dbTable.GetTable(Cache.Hub, connection, inputColumns, TransformSettings);
 
                 if (inputColumns != null)
                 {
@@ -234,7 +233,15 @@ namespace dexih.operations
                 PreviewMode = true,
             };
 
-            var transformManager = new TransformsManager(TransformSettings);
+            var transformSettings = new TransformSettings()
+            {
+                HubVariables = TransformSettings.HubVariables,
+                InputParameters = dbDatalink.Parameters.ToArray(),
+                RemoteSettings = TransformSettings.RemoteSettings,
+                ClientFactory = TransformSettings.ClientFactory
+            };
+
+            var transformManager = new TransformsManager(transformSettings);
             
             //Get the last Transform that will load the target table.
             var runPlan = transformManager.CreateRunPlan(Cache.Hub, dbDatalink,

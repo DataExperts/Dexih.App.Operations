@@ -5155,6 +5155,7 @@ namespace dexih.operations
                         item.Key = 0;
                         item.SourceDatalinkColumn = item.SourceDatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(item.SourceDatalinkColumnKey.Value);
                         item.JoinDatalinkColumn = item.JoinDatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(item.JoinDatalinkColumnKey.Value);
+                        item.FilterDatalinkColumn = item.FilterDatalinkColumnKey == null ? null : datalinkColumns.GetValueOrDefault(item.FilterDatalinkColumnKey.Value);
 
                         if(item.CustomFunctionKey != null)
                         {
