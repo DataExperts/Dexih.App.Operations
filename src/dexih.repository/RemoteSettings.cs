@@ -37,12 +37,13 @@ namespace dexih.repository
 
         [DataMember(Order = 6)] public PermissionsSection Permissions { get; set; } = new PermissionsSection();
 
-
         [DataMember(Order = 7)] public NamingStandards NamingStandards { get; set; } = new NamingStandards();
 
         [DataMember(Order = 8)] public PluginsSection Plugins { get; set; } = new PluginsSection();
         
         [DataMember(Order = 9)] public AlertSection Alerts { get; set; } = new AlertSection();
+        
+        [DataMember(Order = 10)] public CacheSection Cache { get; set; } = new CacheSection();
 
         /// <summary>
         /// Indicates if more user input is required.
@@ -875,6 +876,16 @@ namespace dexih.repository
         
         [DataMember(Order = 8)] 
         public bool AlertOnCritical { get; set; } = false;
+
+    }
+
+    public class CacheSection
+    {
+        [DataMember(Order = 0)] 
+        public bool AllowDataCache { get; set; } = false;
+        
+        [DataMember(Order = 1)]
+        public string DataCachePath { get; set; }
 
     }
 

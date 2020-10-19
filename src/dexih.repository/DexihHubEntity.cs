@@ -20,6 +20,4 @@ namespace dexih.repository
         public DexihHub Hub { get; set; }
         
     }
-    
-  
 }

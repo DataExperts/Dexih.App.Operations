@@ -106,6 +106,14 @@ namespace dexih.operations
                 await dbContext.DexihTableColumns
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
 	                .LoadAsync();
+
+                await dbContext.DexihTableIndexes
+	                .Where(c => c.IsValid && c.HubKey == HubKey)
+	                .LoadAsync();
+
+                await dbContext.DexihTableIndexColumns
+	                .Where(c => c.IsValid && c.HubKey == HubKey)
+	                .LoadAsync();
                 
                 Hub.DexihTables = await dbContext.DexihTables
 	                .Where(c => c.IsValid && c.HubKey == HubKey)
@@ -280,6 +288,7 @@ namespace dexih.operations
         public async Task LoadTableColumns(DexihTable hubTable, DexihRepositoryContext dbContext)
         {
             await dbContext.Entry(hubTable).Collection(a => a.DexihTableColumns).Query().Where(c => c.IsValid && hubTable.Key == c.TableKey).LoadAsync();
+            await dbContext.Entry(hubTable).Collection(a => a.DexihTableIndexes).Query().Where(c => c.IsValid && hubTable.Key == c.TableKey).LoadAsync();
 
             var columnValidationKeys = hubTable.DexihTableColumns.Where(c => c.ColumnValidationKey >= 0).Select(c => (long)c.ColumnValidationKey);
             await AddColumnValidations(columnValidationKeys, dbContext);
@@ -455,12 +464,7 @@ namespace dexih.operations
 				{
 					await AddDatalinks(new[] { hubDatalink.SourceDatalinkTable.SourceDatalinkKey.Value }, dbContext);
 				}
-
-//                if (datalink.TargetTableKey != null)
-//                {
-//                    await AddTables(new[] {(long)datalink.TargetTableKey}, dbContext);
-//                }
-                
+				
                 var tableKeys = hubDatalink.DexihDatalinkTargets.Select(c => c.TableKey);
                 await AddTables(tableKeys, dbContext);
 
@@ -492,6 +496,11 @@ namespace dexih.operations
 					{
 						await AddDatalinks(new[] { datalinkTransform.JoinDatalinkTable.SourceDatalinkKey.Value }, dbContext);
 					}
+                }
+
+                if (datalinkTransform.DataCache)
+                {
+	                await AddConnections(new[] {datalinkTransform.DataCacheConnectionKey}, false, dbContext);
                 }
 
                 await dbContext.Entry(datalinkTransform).Collection(a => a.DexihDatalinkTransformItems).Query().Where(a => a.IsValid && datalinkTransform.Key == a.DatalinkTransformKey).Include(c => c.TargetDatalinkColumn).OrderBy(c=>c.Position).LoadAsync();
@@ -575,6 +584,11 @@ namespace dexih.operations
 					{
 						AddDatalinks(new[] { datalinkTransform.JoinDatalinkTable.SourceDatalinkKey.Value }, hub);
 					}
+                }
+                
+                if (datalinkTransform.DataCache)
+                {
+	                AddConnections(new[] {datalinkTransform.DataCacheConnectionKey}, false, hub);
                 }
 
                 foreach (var item in datalinkTransform.DexihDatalinkTransformItems)
@@ -1369,7 +1383,7 @@ namespace dexih.operations
 		            .Where(c => c.IsValid && c.Datajob.IsValid && c.Datajob.HubKey == HubKey && datajobKeys.Contains(c.DatajobKey))
 		            .ToHashSetAsync();
 
-	            var stepKeys = steps.Select(c => c.Key).ToArray();
+	            var stepKeys = steps.Select(c => c.Key).ToHashSet();
 
 	            await dbContext.DexihDatalinkStepParameters
 		            .Where(c => c.IsValid && c.DatalinkStep.IsValid && c.DatalinkStep.HubKey == HubKey && stepKeys.Contains(c.DatalinkStepKey))
@@ -1400,6 +1414,16 @@ namespace dexih.operations
 					.Where(c => c.IsValid && c.HubKey == HubKey && keys.Contains(c.TableKey.Value))
 					.LoadAsync();
 
+				var indexes = await dbContext.DexihTableIndexes
+					.Where(c => c.IsValid && c.Table.IsValid && c.Table.HubKey == HubKey && keys.Contains(c.TableKey))
+					.ToHashSetAsync();
+
+				var indexKeys = indexes.Select(c => c.Key).ToHashSet();
+				
+				await dbContext.DexihTableIndexColumns
+					.Where(c => c.IsValid && c.HubKey == HubKey && indexKeys.Contains(c.TableIndexKey.Value))
+					.LoadAsync();
+				
 				return tables;
 			}
 			catch (Exception ex)

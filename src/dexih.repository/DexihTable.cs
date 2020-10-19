@@ -20,6 +20,7 @@ namespace dexih.repository
         public DexihTable()
         {
             DexihTableColumns = new HashSet<DexihTableColumn>();
+            DexihTableIndexes = new HashSet<DexihTableIndex>();
             DexihTargetTables = new HashSet<DexihDatalinkTarget>();
             DexihViews = new HashSet<DexihView>();
             EntityStatus = new EntityStatus();
@@ -141,6 +142,8 @@ namespace dexih.repository
         [DataMember(Order = 33)]
         public ICollection<DexihTableColumn> DexihTableColumns { get ; set; }
 
+        [DataMember(Order = 34)]
+        public ICollection<DexihTableIndex> DexihTableIndexes { get ; set; }
         
 		[NotMapped, JsonIgnore, CopyIgnore, IgnoreDataMember]
 		public List<string> OutputSortFields {
@@ -284,13 +287,29 @@ namespace dexih.repository
 
 				   break;
 	        }
-
-
+	        
             foreach (var dbColumn in DexihTableColumns.Where(c => c.IsValid && c.DeltaType != EDeltaType.IgnoreField).OrderBy(c => c.Position))
             {
                 table.Columns.Add(dbColumn.GetTableColumn(inputColumns, referenceTableAlias));
             }
 	        
+            foreach (var dbIndex in DexihTableIndexes.Where(c => c.IsValid))
+            {
+	            table.Indexes.Add(new TableIndex()
+	            {
+					Name = dbIndex.Name,
+					Columns = dbIndex.Columns.Select(ti =>
+					{
+						var column = DexihTableColumns.SingleOrDefault(c => c.Key == ti.ColumnKey);
+						if (column != null)
+						{
+							return new TableIndexColumn(column.Name, ti.Direction);
+						}
+
+						return null;
+					}).Where(c => c != null).ToList()
+	            });
+            }
 
             return table;
         }

@@ -7,6 +7,8 @@ using dexih.transforms;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using System.Transactions;
+using dexih.connections.sql;
 using dexih.functions;
 using dexih.operations;
 using dexih.transforms.Mapping;
@@ -84,6 +86,18 @@ namespace dexih.repository
         [DataMember(Order = 25)]
         public long MaxOutputRows { get; set; } = 0;
 
+        /// <summary>
+        /// Cache data to storage prior to running transform, to reduce high memory usage with sort, group, join queries.
+        /// </summary>
+        [DataMember(Order = 26)] 
+        public bool DataCache { get; set; } = false;
+
+        [DataMember(Order = 26)] 
+        public long DataCacheConnectionKey { get; set; }
+        
+        [JsonIgnore, IgnoreDataMember, CopyReference]
+        public DexihConnection DataCacheConnection { get; set; }
+        
         public override void ResetKeys()
         {
             base.ResetKeys();
@@ -176,7 +190,6 @@ namespace dexih.repository
 
                 transform.MaxInputRows = MaxInputRows;
                 transform.MaxOutputRows = MaxOutputRows;
-
                 transform.TableAlias = datalink.SourceDatalinkTableKey.ToString();
 
 				// if(JoinDatalinkTable != null)
@@ -371,7 +384,37 @@ namespace dexih.repository
                 else
                 {
                     transform.Mappings = mappings;    
-                    transform.SetInTransform(primaryTransform, referenceTransform);
+                    
+                    if (DataCache)
+                    {
+                        var cacheDexihConnection = hub.DexihConnections.SingleOrDefault(c => c.Key == DataCacheConnectionKey && c.IsValid);
+                        if (cacheDexihConnection == null)
+                        {
+                            throw new Exception($"The data cache should not be set as the connection with the key {DataCacheConnectionKey} could not be found.");
+                        }
+
+                        var cacheConnection = cacheDexihConnection.GetConnection(transformSettings);
+                        
+                        if (cacheConnection is ConnectionSql connectionSql)
+                        {
+                            var dataCache = new TransformStorageCache(primaryTransform, connectionSql);
+                            
+                            if (referenceTransform != null)
+                            {
+                                referenceTransform = new TransformStorageCache(referenceTransform, connectionSql);
+                            }
+                            
+                            transform.SetInTransform(dataCache, referenceTransform);
+                        }
+                        else
+                        {
+                            throw new Exception($"The data cache should not be set as the connection {cacheConnection.Name} is not a SQL based connection");
+                        }
+                    }
+                    else
+                    {
+                        transform.SetInTransform(primaryTransform, referenceTransform);    
+                    }
                 }
 
                 logger?.LogTrace($"GetTransform {Name}, finished.  Elapsed: {timer.Elapsed}");

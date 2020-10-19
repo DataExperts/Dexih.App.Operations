@@ -2041,8 +2041,7 @@ namespace dexih.operations
 			var tables = await DeleteTables(hubKey, new[] {tableKey}, cancellationToken);
 			return tables[0];
 		}
-
-
+		
         public async Task<DexihTable[]> DeleteTables(long hubKey, long[] tableKeys, CancellationToken cancellationToken)
 		{
             try

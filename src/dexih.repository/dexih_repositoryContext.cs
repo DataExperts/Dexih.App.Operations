@@ -1056,6 +1056,9 @@ namespace dexih.repository
                 entity.Property(e => e.MaxInputRows).HasColumnName("max_input_rows");
                 entity.Property(e => e.MaxOutputRows).HasColumnName("max_output_rows");
                 
+                entity.Property(e => e.DataCache).HasColumnName("data_cache");
+                entity.Property(e => e.DataCacheConnectionKey).HasColumnName("data_cache_connection_key");
+                
                 entity.HasOne(d => d.Datalink)
                     .WithMany(p => p.DexihDatalinkTransforms)
                     .HasForeignKey(d => d.DatalinkKey)
@@ -1417,6 +1420,46 @@ namespace dexih.repository
 
             });
 
+            modelBuilder.Entity<DexihTableIndex>(entity =>
+            {
+                entity.HasKey(e => e.Key).HasName("PK_dexih_table_indexes");
+                entity.ToTable("dexih_table_indexes");
+
+                SetDexihHubNamedEntity(entity, "table_index_key");
+                
+                entity.Property(e => e.TableKey).HasColumnName("table_key");
+                
+                entity.HasOne(d => d.Table)
+                    .WithMany(p => p.DexihTableIndexes)
+                    .HasForeignKey(d => d.TableKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_table_index_dexih_tables");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
+            });
+            
+            modelBuilder.Entity<DexihTableIndexColumn>(entity =>
+            {
+                entity.HasKey(e => e.Key).HasName("PK_dexih_table_index_columns");
+                entity.ToTable("dexih_table_index_columns");
+
+                SetDexihHubKeyEntity(entity, "table_index_column_key");
+                entity.Property(e => e.ColumnKey).HasColumnName("column_key");
+                entity.Property(e => e.Direction).HasColumnName("direction").HasMaxLength(10)
+                    .HasConversion(new EnumToStringConverter<ESortDirection>());
+                entity.Property(e => e.TableIndexKey).HasColumnName("table_index_key");
+
+                entity.HasOne(d => d.TableIndex)
+                    .WithMany(p => p.Columns)
+                    .HasForeignKey(d => d.TableIndexKey)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_dexih_table_index_columns");
+                
+                entity.HasQueryFilter(e => e.IsValid);
+                // entity.HasQueryFilter(e => e.HubKey == HubKey);
+            });
+            
             modelBuilder.Entity<DexihTable>(entity =>
             {
                 entity.HasKey(e => e.Key)
@@ -1694,6 +1737,8 @@ namespace dexih.repository
         public DbSet<DexihHub> DexihHubs { get; set; }
         public DbSet<DexihHubVariable> DexihHubVariables { get; set; }
         public DbSet<DexihTableColumn> DexihTableColumns { get; set; }
+        public DbSet<DexihTableIndex> DexihTableIndexes { get; set; }
+        public DbSet<DexihTableIndexColumn> DexihTableIndexColumns { get; set; }
         public DbSet<DexihTable> DexihTables { get; set; }
         public DbSet<DexihTrigger> DexihTriggers { get; set; }
         public DbSet<DexihViewParameter> DexihViewParameters { get; set; }
