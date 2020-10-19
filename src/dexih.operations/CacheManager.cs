@@ -498,9 +498,9 @@ namespace dexih.operations
 					}
                 }
 
-                if (datalinkTransform.DataCache)
+                if (datalinkTransform.DataCache && datalinkTransform.DataCacheConnectionKey != null)
                 {
-	                await AddConnections(new[] {datalinkTransform.DataCacheConnectionKey}, false, dbContext);
+	                await AddConnections(new[] {datalinkTransform.DataCacheConnectionKey.Value}, false, dbContext);
                 }
 
                 await dbContext.Entry(datalinkTransform).Collection(a => a.DexihDatalinkTransformItems).Query().Where(a => a.IsValid && datalinkTransform.Key == a.DatalinkTransformKey).Include(c => c.TargetDatalinkColumn).OrderBy(c=>c.Position).LoadAsync();
@@ -586,9 +586,9 @@ namespace dexih.operations
 					}
                 }
                 
-                if (datalinkTransform.DataCache)
+                if (datalinkTransform.DataCache && datalinkTransform.DataCacheConnectionKey != null)
                 {
-	                AddConnections(new[] {datalinkTransform.DataCacheConnectionKey}, false, hub);
+	                AddConnections(new[] {datalinkTransform.DataCacheConnectionKey.Value}, false, hub);
                 }
 
                 foreach (var item in datalinkTransform.DexihDatalinkTransformItems)

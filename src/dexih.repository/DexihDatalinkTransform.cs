@@ -93,7 +93,7 @@ namespace dexih.repository
         public bool DataCache { get; set; } = false;
 
         [DataMember(Order = 26)] 
-        public long DataCacheConnectionKey { get; set; }
+        public long? DataCacheConnectionKey { get; set; }
         
         [JsonIgnore, IgnoreDataMember, CopyReference]
         public DexihConnection DataCacheConnection { get; set; }
