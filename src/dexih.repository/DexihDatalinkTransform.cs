@@ -92,7 +92,7 @@ namespace dexih.repository
         [DataMember(Order = 26)] 
         public bool DataCache { get; set; } = false;
 
-        [DataMember(Order = 26)] 
+        [DataMember(Order = 27)] 
         public long? DataCacheConnectionKey { get; set; }
         
         [JsonIgnore, IgnoreDataMember, CopyReference]
@@ -211,6 +211,8 @@ namespace dexih.repository
                             item.SeriesStart = transformSettings.InsertHubVariables(item.SeriesStart);
                         if (!string.IsNullOrEmpty(item.SeriesFinish))
                             item.SeriesFinish = transformSettings.InsertHubVariables(item.SeriesFinish);
+                        if (!string.IsNullOrEmpty(item.SeriesProject))
+                            item.SeriesProject = transformSettings.InsertHubVariables(item.SeriesProject);
                         
                         foreach (var param in item.DexihFunctionParameters)
                         {
@@ -308,12 +310,24 @@ namespace dexih.repository
                             {
                                 throw new RepositoryException($"The series transform {Name} does not have a series grain specified.");
                             }
+
+                            int seriesProject = 0;
+                            if (!string.IsNullOrEmpty(item.SeriesProject))
+                            {
+                                if (!int.TryParse(item.SeriesProject, out seriesProject))
+                                {
+                                    throw new RepositoryException($"The series transform {Name} requires a numeric value for the series projections.  The current value is {item.SeriesProject}.");                                    
+                                }
+                            }
+
                             mappings.Add(new MapSeries(
                                 sourceColumn, 
-                                item.SeriesGrain??ESeriesGrain.Day, 
+                                item.SeriesGrain??ESeriesGrain.Day,
+                                item.SeriesStep ?? 1,
                                 item.SeriesFill, 
                                 item.SeriesStart, 
-                                item.SeriesFinish));
+                                item.SeriesFinish,
+                                seriesProject));
                             break;
                         case ETransformItemType.JoinNode:
                             if (targetColumn == null)

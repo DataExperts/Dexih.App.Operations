@@ -97,56 +97,62 @@ namespace dexih.repository
         [DataMember(Order = 27)]
         public ESeriesGrain? SeriesGrain { get; set; }
 
-        [DataMember(Order = 28)]
-        public bool SeriesFill { get; set; }
+        [DataMember(Order = 28)] 
+        public int? SeriesStep { get; set; }
 
         [DataMember(Order = 29)]
-        public string SeriesStart { get; set; }
+        public bool SeriesFill { get; set; }
 
         [DataMember(Order = 30)]
-        public string SeriesFinish { get; set; }
+        public string SeriesStart { get; set; }
 
         [DataMember(Order = 31)]
+        public string SeriesFinish { get; set; }
+        
+        [DataMember(Order = 32)]
+        public string SeriesProject { get; set; }
+
+        [DataMember(Order = 33)]
         public string FunctionCode { get; set; }
 
-        [DataMember(Order = 32)]
+        [DataMember(Order = 34)]
         public string FunctionResultCode { get; set; }
 
-        [DataMember(Order = 33)] 
+        [DataMember(Order = 35)] 
         public EErrorAction OnError { get; set; } = EErrorAction.Abend;
 
-        [DataMember(Order = 34)]
+        [DataMember(Order = 36)]
         public EErrorAction OnNull { get; set; } = EErrorAction.Execute;
 
-        [DataMember(Order = 35)]
+        [DataMember(Order = 37)]
         public bool NotCondition { get; set; }
 
-        [DataMember(Order = 36)]
+        [DataMember(Order = 38)]
         public EInvalidAction InvalidAction { get; set; } = EInvalidAction.Abend;
 
-        [DataMember(Order = 37)]
+        [DataMember(Order = 39)]
         [NotMapped, CopyIgnore]
 		public EntityStatus EntityStatus { get; set; }
 
-        [DataMember(Order = 38)]
+        [DataMember(Order = 40)]
         public ICollection<DexihFunctionParameter> DexihFunctionParameters { get; set; }
 
 		[JsonIgnore, CopyIgnore, IgnoreDataMember]
 		public virtual DexihDatalinkTransform Dt { get; set; }
 
-        [DataMember(Order = 39)]
+        [DataMember(Order = 41)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn SourceDatalinkColumn { get; set; }
 
-        [DataMember(Order = 40)]
+        [DataMember(Order = 42)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn TargetDatalinkColumn { get; set; }
 
-        [DataMember(Order = 41)]
+        [DataMember(Order = 43)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn JoinDatalinkColumn { get; set; }
 
-        [DataMember(Order = 42)]
+        [DataMember(Order = 44)]
         // [CopyIgnore]
 		public virtual DexihDatalinkColumn FilterDatalinkColumn { get; set; }
 

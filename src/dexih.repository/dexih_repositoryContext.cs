@@ -959,6 +959,7 @@ namespace dexih.repository
                     .HasConversion(new EnumToStringConverter<ESortDirection>());
                 entity.Property(e => e.SeriesGrain).HasColumnName("series_grain").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<ESeriesGrain>());
+                entity.Property(e => e.SeriesStep).HasColumnName("series_step");
                 entity.Property(e => e.TransformItemType).HasColumnName("transform_item_type").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<ETransformItemType>());
 
@@ -967,6 +968,7 @@ namespace dexih.repository
                 entity.Property(e => e.SeriesFill).HasColumnName("series_fill");
                 entity.Property(e => e.SeriesStart).HasColumnName("series_start").HasMaxLength(40);
                 entity.Property(e => e.SeriesFinish).HasColumnName("series_finish").HasMaxLength(40);
+                entity.Property(e => e.SeriesProject).HasColumnName("series_project").HasMaxLength(40);
                 entity.Property(e => e.SourceDatalinkColumnKey).HasColumnName("source_datalink_column_key");
                 entity.Property(e => e.FunctionClassName).HasColumnName("function_class_name");
                 entity.Property(e => e.FunctionMethodName).HasColumnName("function_method_name");
