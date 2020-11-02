@@ -98,7 +98,7 @@ namespace dexih.repository
         public ESeriesGrain? SeriesGrain { get; set; }
 
         [DataMember(Order = 28)] 
-        public int? SeriesStep { get; set; }
+        public string SeriesStep { get; set; }
 
         [DataMember(Order = 29)]
         public bool SeriesFill { get; set; }

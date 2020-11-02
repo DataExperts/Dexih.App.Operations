@@ -959,7 +959,7 @@ namespace dexih.repository
                     .HasConversion(new EnumToStringConverter<ESortDirection>());
                 entity.Property(e => e.SeriesGrain).HasColumnName("series_grain").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<ESeriesGrain>());
-                entity.Property(e => e.SeriesStep).HasColumnName("series_step");
+                entity.Property(e => e.SeriesStep).HasColumnName("series_step").HasMaxLength(40);
                 entity.Property(e => e.TransformItemType).HasColumnName("transform_item_type").HasMaxLength(50)
                     .HasConversion(new EnumToStringConverter<ETransformItemType>());
 

@@ -213,6 +213,8 @@ namespace dexih.repository
                             item.SeriesFinish = transformSettings.InsertHubVariables(item.SeriesFinish);
                         if (!string.IsNullOrEmpty(item.SeriesProject))
                             item.SeriesProject = transformSettings.InsertHubVariables(item.SeriesProject);
+                        if (!string.IsNullOrEmpty(item.SeriesStep))
+                            item.SeriesStep = transformSettings.InsertHubVariables(item.SeriesProject);
                         
                         foreach (var param in item.DexihFunctionParameters)
                         {
@@ -316,14 +318,23 @@ namespace dexih.repository
                             {
                                 if (!int.TryParse(item.SeriesProject, out seriesProject))
                                 {
-                                    throw new RepositoryException($"The series transform {Name} requires a numeric value for the series projections.  The current value is {item.SeriesProject}.");                                    
+                                    throw new RepositoryException($"The series transform {Name} requires a numeric value or a valid variable for the series projections.  The current value is {item.SeriesProject}.");                                    
+                                }
+                            }
+                            
+                            int seriesStep = 1;
+                            if (!string.IsNullOrEmpty(item.SeriesStep))
+                            {
+                                if (!int.TryParse(item.SeriesStep, out seriesStep))
+                                {
+                                    throw new RepositoryException($"The series transform {Name} requires a numeric value or a valid variable for the series step.  The current value is {item.SeriesProject}.");                                    
                                 }
                             }
 
                             mappings.Add(new MapSeries(
                                 sourceColumn, 
                                 item.SeriesGrain??ESeriesGrain.Day,
-                                item.SeriesStep ?? 1,
+                                seriesStep,
                                 item.SeriesFill, 
                                 item.SeriesStart, 
                                 item.SeriesFinish,
