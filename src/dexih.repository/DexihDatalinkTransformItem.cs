@@ -97,6 +97,9 @@ namespace dexih.repository
         [DataMember(Order = 27)]
         public ESeriesGrain? SeriesGrain { get; set; }
 
+        /// <summary>
+        /// String type is use
+        /// </summary>
         [DataMember(Order = 28)] 
         public string SeriesStep { get; set; }
 

@@ -214,7 +214,7 @@ namespace dexih.repository
                         if (!string.IsNullOrEmpty(item.SeriesProject))
                             item.SeriesProject = transformSettings.InsertHubVariables(item.SeriesProject);
                         if (!string.IsNullOrEmpty(item.SeriesStep))
-                            item.SeriesStep = transformSettings.InsertHubVariables(item.SeriesProject);
+                            item.SeriesStep = transformSettings.InsertHubVariables(item.SeriesStep);
                         
                         foreach (var param in item.DexihFunctionParameters)
                         {
