@@ -3,7 +3,6 @@ using dexih.repository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -16,7 +15,6 @@ using static dexih.functions.TableColumn;
 using Microsoft.Extensions.Logging;
 using Dexih.Utils.CopyProperties;
 using System.Threading;
-using dexih.functions.Query;
 using dexih.operations.Extensions;
 using dexih.transforms;
 using dexih.transforms.Transforms;
@@ -43,7 +41,7 @@ namespace dexih.operations
 		private const string ViewerRole = "VIEWER";
 
 		private const string RemoteAgentProvider = "dexih-remote"; // name of the token provider used to recognise remote agent calls 
-		private readonly Uri GitHubUri = new Uri("https://api.github.com");
+		private readonly Uri _gitHubUri = new Uri("https://api.github.com");
 
 		private readonly ILogger _logger;
 		private readonly UserManager<ApplicationUser> _userManager;
@@ -85,7 +83,7 @@ namespace dexih.operations
 			return _userManager.FindByEmailAsync(email);
 		}
 
-		private async Task AddUserRoleAsync(ApplicationUser user, CancellationToken cancellationToken)
+		private async Task AddUserRoleAsync(ApplicationUser user)
 		{
 			var roles = await _userManager.GetRolesAsync(user);
 			if (roles.Contains(AdministratorRole)) user.UserRole = EUserRole.Administrator;
@@ -110,7 +108,7 @@ namespace dexih.operations
 				}
 			}
 
-			await AddUserRoleAsync(user, cancellationToken);
+			await AddUserRoleAsync(user);
 
 			return user;
 		}
@@ -129,7 +127,7 @@ namespace dexih.operations
 				}
 			}
 
-			await AddUserRoleAsync(user, cancellationToken);
+			await AddUserRoleAsync(user);
 			return user;
 		}
 
@@ -156,7 +154,7 @@ namespace dexih.operations
 			{
 				return null;
 			}
-			await AddUserRoleAsync(user, cancellationToken);
+			await AddUserRoleAsync(user);
 
 			return user;
 		}
@@ -253,7 +251,7 @@ namespace dexih.operations
 			var json = JsonSerializer.Serialize(data);
 			var jsonContent = new StringContent(json, Encoding.UTF8, "application/json");
 
-			var request = new HttpRequestMessage(HttpMethod.Post, new Uri(GitHubUri, uri))
+			var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_gitHubUri, uri))
 			{
 				Content = jsonContent
 			};
@@ -1538,7 +1536,7 @@ namespace dexih.operations
 				}
 
 				DexihHub dbHub;
-				var isNew = false;
+				bool isNew;
 
 				if (hub.HubKey > 0)
 				{
@@ -3490,7 +3488,7 @@ namespace dexih.operations
 				else
 				{
 					function.ResetKeys();
-					dbFunction = function.CloneProperties<DexihCustomFunction>(false);
+					dbFunction = function.CloneProperties(false);
 					DbContext.DexihCustomFunctions.Add(dbFunction);
 				}
 
@@ -4138,17 +4136,17 @@ namespace dexih.operations
 
 	        await SaveHubChangesAsync(hubKey, cancellationToken);
         }
-        
+
         /// <summary>
         /// Updates a TagObject with all the objects for a specified tag key.  Missing tags will be marked invalid.
         /// </summary>
         /// <param name="hubKey"></param>
-        /// <param name="objectKey"></param>
-        /// <param name="objectType"></param>
-        /// <param name="tagKeys"></param>
+        /// <param name="objectKeys"></param>
         /// <param name="cancellationToken"></param>
+        /// <param name="tagKey"></param>
+        /// <param name="isChecked"></param>
         /// <returns></returns>
-        public async Task SaveTagObjects(long hubKey, long tagKey, bool isChecked, ObjectTypeKey[] objectKeys, CancellationToken cancellationToken)
+        public async Task SaveTagObjects(long hubKey, long tagKey, bool isChecked, IEnumerable<ObjectTypeKey> objectKeys, CancellationToken cancellationToken)
         {
 	        var existing = await DbContext.DexihTagObjects
 		        .Where(c => c.HubKey == hubKey && c.TagKey == tagKey)

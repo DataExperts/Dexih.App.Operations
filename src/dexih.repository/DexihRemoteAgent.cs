@@ -10,7 +10,7 @@ using Dexih.Utils.CopyProperties;
 namespace dexih.repository
 {
     [DataContract]
-    public class DexihRemoteAgent : DexihBaseEntity
+    public sealed class DexihRemoteAgent : DexihBaseEntity
     {        
         public DexihRemoteAgent()
         {
@@ -77,6 +77,6 @@ namespace dexih.repository
         public DateTime? LastLoginDateTime { get; set; }
         
         [DataMember(Order = 14)]
-        public virtual ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
+        public ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
     }
 }

@@ -1157,7 +1157,7 @@ namespace dexih.operations
 	    {
 		    foreach (var dashboardItemKey in dashboardItemKeys)
 		    {
-			    var (dashboard, dashboardItem) = Hub.GetDashboardItemFromKey(dashboardItemKey);
+			    var (_, dashboardItem) = Hub.GetDashboardItemFromKey(dashboardItemKey);
 			    if(dashboardItem == null)
 			    {
 				    dashboardItem = await dbContext.DexihDashboardItems.SingleOrDefaultAsync(c => c.HubKey == HubKey && c.Key == dashboardItemKey && c.IsValid);

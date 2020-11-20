@@ -3,7 +3,7 @@ using System;
 
 namespace dexih.operations
 {
-    public class Message : ReturnValue<object>
+    public sealed class Message : ReturnValue<object>
     {
         public string MessageId { get; set; }
         public string SecurityToken { get; set; }

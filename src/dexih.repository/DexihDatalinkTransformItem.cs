@@ -98,7 +98,7 @@ namespace dexih.repository
         public ESeriesGrain? SeriesGrain { get; set; }
 
         /// <summary>
-        /// String type is use
+        /// String type is to allow variables
         /// </summary>
         [DataMember(Order = 28)] 
         public string SeriesStep { get; set; }
@@ -356,7 +356,6 @@ namespace dexih.repository
 							function.ObjectReference = Activator.CreateInstance(mappingFunction);
 							function.FunctionMethod = new TransformMethod(mappingFunction.GetMethod("CustomFunction"));
 							function.ResetMethod = new TransformMethod(mappingFunction.GetMethod("Reset"));
-							
 							function.FunctionType = EFunctionType.Aggregate;
 							// function.ReturnType = ReturnType;
 						}
@@ -364,7 +363,7 @@ namespace dexih.repository
 
 				}
 
-				// if the function has an arrayparamters property then set it.  This give the function access to the 
+				// if the function has an array parameters property then set it.  This give the function access to the 
 				// columns that are used, and is specifically used by the column_to_rows function.
 
 				var parameterArray = (ParameterArray) parameters.Inputs.FirstOrDefault(c => c is ParameterArray);

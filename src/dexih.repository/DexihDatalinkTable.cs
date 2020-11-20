@@ -97,7 +97,7 @@ namespace dexih.repository
 	        }
 	        else
 	        {
-		        table = (Table) sourceTable.CloneProperties(false);
+		        table = sourceTable.CloneProperties(false);
 	        }
 
             if(DisableVersioning)

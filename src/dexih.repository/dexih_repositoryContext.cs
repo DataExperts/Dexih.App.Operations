@@ -164,7 +164,6 @@ namespace dexih.repository
         {
             SetDexihHubNamedEntity(entity, keyName);
 
-            var test = new JsonObjectConverter();
             entity.Property(e => e.Value).HasColumnName("value").HasMaxLength(500).HasJsonConversion();
             entity.Property(e => e.ListOfValuesKey).HasColumnName("list_of_values_key");
             entity.Property(e => e.AllowUserSelect).HasColumnName("allow_user_select");

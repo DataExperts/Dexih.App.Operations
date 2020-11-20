@@ -351,7 +351,7 @@ namespace dexih.operations
 
                 if (maxDatalinkTransformKey == null && 
                     transformWriterOptions.IsEmptyTarget() == false && 
-                    (updateStrategy != EUpdateStrategy.Reload || updateStrategy != EUpdateStrategy.AppendUpdateDelete || updateStrategy != EUpdateStrategy.AppendUpdateDeletePreserve) && 
+                    !(updateStrategy == EUpdateStrategy.Reload || updateStrategy == EUpdateStrategy.AppendUpdateDelete || updateStrategy == EUpdateStrategy.AppendUpdateDeletePreserve) && 
                     incrementalCol != null && 
                     maxIncrementalValue != null && 
                     maxIncrementalValue.ToString() != "")

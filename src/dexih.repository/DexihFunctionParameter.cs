@@ -7,7 +7,7 @@ using Dexih.Utils.CopyProperties;
 namespace dexih.repository
 {
     [DataContract]
-    public class DexihFunctionParameter : DexihFunctionParameterBase
+    public sealed class DexihFunctionParameter : DexihFunctionParameterBase
     {
         public DexihFunctionParameter()
         {
@@ -19,10 +19,10 @@ namespace dexih.repository
 		public long DatalinkTransformItemKey { get; set; }
 
         [DataMember(Order = 19)]
-        public virtual ICollection<DexihFunctionArrayParameter> ArrayParameters { get; set; }
+        public ICollection<DexihFunctionArrayParameter> ArrayParameters { get; set; }
 
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
-        public virtual DexihDatalinkTransformItem DtItem { get; set; }
+        public DexihDatalinkTransformItem DtItem { get; set; }
 
     }
 }

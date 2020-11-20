@@ -11,7 +11,7 @@ using dexih.functions.Query;
 namespace dexih.repository
 {
     [DataContract]
-    public class DexihDatajob : DexihHubNamedEntity
+    public sealed class DexihDatajob : DexihHubNamedEntity
     {
 
         public DexihDatajob()
@@ -41,13 +41,13 @@ namespace dexih.repository
         // public bool ExternalTrigger { get; set; }
 
         [DataMember(Order = 11)]
-        public virtual ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
+        public ICollection<DexihDatalinkStep> DexihDatalinkSteps { get; set; }
 
         [DataMember(Order = 12)]
-        public virtual ICollection<DexihTrigger> DexihTriggers { get; set; }
+        public ICollection<DexihTrigger> DexihTriggers { get; set; }
         
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
-        public virtual DexihConnection AuditConnection { get; set; }
+        public DexihConnection AuditConnection { get; set; }
 
         [DataMember(Order = 13)]
         public ICollection<DexihDatajobParameter> Parameters { get; set; }

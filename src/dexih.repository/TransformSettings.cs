@@ -116,12 +116,11 @@ namespace dexih.repository
 
             return value;
         }
-        
+
         /// <summary>
         /// Replaces variables with actual values
         /// </summary>
         /// <param name="value">String to replace</param>
-        /// <param name="allowSecureVariables">Allow encrypted and environment variables to be used.</param>
         /// <returns></returns>
         public string InsertHubVariables(string value)
         {

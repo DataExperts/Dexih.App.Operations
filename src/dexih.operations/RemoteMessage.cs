@@ -41,7 +41,7 @@ namespace dexih.operations
     }
 
     [DataContract]
-    public class RemoteMessage : ReturnValue<Dictionary<string, object>>
+    public sealed class RemoteMessage : ReturnValue<Dictionary<string, object>>
     {
         public RemoteMessage()
         {
