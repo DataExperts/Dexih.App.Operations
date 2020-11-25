@@ -440,7 +440,7 @@ namespace dexih.operations.tests
 
                 Assert.NotNull(newDatalink);
                 
-                var cacheManager = new CacheManager(dbSourceConnection.HubKey, "abc", _loggerFactory.CreateLogger("test"));
+                var cacheManager = new CacheManager(dbSourceConnection.HubKey, _loggerFactory.CreateLogger("test"));
                 
 
                 var dbDatalink = await cacheManager.GetDatalink(newDatalink.Key, repositoryManager.DbContext);
