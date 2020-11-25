@@ -395,7 +395,7 @@ namespace dexih.operations
 
 		}
 
-		public void Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+		public void Schedule(DateTimeOffset startsAt, CancellationToken cancellationToken = default)
 		{
 			ResetWriterResult();	
 			WriterResult.Schedule(startsAt, cancellationToken);

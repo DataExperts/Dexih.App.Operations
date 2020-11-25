@@ -613,7 +613,7 @@ namespace dexih.operations
 		{
 			var hubReturn = _cacheService.GetOrCreateAsync(CacheKeys.Hub(hubKey), TimeSpan.FromHours(1), async () =>
 			{
-				var cache = new CacheManager(hubKey, "", _logger);
+				var cache = new CacheManager(hubKey, _logger);
 				var hub = await cache.LoadHub(DbContext);
 				return hub;
 			}, cancellationToken);
@@ -1894,7 +1894,7 @@ namespace dexih.operations
 
                 if (includeTables)
                 {
-                    var cache = new CacheManager(dbConnection.HubKey, "", _logger);
+                    var cache = new CacheManager(dbConnection.HubKey,  _logger);
                     await cache.AddConnections(new[] { connectionKey }, true, DbContext);
                     dbConnection = cache.Hub.DexihConnections.First();
                 }
@@ -2350,7 +2350,7 @@ namespace dexih.operations
 					}
 					else
 					{
-						var cacheManager = new CacheManager(hubKey, "", _logger);
+						var cacheManager = new CacheManager(hubKey,  _logger);
 						existingDatalink = await cacheManager.GetDatalink(datalink.Key, DbContext);
 					}
 
@@ -2493,7 +2493,7 @@ namespace dexih.operations
 		{
 			try
 			{
-				var cache = new CacheManager(hubKey, "", _logger);
+				var cache = new CacheManager(hubKey,  _logger);
 				var dbDatalinks = await cache.GetDatalinksAsync(datalinkKeys, DbContext);
 
 				foreach (var dbDatalink in dbDatalinks)
@@ -2546,7 +2546,7 @@ namespace dexih.operations
         {
             try
             {
-	            var cache = new CacheManager(hubKey, "", _logger);
+	            var cache = new CacheManager(hubKey,  _logger);
 	            
 	            switch (objectType)
 	            {
@@ -2830,7 +2830,7 @@ namespace dexih.operations
 					}
 					else
 					{
-						var cacheManager = new CacheManager(hubKey, "", _logger);
+						var cacheManager = new CacheManager(hubKey,  _logger);
 						var originalDatajob = await cacheManager.GetDatajob(datajob.Key, DbContext);
 
 						if(originalDatajob == null)
@@ -3914,7 +3914,7 @@ namespace dexih.operations
                 //if there is a connectionKey, retrieve the record from the database, and copy the properties across.
                 if (datalinkTest.Key > 0)
                 {
-	                var cacheManager = new CacheManager(hubKey, "", _logger);
+	                var cacheManager = new CacheManager(hubKey,  _logger);
 	                dbDatalinkTest = await cacheManager.GetDatalinkTest(datalinkTest.Key, DbContext);
                     if (dbDatalinkTest != null)
                     {

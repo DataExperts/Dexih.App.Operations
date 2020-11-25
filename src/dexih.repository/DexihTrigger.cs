@@ -97,7 +97,7 @@ namespace dexih.repository
         [JsonIgnore, CopyIgnore, IgnoreDataMember]
         public DexihDatajob Datajob { get; set; }
 
-        public ManagedTaskTrigger CreateManagedTaskTrigger()
+        public ManagedTaskTrigger CreateManagedTaskTrigger(string timeZone)
         {
             var daysOfWeek = DaysOfWeek?.ToArray() ?? Enum.GetValues(typeof(EDayOfWeek)).Cast<EDayOfWeek>().ToArray();
             var managedTaskTrigger = new ManagedTaskTrigger()
@@ -113,7 +113,8 @@ namespace dexih.repository
                 StartDate = StartDate,
                 StartTime = StartTime,
                 DaysOfMonth = null,
-                WeeksOfMonth = null
+                WeeksOfMonth = null,
+                TimeZone = timeZone
             };
 
             return managedTaskTrigger;

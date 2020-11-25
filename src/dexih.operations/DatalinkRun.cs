@@ -259,7 +259,7 @@ namespace dexih.operations
             _cancellationTokenSource.Cancel();
         }
 
-        public void Schedule(DateTime startsAt, CancellationToken cancellationToken = default)
+        public void Schedule(DateTimeOffset startsAt, CancellationToken cancellationToken = default)
         {
             
         }

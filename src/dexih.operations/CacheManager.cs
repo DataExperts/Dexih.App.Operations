@@ -46,17 +46,25 @@ namespace dexih.operations
 		{
 		}
 
-        public CacheManager(long hubKey, string cacheEncryptionKey, ILogger logger = null)
+		public CacheManager(long hubKey, ILogger logger = null)
+		{
+			_logger = logger;
+			HubKey = hubKey;
+			Initialize(hubKey, null);
+		}
+
+		
+        public CacheManager(long hubKey, string cacheEncryptionKey, string timeZone = null, ILogger logger = null)
         {
 	        _logger = logger;
             HubKey = hubKey;
             CacheEncryptionKey = cacheEncryptionKey;
-            Initialize(hubKey);
+            Initialize(hubKey, timeZone);
         }
         
-        private void Initialize(long hubKey)
+        private void Initialize(long hubKey, string timeZone)
         {
-            Hub = new DexihHub() { HubKey = hubKey };
+            Hub = new DexihHub() { HubKey = hubKey, TimeZone = timeZone};
 		}
 
         

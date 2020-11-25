@@ -46,56 +46,59 @@ namespace dexih.repository
 
         [DataMember(Order = 7)] 
         public ESharedAccess SharedAccess { get; set; } = ESharedAccess.Public;
-
-        [DataMember(Order = 8)]
-        public ICollection<DexihConnection> DexihConnections { get; set; }
+        
+        [DataMember(Order = 8)] 
+        public string TimeZone { get; set; }
 
         [DataMember(Order = 9)]
-        public ICollection<DexihTable> DexihTables { get; set; }
+        public ICollection<DexihConnection> DexihConnections { get; set; }
 
         [DataMember(Order = 10)]
-        public ICollection<DexihDatajob> DexihDatajobs { get; set; }
+        public ICollection<DexihTable> DexihTables { get; set; }
 
         [DataMember(Order = 11)]
-        public ICollection<DexihDatalink> DexihDatalinks { get; set; }
+        public ICollection<DexihDatajob> DexihDatajobs { get; set; }
 
         [DataMember(Order = 12)]
-        public ICollection<DexihHubUser> DexihHubUsers { get; set; }
+        public ICollection<DexihDatalink> DexihDatalinks { get; set; }
 
         [DataMember(Order = 13)]
-        public ICollection<DexihFileFormat> DexihFileFormats { get; set; }
+        public ICollection<DexihHubUser> DexihHubUsers { get; set; }
 
         [DataMember(Order = 14)]
-        public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
+        public ICollection<DexihFileFormat> DexihFileFormats { get; set; }
 
         [DataMember(Order = 15)]
-        public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
+        public ICollection<DexihHubVariable> DexihHubVariables { get; set; }
 
         [DataMember(Order = 16)]
-        public ICollection<DexihView> DexihViews { get; set; }
+        public ICollection<DexihDatalinkTest> DexihDatalinkTests { get; set; }
 
         [DataMember(Order = 17)]
-        public ICollection<DexihDashboard> DexihDashboards { get; set; }
+        public ICollection<DexihView> DexihViews { get; set; }
 
         [DataMember(Order = 18)]
-        public ICollection<DexihApi> DexihApis { get; set; }
+        public ICollection<DexihDashboard> DexihDashboards { get; set; }
 
         [DataMember(Order = 19)]
-        public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
+        public ICollection<DexihApi> DexihApis { get; set; }
 
         [DataMember(Order = 20)]
-        public ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
+        public ICollection<DexihColumnValidation> DexihColumnValidations { get; set; }
 
         [DataMember(Order = 21)]
+        public ICollection<DexihCustomFunction> DexihCustomFunctions { get; set; }
+
+        [DataMember(Order = 22)]
         public ICollection<DexihRemoteAgentHub> DexihRemoteAgentHubs { get; set; }
         
-        [DataMember(Order = 22)]
+        [DataMember(Order = 23)]
         public ICollection<DexihListOfValues> DexihListOfValues { get; set; }
         
-        [DataMember(Order = 23)]
+        [DataMember(Order = 24)]
         public ICollection<DexihTag> DexihTags { get; set; }
 
-        [DataMember(Order = 24)]
+        [DataMember(Order = 25)]
         public ICollection<DexihTagObject> DexihTagObjects { get; set; }
 
         /// <summary>

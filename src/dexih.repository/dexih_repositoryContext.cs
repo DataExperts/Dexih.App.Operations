@@ -1316,6 +1316,7 @@ namespace dexih.repository
                 entity.Property(e => e.EncryptionKey).HasColumnName("encryption_key").HasMaxLength(255);
                 entity.Property(e => e.SharedAccess).HasColumnName("shared_access").HasMaxLength(20)
                     .HasConversion(new EnumToStringConverter<ESharedAccess>());
+                entity.Property(e => e.TimeZone).HasColumnName("timezone").HasMaxLength(255);
 
                 entity.HasQueryFilter(e => e.IsValid);
             });
