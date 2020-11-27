@@ -623,6 +623,9 @@ $FunctionCode
 			                case ETypeCode.Date:
 				                inputParameters.AppendLine(AddRankValue("DateTime.Now", inputParameter.Rank));
 				                break;
+			                case ETypeCode.DateTimeOffset:
+				                inputParameters.AppendLine(AddRankValue("DateTimeOffset.Now", inputParameter.Rank));
+				                break;
 			                case ETypeCode.Time:
 				                inputParameters.AppendLine(AddRankValue("\"" + TimeSpan.FromDays(1) + "\"", inputParameter.Rank));
 				                break;
