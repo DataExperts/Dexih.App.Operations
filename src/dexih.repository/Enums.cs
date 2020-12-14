@@ -67,13 +67,13 @@ namespace dexih.repository
         [Description("Non-categorized general purpose datalink")]
         General = 1,
 
-        [Description("Staging - loads data into a central/interim database")]
+        [Description("Staging/Ingestion/Landing/Raw load - loads raw data into a central/interim database")]
         Stage,
 
-        [Description("Validate - performs data validation and cleaning")]
+        [Description("Validation/Curated/Conformed load  - performs data validation and cleaning")]
         Validate,
 
-        [Description("Transform - reshapes, aggregates data")]
+        [Description("Transform/Standardize load - reshapes, aggregates data into a standard format")]
         Transform,
 
         [Description("Deliver - prepares data for delivering to a system/database")]
