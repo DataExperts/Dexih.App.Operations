@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using CsvHelper;
 using CsvHelper.Configuration;
 using dexih.transforms.File;
 using Dexih.Utils.CopyProperties;
@@ -92,7 +93,7 @@ namespace dexih.repository
                 Quote = Quote,
                 AllowComments = AllowComments,
                 BufferSize = BufferSize,
-                IgnoreQuotes = IgnoreQuotes,
+                Mode = IgnoreQuotes ? CsvMode.NoEscape : CsvMode.Escape,
                 HasHeaderRecord = HasHeaderRecord,
                 MatchHeaderRecord = MatchHeaderRecord,
                 SkipHeaderRows = SkipHeaderRows,
@@ -104,8 +105,9 @@ namespace dexih.repository
 
             if (IgnoreHeaderWhiteSpace || TrimHeaders)
             {
-                fileFormat.PrepareHeaderForMatch = (header, i) =>
+                fileFormat.PrepareHeaderForMatch = (args) =>
                 {
+                    var header = args.Header;
                     if (string.IsNullOrEmpty(header))
                     {
                         return null;
@@ -120,28 +122,31 @@ namespace dexih.repository
                     {
                         value = value.Trim();
                     }
-                    return Regex.Replace(header, @"\s", string.Empty);
+                    return Regex.Replace(value, @"\s", string.Empty);
                 };
             }
 
             if (IgnoreReadingExceptions)
             {
-                fileFormat.ReadingExceptionOccurred = exception => { return true; };
+                fileFormat.ReadingExceptionOccurred = exception => true;
             }
 
             if (QuoteAllFields)
             {
-                fileFormat.ShouldQuote = (s, context) => true;
+                // fileFormat.ShouldQuote = (s, context) => true;
+                fileFormat.ShouldQuote = (s) => true;
             }
 
             if (QuoteNoFields)
             {
-                fileFormat.ShouldQuote = (s, context) => false;
+                // fileFormat.ShouldQuote = (s, context) => false;
+                fileFormat.ShouldQuote = (s) => false;
             }
 
             if (WillThrowOnMissingField)
             {
-                fileFormat.MissingFieldFound = (strings, i, arg3) => throw new RepositoryException($"The field {arg3.Field} at position {i} was missing.  Set the \"Will Throw on Missing Field\" in the file format off to ignore this.");
+                // fileFormat.MissingFieldFound = (strings, i, arg3) => throw new RepositoryException($"The field {arg3.Field} at position {i} was missing.  Set the \"Will Throw on Missing Field\" in the file format off to ignore this.");
+                fileFormat.MissingFieldFound = (args) => throw new RepositoryException($"The field {args.HeaderNames[args.Index]} at position {args.Index} was missing.  Set the \"Will Throw on Missing Field\" in the file format off to ignore this.");
             }
 
             this.CopyProperties(fileFormat, false);

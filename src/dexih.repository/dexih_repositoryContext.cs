@@ -9,10 +9,11 @@ using dexih.transforms;
 using dexih.transforms.Mapping;
 using dexih.transforms.View;
 using Dexih.Utils.DataType;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.Extensions.Hosting;
 
 
 namespace dexih.repository
@@ -20,13 +21,14 @@ namespace dexih.repository
 	public class DexihRepositoryContext : IdentityDbContext<ApplicationUser>
 	{
 		public EDatabaseType DatabaseType { get; set; }
-        public IHostingEnvironment Environment { get; set; }
+        public IHostEnvironment Environment { get; set; }
         // public long HubKey { get; set; } = 0;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 		{
 #if DEBUG
             optionsBuilder.EnableSensitiveDataLogging(true);
+            optionsBuilder.ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning));
 #endif
         }
 
@@ -1297,7 +1299,7 @@ namespace dexih.repository
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_dexih_user_hub_dexih_hubs");
                 
-                // entity.HasQueryFilter(e => e.IsValid);
+                entity.HasQueryFilter(e => e.IsValid);
                 // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
 
@@ -1563,7 +1565,7 @@ namespace dexih.repository
                     .WithMany(p => p.DexihTagObjects)
                     .HasForeignKey(d => d.HubKey);
                 
-                // entity.HasQueryFilter(e => e.IsValid);
+                entity.HasQueryFilter(e => e.IsValid);
                 // entity.HasQueryFilter(e => e.HubKey == HubKey);
             });
             

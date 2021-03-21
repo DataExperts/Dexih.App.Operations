@@ -656,6 +656,7 @@ namespace dexih.operations
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
 						.Where(c => c.IsValid)
+						.AsSingleQuery()
 						.ToArrayAsync(cancellationToken: cancellationToken);
 					return hubs;
 				}, cancellationToken);
@@ -672,7 +673,9 @@ namespace dexih.operations
 					var hubs = await DbContext.DexihHubs
 						.Include(c => c.DexihHubUsers)
 						.Include(c => c.DexihRemoteAgentHubs)
-						.Where(c => hubKeys.Contains(c.HubKey) && c.IsValid).ToArrayAsync(cancellationToken: cancellationToken);
+						.Where(c => hubKeys.Contains(c.HubKey) && c.IsValid)
+						.AsSingleQuery()
+						.ToArrayAsync(cancellationToken: cancellationToken);
 					return hubs;
 				}, cancellationToken);
 			}
