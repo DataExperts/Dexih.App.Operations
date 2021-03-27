@@ -5321,10 +5321,14 @@ namespace dexih.operations
             
             // set all existing datalink object to invalid.
             var datalinkTransforms = datalinks.Values.SelectMany(c => c.DexihDatalinkTransforms).Select(c=>c.Key);
-			var deletedDatalinkTransforms = DbContext.DexihDatalinkTransforms.Include(c=>c.DexihDatalinkTransformItems).ThenInclude(p=>p.DexihFunctionParameters)
-				.Where(t => t.HubKey == import.HubKey &&
-				datalinks.Values.Select(d => d.Key).Contains(t.DatalinkKey) &&
-				!datalinkTransforms.Contains(t.Key));
+			var deletedDatalinkTransforms = DbContext.DexihDatalinkTransforms
+				.Include(c=>c.DexihDatalinkTransformItems)
+				.ThenInclude(p=>p.DexihFunctionParameters)
+				.Where(t => 
+					t.HubKey == import.HubKey &&
+					datalinks.Values.Select(d => d.Key).Contains(t.DatalinkKey) &&
+					!datalinkTransforms.Contains(t.Key)
+				).AsSingleQuery();
 
 			foreach (var transform in deletedDatalinkTransforms)
 			{
